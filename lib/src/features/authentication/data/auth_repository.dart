@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in/google_sign_in.dart' as gsi;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter/foundation.dart'; // For platform check if needed
@@ -36,7 +36,7 @@ class AuthRepository {
           defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.macOS) {
-        await GoogleSignIn().signOut();
+        await gsi.GoogleSignIn().signOut();
       }
     } catch (_) {
       // Ignore if not signed in with Google or plugin not available
@@ -45,7 +45,8 @@ class AuthRepository {
 
   Future<UserCredential> signInWithGoogle() async {
     // Trigger the authentication flow
-    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+    final gsi.GoogleSignInAccount? googleUser = await gsi.GoogleSignIn()
+        .signIn();
 
     if (googleUser == null) {
       throw FirebaseAuthException(
@@ -55,7 +56,7 @@ class AuthRepository {
     }
 
     // Obtain the auth details from the request
-    final GoogleSignInAuthentication googleAuth =
+    final gsi.GoogleSignInAuthentication googleAuth =
         await googleUser.authentication;
 
     // Create a new credential
