@@ -4,12 +4,10 @@ import {
     addDoc,
     getDocs,
     query,
-    where,
     serverTimestamp,
-    Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Dictionary } from '../types';
+import type { Dictionary } from '../types';
 
 interface DictionaryState {
     dictionaries: Dictionary[];
@@ -19,7 +17,7 @@ interface DictionaryState {
     addDictionary: (userId: string, name: string, sourceLang: string, targetLang: string) => Promise<void>;
 }
 
-export const useDictionaryStore = create<DictionaryState>((set, get) => ({
+export const useDictionaryStore = create<DictionaryState>((set) => ({
     dictionaries: [],
     loading: false,
     error: null,
