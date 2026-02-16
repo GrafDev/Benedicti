@@ -8,6 +8,7 @@ import './App.css';
 
 // Placeholder components for remaining routes
 const Game = () => <div><h1>Game Mode</h1></div>;
+const Profile = () => <div><h1>User Profile</h1></div>;
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
             <Route path="/dictionaries" element={<Dictionaries />} />
             <Route path="/games" element={<Games />} />
             <Route path="/play/:mode/:dictId" element={<Game />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
       </BrowserRouter>
