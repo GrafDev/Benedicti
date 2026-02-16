@@ -36,7 +36,7 @@ class AuthRepository {
           defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.macOS) {
-        await gsi.GoogleSignIn().signOut();
+        await gsi.GoogleSignIn.instance.signOut();
       }
     } catch (_) {
       // Ignore if not signed in with Google or plugin not available
@@ -44,29 +44,42 @@ class AuthRepository {
   }
 
   Future<UserCredential> signInWithGoogle() async {
-    // Trigger the authentication flow
-    final gsi.GoogleSignInAccount? googleUser = await gsi.GoogleSignIn()
-        .signIn();
+    try {
+      // Trigger the authentication flow
+      final gsi.GoogleSignInAccount? googleUser = await gsi
+          .GoogleSignIn
+          .instance
+          .authenticate();
 
-    if (googleUser == null) {
+      if (googleUser == null) {
+        // Should not happen if authenticate() throws on cancel, but handling just in case
+        throw FirebaseAuthException(
+          code: 'ERROR_ABORTED_BY_USER',
+          message: 'Sign in aborted by user',
+        );
+      }
+
+      // Obtain the auth details from the request
+      final gsi.GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a new credential
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: null,
+        idToken: googleAuth.idToken,
+      );
+
+      // Once signed in, return the UserCredential
+      return await _firebaseAuth.signInWithCredential(credential);
+    } catch (e) {
+      // If the user cancels the sign-in flow, the plugin might throw a PlatformException or GoogleSignInException
+      // We should handle cancellation gracefully if possible, but for now treating as error.
+      if (e is FirebaseAuthException) rethrow;
       throw FirebaseAuthException(
-        code: 'ERROR_ABORTED_BY_USER',
-        message: 'Sign in aborted by user',
+        code: 'ERROR_SIGN_IN_FAILED',
+        message: 'Google Sign In failed: $e',
       );
     }
-
-    // Obtain the auth details from the request
-    final gsi.GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-
-    // Create a new credential
-    final OAuthCredential credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    // Once signed in, return the UserCredential
-    return await _firebaseAuth.signInWithCredential(credential);
   }
 
   Future<UserCredential> signInWithApple() async {

@@ -1,11 +1,14 @@
 import 'package:benedict/src/common/widgets/primary_button.dart';
 import 'package:benedict/src/features/authentication/presentation/auth_controller.dart';
 import 'package:benedict/src/features/authentication/presentation/widgets/auth_text_field.dart';
+import 'package:benedict/src/features/authentication/presentation/widgets/social_sign_in_button.dart';
 import 'package:benedict/src/localization/generated/app_localizations.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -91,6 +94,40 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     isLoading: state.isLoading,
                     onPressed: _submit,
                   ),
+                  const Gap(24),
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Or sign up with', // TODO: Localize
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+                  const Gap(24),
+                  SocialSignInButton(
+                    text: 'Sign up with Google', // TODO: Localize
+                    onPressed: () => ref
+                        .read(authControllerProvider.notifier)
+                        .signInWithGoogle(),
+                  ),
+                  const Gap(12),
+                  if (defaultTargetPlatform == TargetPlatform.iOS ||
+                      defaultTargetPlatform == TargetPlatform.macOS)
+                    SignInWithAppleButton(
+                      text: 'Sign up with Apple', // Override text
+                      onPressed: () => ref
+                          .read(authControllerProvider.notifier)
+                          .signInWithApple(),
+                      height: 44,
+                      style: SignInWithAppleButtonStyle.black,
+                    ),
                   const Gap(16),
                   TextButton(
                     onPressed: () => context.go('/login'),
