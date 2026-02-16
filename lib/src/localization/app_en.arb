@@ -1,0 +1,34 @@
+{
+  "appTitle": "BeneDict",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "homeWelcomeTitle": "Welcome to BeneDict",
+  "@homeWelcomeTitle": {
+    "description": "Main welcome title on home screen"
+  },
+  "homeWelcomeSubtitle": "Your personal English learning assistant",
+  "@homeWelcomeSubtitle": {
+    "description": "Subtitle on home screen"
+  },
+  "navDictionaries": "Dictionaries",
+  "@navDictionaries": {
+    "description": "Navigation link to dictionaries"
+  },
+  "navLogin": "Log In",
+  "@navLogin": {
+    "description": "Navigation link to login"
+  },
+  "navRegister": "Sign Up",
+  "@navRegister": {
+    "description": "Navigation link to registration"
+  },
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "Label for English language"
+  },
+  "languageRussian": "Russian",
+  "@languageRussian": {
+    "description": "Label for Russian language"
+  }
+}

@@ -1,0 +1,10 @@
+{
+    "appTitle": "BeneDict",
+    "homeWelcomeTitle": "Добро пожаловать в BeneDict",
+    "homeWelcomeSubtitle": "Ваш личный помощник в изучении английского",
+    "navDictionaries": "Словари",
+    "navLogin": "Войти",
+    "navRegister": "Регистрация",
+    "languageEnglish": "Английский",
+    "languageRussian": "Русский"
+}
