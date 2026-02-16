@@ -1,32 +1,50 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:benedict/src/features/authentication/data/auth_repository.dart';
 import 'package:benedict/src/app.dart';
-import 'package:benedict/src/localization/generated/app_localizations.dart';
-import 'package:benedict/src/routing/app_router.dart';
-import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 
-// Since we can't easily mock Firebase.initializeApp without heavy boilerplate/plugins
-// and our MyApp doesn't actually DEPEND on Firebase being initialized for UI rendering
-// (authentication state comes from Riverpod, which we can override),
-// we will test MyApp by overriding the router and localization if needed,
-// OR just pump MyApp directly since it's a ConsumerWidget.
-//
-// However, MyApp's build method doesn't access Firebase directly.
-// The main() function does, but we are pumping MyApp(), not running main().
-//
-// Issues might arise if GoRouter redirects based on Auth State which depends on Firebase.
-// But currently our GoRouter is simple.
+// Simple mock for AuthRepository
+class MockAuthRepository implements AuthRepository {
+  @override
+  Stream<User?> authStateChanges() {
+    return Stream.value(null); // Emit null (not logged in)
+  }
+
+  @override
+  User? get currentUser => null;
+
+  @override
+  Future<void> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {}
+
+  @override
+  Future<void> createUserWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {}
+
+  @override
+  Future<void> signOut() async {}
+}
 
 void main() {
   testWidgets('App launches and shows Home Screen', (
     WidgetTester tester,
   ) async {
-    // Build our app and trigger a frame.
-    // We wrap in ProviderScope.
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    // Override the authRepositoryProvider to use our mock
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWith((ref) => MockAuthRepository()),
+        ],
+        child: const MyApp(),
+      ),
+    );
 
-    // Wait for localizations to load
+    // Wait for localizations and router
     await tester.pumpAndSettle();
 
     // Verify that our welcome text is present.

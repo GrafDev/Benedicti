@@ -19,7 +19,7 @@ GoRouter goRouter(Ref ref) {
     initialLocation: '/',
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull != null;
+      final isLoggedIn = authState.asData?.value != null;
       final isLoggingIn =
           state.uri.path == '/login' || state.uri.path == '/register';
 
@@ -36,7 +36,7 @@ GoRouter goRouter(Ref ref) {
       return null;
     },
     refreshListenable: GoRouterRefreshStream(
-      ref.watch(authStateProvider.stream),
+      ref.watch(authRepositoryProvider).authStateChanges(),
     ),
     routes: [
       GoRoute(
