@@ -28,6 +28,16 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async {}
+
+  @override
+  Future<UserCredential> signInWithGoogle() async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<UserCredential> signInWithApple() async {
+    throw UnimplementedError();
+  }
 }
 
 void main() {
