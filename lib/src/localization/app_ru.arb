@@ -6,5 +6,12 @@
     "navLogin": "Войти",
     "navRegister": "Регистрация",
     "languageEnglish": "Английский",
-    "languageRussian": "Русский"
+    "languageRussian": "Русский",
+    "emailLabel": "Электронная почта",
+    "passwordLabel": "Пароль",
+    "signInButton": "Войти",
+    "signUpButton": "Зарегистрироваться",
+    "haveAccount": "Уже есть аккаунт? Войти",
+    "needAccount": "Нет аккаунта? Зарегистрироваться",
+    "authErrorGeneric": "Ошибка авторизации"
 }

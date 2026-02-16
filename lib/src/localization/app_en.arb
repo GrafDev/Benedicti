@@ -30,5 +30,33 @@
   "languageRussian": "Russian",
   "@languageRussian": {
     "description": "Label for Russian language"
+  },
+  "emailLabel": "Email",
+  "@emailLabel": {
+    "description": "Label for email input"
+  },
+  "passwordLabel": "Password",
+  "@passwordLabel": {
+    "description": "Label for password input"
+  },
+  "signInButton": "Sign In",
+  "@signInButton": {
+    "description": "Text for sign in button"
+  },
+  "signUpButton": "Sign Up",
+  "@signUpButton": {
+    "description": "Text for sign up button"
+  },
+  "haveAccount": "Already have an account? Sign In",
+  "@haveAccount": {
+    "description": "Text link to switch to sign in"
+  },
+  "needAccount": "Don't have an account? Sign Up",
+  "@needAccount": {
+    "description": "Text link to switch to sign up"
+  },
+  "authErrorGeneric": "Authentication failed",
+  "@authErrorGeneric": {
+    "description": "Generic error message for auth failures"
   }
 }
