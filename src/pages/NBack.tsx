@@ -88,7 +88,7 @@ export default function NBack() {
 
     const SESSION_SIZE = 15;
 
-    const generateOptions = useCallback((correctWord: Word, count: number, distPool: Word[]) => {
+    const generateOptions = useCallback((correctWord: any, count: number, distPool: any[], side: 'original' | 'translation') => {
         const distractors = distPool
             .filter(w => w.id !== correctWord.id)
             .sort(() => Math.random() - 0.5)
@@ -106,9 +106,14 @@ export default function NBack() {
             
             const sharedSnapshot = await get(ref(db, 'shared/dictionaries/dict2500/words'));
             if (sharedSnapshot.exists()) {
-                const sharedPool: Word[] = [];
-                const clean = (text: string) => (text || '').replace(/\[.*?\]/g, '').replace(/;;+/g, ';').trim();
+                console.log('✅ Snapshot exists, items found:', sharedSnapshot.size);
+                const clean = (text: string) => {
+                    if (!text) return '';
+                    let cleaned = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
+                    return cleaned.split(';')[0].trim();
+                };
                 
+                const sharedPool: Word[] = [];
                 sharedSnapshot.forEach(child => {
                     if (!learnedIds[child.key!]) {
                         const data = child.val();
@@ -135,7 +140,11 @@ export default function NBack() {
             return;
         }
 
-        const sessionWords = pool.sort(() => Math.random() - 0.5).slice(0, SESSION_SIZE);
+        // Randomize 15 words and assign a display side (original or translation) to each
+        const sessionWords = pool.sort(() => Math.random() - 0.5).slice(0, SESSION_SIZE).map(w => ({
+            ...w,
+            displaySide: (Math.random() > 0.5 ? 'original' : 'translation') as 'original' | 'translation'
+        }));
         (window as any)._sessionWords = sessionWords;
 
         setSelectedRank(rank);
@@ -154,14 +163,15 @@ export default function NBack() {
             setCurrentIndexInQueue(prev => prev + 1);
         } else {
             setPhase('PLAY');
-            const sessionWords = (window as any)._sessionWords as Word[];
+            const sessionWords = (window as any)._sessionWords as any[];
             const firstGameWord = sessionWords[selectedRank.n];
             
             const newQueue = [...wordQueue, firstGameWord];
             setWordQueue(newQueue);
             
             const targetWord = newQueue[0];
-            setCurrentOptions(generateOptions(targetWord, selectedRank.optionsCount, sessionWords));
+            const answerSide = targetWord.displaySide === 'original' ? 'translation' : 'original';
+            setCurrentOptions(generateOptions(targetWord, selectedRank.optionsCount, sessionWords, answerSide));
             
             gameStartTimeRef.current = Date.now();
             startTimer();
@@ -196,8 +206,9 @@ export default function NBack() {
             const newQueue = [...wordQueue.slice(1), nextWord];
             setWordQueue(newQueue);
             
-            const newTarget = newQueue[0];
-            setCurrentOptions(generateOptions(newTarget, selectedRank.optionsCount, sessionWords));
+            const newTarget = newQueue[0] as any;
+            const answerSide = newTarget.displaySide === 'original' ? 'translation' : 'original';
+            setCurrentOptions(generateOptions(newTarget, selectedRank.optionsCount, sessionWords, answerSide));
         } else {
             setErrorWordId(chosenWord.id);
             setPenaltySeconds(prev => prev + 1);
@@ -268,7 +279,7 @@ export default function NBack() {
                 <div className={styles.memorizeContainer}>
                     <h2 className={styles.royalTitle}>Запомните {currentIndexInQueue + 1}</h2>
                     <div className={styles.wordToRemember}>
-                        {wordQueue[currentIndexInQueue].original}
+                        {(wordQueue[currentIndexInQueue] as any)[(wordQueue[currentIndexInQueue] as any).displaySide]}
                     </div>
                     <div className={styles.progressText} style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 600 }}>
                         Подготовка: {currentIndexInQueue + 1} из {selectedRank.n} слов
@@ -299,24 +310,28 @@ export default function NBack() {
                                 Запомните текущее:
                             </div>
                             <h2 className={styles.wordToRemember} style={{ margin: 0 }}>
-                                {wordQueue[wordQueue.length - 1].original}
+                                {(wordQueue[wordQueue.length - 1] as any)[(wordQueue[wordQueue.length - 1] as any).displaySide]}
                             </h2>
                         </div>
 
                         <div className={styles.gameInstruction}>
-                            Выберите перевод слова, которое было {selectedRank.n} {selectedRank.n === 1 ? 'шаг' : 'шага'} назад:
+                            Выберите перевод того, что было {selectedRank.n} {selectedRank.n === 1 ? 'шаг' : 'шага'} назад:
                         </div>
 
                         <div className={styles.optionsList}>
-                            {currentOptions.map(option => (
-                                <button 
-                                    key={option.id}
-                                    className={`${styles.optionButton} ${errorWordId === option.id ? styles.error : ''}`}
-                                    onClick={() => handleChoice(option)}
-                                >
-                                    {option.translation}
-                                </button>
-                            ))}
+                            {currentOptions.map(option => {
+                                const targetWord = wordQueue[0] as any;
+                                const answerSide = targetWord.displaySide === 'original' ? 'translation' : 'original';
+                                return (
+                                    <button 
+                                        key={option.id}
+                                        className={`${styles.optionButton} ${errorWordId === option.id ? styles.error : ''}`}
+                                        onClick={() => handleChoice(option)}
+                                    >
+                                        {option[answerSide]}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
