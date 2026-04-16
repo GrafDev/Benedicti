@@ -6,6 +6,7 @@ import Games from './pages/Games';
 import Dictionaries from './pages/Dictionaries';
 import DictionaryDetail from './pages/DictionaryDetail';
 import Flashcards from './pages/Flashcards';
+import NBack from './pages/NBack';
 import MigrationManager from './components/MigrationManager';
 import './App.css';
 
@@ -25,6 +26,7 @@ function App() {
             <Route path="/dict/:id" element={<DictionaryDetail />} />
             <Route path="/games" element={<Games />} />
             <Route path="/play/flashcards/:dictId" element={<Flashcards />} />
+            <Route path="/play/nback/:dictId" element={<NBack />} />
             <Route path="/play/:mode/:dictId" element={<div><h1>Other Game Mode</h1></div>} />
             <Route path="/profile" element={<Profile />} />
           </Route>

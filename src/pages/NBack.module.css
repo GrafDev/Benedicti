@@ -1,0 +1,453 @@
+.container {
+    height: 100%;
+    background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
+    color: #f8fafc;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+}
+
+/* Phase: SETUP (Scrollable, Large, Beautiful) */
+.setupContainer {
+    max-width: 1000px;
+    width: 100%;
+    text-align: center;
+    padding-bottom: 2rem;
+}
+
+.royalTitle {
+    font-size: clamp(2rem, 8vw, 3.5rem);
+    font-weight: 900;
+    margin-bottom: 2.5rem;
+    background: linear-gradient(to bottom, #fde047 0%, #d4af37 50%, #a16207 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+}
+
+.rankGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.rankCard {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 1.5rem;
+    padding: 2rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    text-align: center;
+}
+
+.rankCard:hover {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: #d4af37;
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+}
+
+.rankIcon {
+    color: #fde047;
+    margin-bottom: 0.5rem;
+}
+
+.rankName {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.rankDetails {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Phase: MEMORIZE (Centered, Large) */
+.memorizeContainer {
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 2rem;
+}
+
+/* Phase: GAME (Within Main, No Scroll) */
+.playPhaseContainer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.gameArea {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 500px;
+    height: 100%;
+    justify-content: space-evenly;
+}
+
+.gameHeader {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    margin-bottom: 1rem;
+}
+
+.timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #fbbf24;
+    text-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+}
+
+.score {
+    font-size: 1.25rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.currentWordBox {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    width: 100%;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+    flex-shrink: 1;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.wordToRemember {
+    font-size: clamp(2rem, 10vh, 4rem);
+    font-weight: 800;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.gameInstruction {
+    color: #fbbf24;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    margin: 0.75rem 0;
+    flex-shrink: 0;
+}
+
+.optionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    flex-grow: 1;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.optionButton {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid #334155;
+    color: #f1f5f9;
+    padding: 0.75rem;
+    height: 100%;
+    max-height: 52px;
+    min-height: 38px;
+    border-radius: 0.85rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 1;
+}
+
+.optionButton:hover {
+    border-color: #d4af37;
+    background: #334155;
+    transform: scale(1.02);
+}
+
+.optionButton.error {
+    background: #991b1b;
+    border-color: #ef4444;
+    animation: shake 0.4s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Phase: GAMEOVER (Royal Document Style) */
+.gameOverContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 450px;
+    padding: 1.5rem;
+    animation: fadeInScale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fadeInScale {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.dictSelector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+    width: 100%;
+    position: relative;
+    z-index: 10;
+}
+
+.selectorHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(253, 224, 71, 0.2);
+    padding: 0.6rem 1.5rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.selectorHeader:hover {
+    background: rgba(253, 224, 71, 0.1);
+    border-color: #fbbf24;
+}
+
+.selectorLabel {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+}
+
+.activeDictName {
+    color: #fbbf24;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.chevron {
+    color: #94a3b8;
+    transition: transform 0.3s ease;
+}
+
+.chevron.open {
+    transform: rotate(180deg);
+    color: #fbbf24;
+}
+
+.dictOptions {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    max-width: 90%;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.dictTab {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    padding: 0.5rem 1.25rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.dictTab:hover {
+    background: rgba(212, 175, 55, 0.2);
+    color: #fff;
+    border-color: #d4af37;
+}
+
+.activeTab {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
+    color: #fbbf24;
+}
+
+.finalRankBadge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+
+.finalRank {
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    background: linear-gradient(to bottom, #fde047 0%, #d4af37 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+}
+
+.resultsGrid {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 2rem;
+    padding: 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.resultItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #94a3b8;
+    font-size: 1.1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.resultItem strong {
+    color: #f8fafc;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.totalResult {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    text-align: center;
+}
+
+.totalResult span {
+    color: #fbbf24;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.3em;
+}
+
+.totalResult strong {
+    font-size: 4rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+    line-height: 1;
+}
+
+.royalButton {
+    background: linear-gradient(to bottom, #fde047, #d4af37, #a16207);
+    color: #000;
+    border: none;
+    padding: 1.25rem 3.5rem;
+    border-radius: 9999px;
+    font-weight: 900;
+    font-size: 1.25rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    box-shadow: 0 10px 30px rgba(161, 98, 7, 0.5);
+    width: 100%;
+}
+
+.royalButton:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(161, 98, 7, 0.6);
+}
+
+.backButton {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #64748b;
+    padding: 0.85rem;
+    border-radius: 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.backButton:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 640px) {
+    .royalTitle { font-size: 2rem; }
+    .wordToRemember { font-size: 2.25rem; }
+    .timer { font-size: 2rem; }
+    .rankGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-height: 750px) {
+    .gameHeader { margin-bottom: 0.5rem; }
+    .timer { font-size: 1.8rem; }
+    .currentWordBox { padding: 1rem; min-height: 80px; }
+    .optionsList { gap: 0.25rem; }
+    .optionButton { font-size: 0.95rem; padding: 0.5rem; }
+}

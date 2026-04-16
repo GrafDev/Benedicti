@@ -253,6 +253,8 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
             
             if (snapshot.exists()) {
                 console.log('✅ Snapshot exists, items found:', snapshot.size);
+                const clean = (text: string) => (text || '').replace(/\[.*?\]/g, '').replace(/;;+/g, ';').trim();
+
                 snapshot.forEach((child) => {
                     // Skip if marked as learned by THIS user
                     if (learnedIds[child.key!]) return;
@@ -261,8 +263,8 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
                     words_list.push({
                         id: child.key!,
                         dictionaryId: 'default', // Special ID
-                        original: data.original,
-                        translation: data.translation,
+                        original: clean(data.original),
+                        translation: clean(data.translation),
                         box: 0,
                         nextReview: Date.now(),
                         createdAt: Date.now(),
