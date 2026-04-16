@@ -1,0 +1,227 @@
+.pageContainer {
+    padding: 1.5rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-size: 1.875rem;
+    /* 3xl */
+    font-weight: bold;
+}
+
+.createButton {
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.createButton:hover {
+    background-color: #1d4ed8;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.cardLink {
+    display: block;
+    text-decoration: none;
+}
+
+.card {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+}
+
+.card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-color: #60a5fa;
+    /* blue-400 */
+}
+
+.cardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.iconWrapper {
+    background-color: #dbeafe;
+    /* blue-100 */
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    color: #2563eb;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.card:hover .iconWrapper {
+    background-color: #2563eb;
+    color: white;
+}
+
+.langBadge {
+    font-size: 0.75rem;
+    /* xs */
+    font-weight: 600;
+    background-color: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    color: #4b5563;
+}
+
+.cardTitle {
+    font-size: 1.25rem;
+    /* xl */
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    color: #111827;
+    transition: color 0.2s;
+}
+
+.card:hover .cardTitle {
+    color: #2563eb;
+}
+
+.cardSubtitle {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+.emptyState {
+    border: 2px dashed #d1d5db;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    cursor: pointer;
+    background: none;
+    min-height: 200px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.emptyState:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.emptyStateIcon {
+    margin-bottom: 0.5rem;
+}
+
+.emptyStateText {
+    font-weight: 500;
+}
+
+/* Modal Styles Reuse AuthModal structure but scoped here */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+}
+
+.modalContent {
+    background-color: white;
+    border-radius: 0.75rem;
+    width: 100%;
+    max-width: 28rem;
+    padding: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modalTitle {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.formGroup {
+    margin-bottom: 1rem;
+}
+
+.label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.input,
+.select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    outline: none;
+}
+
+.input:focus,
+.select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.select {
+    background-color: white;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.cancelButton {
+    padding: 0.5rem 1rem;
+    color: #4b5563;
+    background: none;
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.cancelButton:hover {
+    background-color: #f3f4f6;
+}

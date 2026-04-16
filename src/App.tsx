@@ -4,6 +4,9 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Games from './pages/Games';
 import Dictionaries from './pages/Dictionaries';
+import DictionaryDetail from './pages/DictionaryDetail';
+import Flashcards from './pages/Flashcards';
+import MigrationManager from './components/MigrationManager';
 import './App.css';
 
 // Placeholder components for remaining routes
@@ -13,13 +16,16 @@ const Profile = () => <div><h1>User Profile</h1></div>;
 function App() {
   return (
     <AuthProvider>
+      <MigrationManager />
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/dictionaries" element={<Dictionaries />} />
+            <Route path="/dict/:id" element={<DictionaryDetail />} />
             <Route path="/games" element={<Games />} />
-            <Route path="/play/:mode/:dictId" element={<Game />} />
+            <Route path="/play/flashcards/:dictId" element={<Flashcards />} />
+            <Route path="/play/:mode/:dictId" element={<div><h1>Other Game Mode</h1></div>} />
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>

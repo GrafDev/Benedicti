@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { X, Mail, Apple } from 'lucide-react';
+import { X, Mail } from 'lucide-react';
+import styles from './AuthModal.module.css';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -12,9 +13,30 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const { signInWithGoogle, signInWithApple, loginWithEmail, signupWithEmail } = useAuth();
+    const { signInWithGoogle, loginWithEmail, signupWithEmail } = useAuth();
 
     if (!isOpen) return null;
+
+    const getErrorMessage = (error: any) => {
+        switch (error.code) {
+            case 'auth/invalid-credential':
+                return 'Incorrect email or password.';
+            case 'auth/user-not-found':
+                return 'No account found with this email.';
+            case 'auth/wrong-password':
+                return 'Incorrect password.';
+            case 'auth/email-already-in-use':
+                return 'This email is already registered.';
+            case 'auth/weak-password':
+                return 'Password should be at least 6 characters.';
+            case 'auth/network-request-failed':
+                return 'Network error. Check your connection.';
+            case 'auth/popup-closed-by-user':
+                return 'Sign in cancelled.';
+            default:
+                return error.message;
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,7 +49,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             }
             onClose();
         } catch (err: any) {
-            setError('Failed to ' + (isLogin ? 'login' : 'sign up') + ': ' + err.message);
+            setError(getErrorMessage(err));
         }
     };
 
@@ -36,89 +58,73 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             await signInWithGoogle();
             onClose();
         } catch (err: any) {
-            setError('Failed to sign in with Google: ' + err.message);
-        }
-    };
-
-    const handleAppleSignIn = async () => {
-        try {
-            await signInWithApple();
-            onClose();
-        } catch (err: any) {
-            setError('Failed to sign in with Apple: ' + err.message);
+            setError(getErrorMessage(err));
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md p-6 relative shadow-xl">
+        <div className={styles.overlay}>
+            <div className={styles.modal}>
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                    className={styles.closeButton}
                 >
                     <X size={24} />
                 </button>
 
-                <h2 className="text-2xl font-bold mb-6 text-center">
+                <h2 className={styles.title}>
                     {isLogin ? 'Welcome Back' : 'Create Account'}
                 </h2>
 
                 {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
+                    <div className={styles.error}>
                         {error}
                     </div>
                 )}
 
-                <div className="space-y-3 mb-6">
+                <div className={styles.socialButtons}>
                     <button
                         onClick={handleGoogleSignIn}
-                        className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg py-2.5 hover:bg-gray-50 transition-colors font-medium"
+                        className={styles.socialButton}
                     >
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" className={styles.googleIcon} alt="Google" />
                         Continue with Google
                     </button>
-                    <button
-                        onClick={handleAppleSignIn}
-                        className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg py-2.5 hover:bg-gray-50 transition-colors font-medium"
-                    >
-                        <Apple size={20} />
-                        Continue with Apple
-                    </button>
                 </div>
 
-                <div className="relative mb-6">
-                    <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-300"></div>
+                <div className={styles.divider}>
+                    <div className={styles.dividerLineContainer}>
+                        <div className={styles.dividerLine}></div>
                     </div>
-                    <div className="relative flex justify-center text-sm">
-                        <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+                    <div className={styles.dividerTextContainer}>
+                        <span className={styles.dividerText}>Or continue with email</span>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <form onSubmit={handleSubmit} className={styles.form}>
+                    <div className={styles.inputGroup}>
+                        <label className={styles.label}>Email</label>
+                        <div className={styles.inputWrapper}>
+                            <Mail className={styles.inputIcon} size={20} />
                             <input
                                 type="email"
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                className={styles.input}
                                 placeholder="you@example.com"
                             />
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <div className={styles.inputGroup}>
+                        <label className={styles.label}>Password</label>
                         <input
                             type="password"
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                            className={`${styles.input} ${styles.passwordInput} `}
                             placeholder="••••••••"
                             minLength={6}
                         />
@@ -126,17 +132,17 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors"
+                        className={styles.submitButton}
                     >
                         {isLogin ? 'Sign In' : 'Sign Up'}
                     </button>
                 </form>
 
-                <p className="mt-6 text-center text-gray-600 text-sm">
+                <p className={styles.footer}>
                     {isLogin ? "Don't have an account? " : "Already have an account? "}
                     <button
                         onClick={() => setIsLogin(!isLogin)}
-                        className="text-blue-600 font-semibold hover:underline"
+                        className={styles.toggleButton}
                     >
                         {isLogin ? 'Sign up' : 'Log in'}
                     </button>

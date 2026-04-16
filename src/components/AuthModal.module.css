@@ -1,0 +1,201 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 1rem;
+}
+
+.modal {
+    background-color: white;
+    border-radius: 1rem;
+    /* xl */
+    width: 100%;
+    max-width: 28rem;
+    /* md */
+    padding: 1.5rem;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.closeButton {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: #6b7280;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.closeButton:hover {
+    color: #374151;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: #111827;
+}
+
+.error {
+    background-color: #fee2e2;
+    border: 1px solid #f87171;
+    color: #b91c1c;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.socialButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.socialButton {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.625rem;
+    background-color: white;
+    color: #374151;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.socialButton:hover {
+    background-color: #f9fafb;
+}
+
+.googleIcon {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.divider {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.dividerLineContainer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+}
+
+.dividerLine {
+    width: 100%;
+    border-top: 1px solid #d1d5db;
+}
+
+.dividerTextContainer {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.dividerText {
+    padding: 0 0.5rem;
+    background-color: white;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.inputWrapper {
+    position: relative;
+}
+
+.inputIcon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+}
+
+.input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    outline: none;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.passwordInput {
+    padding-left: 1rem;
+}
+
+.input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+.submitButton {
+    width: 100%;
+    background-color: #2563eb;
+    color: white;
+    font-weight: bold;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+    background-color: #1d4ed8;
+}
+
+.footer {
+    margin-top: 1.5rem;
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.875rem;
+}
+
+.toggleButton {
+    color: #2563eb;
+    font-weight: 600;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 0.25rem;
+}
+
+.toggleButton:hover {
+    text-decoration: underline;
+}

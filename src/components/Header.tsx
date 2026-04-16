@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Globe, User as UserIcon, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
+import styles from './Header.module.css';
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,24 +21,21 @@ export default function Header() {
 
     return (
         <>
-            <header className="bg-white shadow-sm sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <Link to="/" className="flex items-center gap-2 text-blue-600 font-bold text-2xl">
+            <header className={styles.header}>
+                <div className={styles.container}>
+                    <div className={styles.navContainer}>
+                        <Link to="/" className={styles.logo}>
                             <Globe size={28} />
                             <span>BeneDicti</span>
                         </Link>
 
                         {/* Desktop Navigation */}
-                        <nav className="hidden md:flex space-x-8">
+                        <nav className={styles.desktopNav}>
                             {navLinks.map((link) => (
                                 <Link
                                     key={link.path}
                                     to={link.path}
-                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(link.path)
-                                            ? 'bg-blue-50 text-blue-600'
-                                            : 'text-gray-700 hover:text-blue-600'
-                                        }`}
+                                    className={`${styles.navLink} ${isActive(link.path) ? styles.activeLink : ''}`}
                                 >
                                     {link.name}
                                 </Link>
@@ -45,13 +43,14 @@ export default function Header() {
                         </nav>
 
                         {/* Auth Buttons */}
-                        <div className="hidden md:flex items-center gap-4">
+                        <div className={styles.authButtons}>
                             {currentUser ? (
-                                <div className="flex items-center gap-4">
-                                    <span className="text-sm text-gray-600">{currentUser.email}</span>
+                                <div className={styles.userInfo}>
+                                    <span className={styles.userEmail}>{currentUser.email}</span>
                                     <button
                                         onClick={() => logout()}
-                                        className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors"
+                                        className={styles.iconButton}
+                                        title="Sign Out"
                                     >
                                         <LogOut size={20} />
                                     </button>
@@ -59,7 +58,7 @@ export default function Header() {
                             ) : (
                                 <button
                                     onClick={() => setIsAuthModalOpen(true)}
-                                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                    className={styles.signInButton}
                                 >
                                     <UserIcon size={18} />
                                     Sign In
@@ -69,7 +68,7 @@ export default function Header() {
 
                         {/* Mobile Menu Button */}
                         <button
-                            className="md:hidden p-2 rounded-md text-gray-700 hover:text-blue-600 focus:outline-none"
+                            className={styles.mobileMenuButton}
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                         >
                             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -79,28 +78,28 @@ export default function Header() {
 
                 {/* Mobile Menu */}
                 {isMenuOpen && (
-                    <div className="md:hidden bg-white border-t border-gray-100">
-                        <div className="px-2 pt-2 pb-3 space-y-1">
+                    <div className={styles.mobileMenu}>
+                        <div>
                             {navLinks.map((link) => (
                                 <Link
                                     key={link.path}
                                     to={link.path}
                                     onClick={() => setIsMenuOpen(false)}
-                                    className={`block px-3 py-2 rounded-md text-base font-medium ${isActive(link.path)
-                                            ? 'bg-blue-50 text-blue-600'
-                                            : 'text-gray-700 hover:bg-gray-50'
-                                        }`}
+                                    className={`${styles.mobileNavLink} ${isActive(link.path) ? styles.mobileNavActive : ''}`}
                                 >
                                     {link.name}
                                 </Link>
                             ))}
-                            <div className="pt-4 border-t border-gray-100 mt-4">
+                            <div className={styles.mobileAuth}>
                                 {currentUser ? (
-                                    <div className="px-3">
-                                        <p className="text-sm text-gray-500 mb-2">{currentUser.email}</p>
+                                    <div>
+                                        <p className={styles.userEmail} style={{ padding: '0 0.75rem', marginBottom: '0.5rem' }}>
+                                            {currentUser.email}
+                                        </p>
                                         <button
                                             onClick={() => { logout(); setIsMenuOpen(false); }}
-                                            className="flex items-center gap-2 text-red-600 w-full py-2"
+                                            className={styles.mobileSignOutButton}
+                                            style={{ padding: '0 0.75rem' }}
                                         >
                                             <LogOut size={18} /> Sign Out
                                         </button>
@@ -108,7 +107,7 @@ export default function Header() {
                                 ) : (
                                     <button
                                         onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
-                                        className="w-full text-left px-3 py-2 text-blue-600 font-medium hover:bg-blue-50 rounded-md"
+                                        className={styles.mobileSignInButton}
                                     >
                                         Sign In
                                     </button>

@@ -1,80 +1,321 @@
 import { create } from 'zustand';
 import {
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    serverTimestamp,
-} from 'firebase/firestore';
+    ref,
+    get,
+    set as dbSet,
+    push,
+    remove,
+    update,
+    increment,
+} from 'firebase/database';
 import { db } from '../firebase';
-import type { Dictionary } from '../types';
+import type { Dictionary, Word } from '../types';
+
+/**
+ * Store using Firebase Realtime Database.
+ * Explicitly merging state in all set calls to prevent functions from disappearing.
+ */
 
 interface DictionaryState {
     dictionaries: Dictionary[];
+    words: Word[];
     loading: boolean;
     error: string | null;
+
+    // Dictionary operations
     fetchDictionaries: (userId: string) => Promise<void>;
     addDictionary: (userId: string, name: string, sourceLang: string, targetLang: string) => Promise<void>;
+    deleteDictionary: (userId: string, dictionaryId: string) => Promise<void>;
+
+    // Word operations
+    fetchWords: (userId: string, dictionaryId: string) => Promise<void>;
+    addWord: (userId: string, dictionaryId: string, original: string, translation: string) => Promise<void>;
+    updateWord: (userId: string, dictionaryId: string, wordId: string, data: Partial<Pick<Word, 'original' | 'translation'>>) => Promise<void>;
+    deleteWord: (userId: string, dictionaryId: string, wordId: string) => Promise<void>;
+
+    // Shared dictionary operations
+    fetchDefaultDictionary: () => Promise<void>;
+    fetchSharedWords: () => Promise<void>;
+    importDefaultDictionary: (jsonData: any) => Promise<void>;
 }
 
 export const useDictionaryStore = create<DictionaryState>((set) => ({
     dictionaries: [],
+    words: [],
     loading: false,
     error: null,
 
+    // ─── Dictionaries ────────────────────────────────────────────────────────────
+
     fetchDictionaries: async (userId: string) => {
-        set({ loading: true, error: null });
+        set(state => ({ ...state, loading: true, error: null }));
         try {
-            const q = query(collection(db, 'users', userId, 'dictionaries'));
-            const querySnapshot = await getDocs(q);
+            const snapshot = await get(ref(db, `users/${userId}/dictionaries`));
             const dicts: Dictionary[] = [];
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                dicts.push({
-                    id: doc.id,
-                    userId,
-                    name: data.name,
-                    sourceLang: data.sourceLang,
-                    targetLang: data.targetLang,
-                    wordCount: data.wordCount || 0,
-                    createdAt: data.createdAt?.toMillis() || Date.now(),
+            if (snapshot.exists()) {
+                snapshot.forEach((child) => {
+                    const data = child.val();
+                    if (typeof data === 'object' && data !== null && data.name) {
+                        dicts.push({
+                            id: child.key!,
+                            userId,
+                            name: data.name,
+                            sourceLang: data.sourceLang,
+                            targetLang: data.targetLang,
+                            wordCount: data.wordCount || 0,
+                            createdAt: data.createdAt || Date.now(),
+                        });
+                    }
                 });
-            });
-            set({ dictionaries: dicts, loading: false });
+            }
+            set(state => ({ ...state, dictionaries: dicts, loading: false, error: null }));
         } catch (error: any) {
-            console.error("Error fetching dictionaries:", error);
-            set({ error: error.message, loading: false });
+            console.error('fetchDictionaries error:', error);
+            set(state => ({ ...state, error: error.message, loading: false, dictionaries: [] }));
         }
     },
 
-    addDictionary: async (userId: string, name: string, sourceLang: string, targetLang: string) => {
-        set({ loading: true, error: null });
+    addDictionary: async (userId, name, sourceLang, targetLang) => {
+        set(state => ({ ...state, loading: true, error: null }));
         try {
-            const docRef = await addDoc(collection(db, 'users', userId, 'dictionaries'), {
-                name,
-                sourceLang,
-                targetLang,
-                wordCount: 0,
-                createdAt: serverTimestamp(),
-            });
-
-            const newDict: Dictionary = {
-                id: docRef.id,
-                userId,
+            const newDictRef = push(ref(db, `users/${userId}/dictionaries`));
+            const data = {
                 name,
                 sourceLang,
                 targetLang,
                 wordCount: 0,
                 createdAt: Date.now(),
             };
-
-            set((state) => ({
-                dictionaries: [...state.dictionaries, newDict],
-                loading: false
+            await dbSet(newDictRef, data);
+            const newDict: Dictionary = {
+                ...data,
+                id: newDictRef.key!,
+                userId,
+            };
+            set(state => ({
+                ...state,
+                dictionaries: [...(state.dictionaries || []), newDict],
+                loading: false,
+                error: null
             }));
         } catch (error: any) {
-            console.error("Error adding dictionary:", error);
-            set({ error: error.message, loading: false });
+            console.error('addDictionary error:', error);
+            set(state => ({ ...state, error: error.message, loading: false }));
+        }
+    },
+
+    deleteDictionary: async (userId, dictionaryId) => {
+        try {
+            await remove(ref(db, `users/${userId}/dictionaries/${dictionaryId}`));
+            set(state => ({
+                ...state,
+                dictionaries: (state.dictionaries || []).filter((d) => d.id !== dictionaryId),
+                words: [],
+                error: null
+            }));
+        } catch (error: any) {
+            console.error('deleteDictionary error:', error);
+            set(state => ({ ...state, error: error.message }));
+        }
+    },
+
+    // ─── Words ───────────────────────────────────────────────────────────────────
+
+    fetchWords: async (userId, dictionaryId) => {
+        set(state => ({ ...state, loading: true, error: null, words: [] }));
+        try {
+            const snapshot = await get(ref(db, `users/${userId}/dictionaries/${dictionaryId}/words`));
+            const words_list: Word[] = [];
+            if (snapshot.exists()) {
+                snapshot.forEach((child) => {
+                    const data = child.val();
+                    words_list.push({
+                        id: child.key!,
+                        dictionaryId,
+                        original: data.original,
+                        translation: data.translation,
+                        box: data.box ?? 0,
+                        nextReview: data.nextReview ?? Date.now(),
+                        createdAt: data.createdAt || Date.now(),
+                    });
+                });
+            }
+            set(state => ({ ...state, words: words_list, loading: false, error: null }));
+        } catch (error: any) {
+            console.error('fetchWords error:', error);
+            set(state => ({ ...state, error: error.message, loading: false, words: [] }));
+        }
+    },
+
+    addWord: async (userId, dictionaryId, original, translation) => {
+        try {
+            const newWordRef = push(ref(db, `users/${userId}/dictionaries/${dictionaryId}/words`));
+            const data = {
+                original,
+                translation,
+                box: 0,
+                nextReview: Date.now(),
+                createdAt: Date.now(),
+            };
+            await dbSet(newWordRef, data);
+            await update(ref(db, `users/${userId}/dictionaries/${dictionaryId}`), {
+                wordCount: increment(1),
+            });
+            const newWord: Word = {
+                ...data,
+                id: newWordRef.key!,
+                dictionaryId,
+            };
+            set(state => ({
+                ...state,
+                words: [...(state.words || []), newWord],
+                dictionaries: (state.dictionaries || []).map((d) =>
+                    d.id === dictionaryId ? { ...d, wordCount: (d.wordCount || 0) + 1 } : d
+                ),
+                error: null
+            }));
+        } catch (error: any) {
+            console.error('addWord error:', error);
+            set(state => ({ ...state, error: error.message }));
+        }
+    },
+
+    updateWord: async (userId, dictionaryId, wordId, data) => {
+        try {
+            await update(
+                ref(db, `users/${userId}/dictionaries/${dictionaryId}/words/${wordId}`),
+                data
+            );
+            set(state => ({
+                ...state,
+                words: (state.words || []).map((w) => (w.id === wordId ? { ...w, ...data } : w)),
+                error: null
+            }));
+        } catch (error: any) {
+            console.error('updateWord error:', error);
+            set(state => ({ ...state, error: error.message }));
+        }
+    },
+
+    deleteWord: async (userId, dictionaryId, wordId) => {
+        try {
+            await remove(ref(db, `users/${userId}/dictionaries/${dictionaryId}/words/${wordId}`));
+            await update(ref(db, `users/${userId}/dictionaries/${dictionaryId}`), {
+                wordCount: increment(-1),
+            });
+            set(state => ({
+                ...state,
+                words: (state.words || []).filter((w) => w.id !== wordId),
+                dictionaries: (state.dictionaries || []).map((d) =>
+                    d.id === dictionaryId
+                        ? { ...d, wordCount: Math.max(0, (d.wordCount || 0) - 1) }
+                        : d
+                ),
+                error: null
+            }));
+        } catch (error: any) {
+            console.error('deleteWord error:', error);
+            set(state => ({ ...state, error: error.message }));
+        }
+    },
+    // ─── Shared Dictionaries ──────────────────────────────────────────────────
+
+    fetchDefaultDictionary: async () => {
+        try {
+            const snapshot = await get(ref(db, 'shared/dictionaries/dict2500/info'));
+            if (snapshot.exists()) {
+                // We keep it separate from the user's dictionaries array
+                // to avoid showing it in the main list.
+            }
+        } catch (error: any) {
+            console.error('fetchDefaultDictionary error:', error);
+        }
+    },
+
+    fetchSharedWords: async () => {
+        set(state => ({ ...state, loading: true, error: null, words: [] }));
+        try {
+            console.log('📡 Fetching shared words from shared/dictionaries/dict2500/words...');
+            const snapshot = await get(ref(db, 'shared/dictionaries/dict2500/words'));
+            const words_list: Word[] = [];
+            
+            if (snapshot.exists()) {
+                console.log('✅ Snapshot exists, items found:', snapshot.size);
+                snapshot.forEach((child) => {
+                    const data = child.val();
+                    words_list.push({
+                        id: child.key!,
+                        dictionaryId: 'default', // Special ID
+                        original: data.original,
+                        translation: data.translation,
+                        box: 0,
+                        nextReview: Date.now(),
+                        createdAt: Date.now(),
+                    });
+                });
+            } else {
+                console.warn('⚠️ No data found at shared/dictionaries/dict2500/words');
+            }
+            set(state => ({ ...state, words: words_list, loading: false, error: null }));
+        } catch (error: any) {
+            console.error('❌ fetchSharedWords error:', error);
+            set(state => ({ ...state, error: error.message, loading: false, words: [] }));
+        }
+    },
+
+    importDefaultDictionary: async (jsonData: any) => {
+        set(state => ({ ...state, loading: true, error: null }));
+        try {
+            // 1. Check if already exists to avoid redundant uploads
+            const check = await get(ref(db, 'shared/dictionaries/dict2500/info'));
+            if (check.exists()) {
+                console.log('Default dictionary already exists in database. Skipping upload.');
+                set(state => ({ ...state, loading: false }));
+                return;
+            }
+
+            const results = jsonData.results;
+            const processedWords: Record<string, any> = {};
+
+            results.forEach((item: any, index: number) => {
+                const word = item.word;
+                const meansObj = item.means;
+                const translations: string[] = [];
+                Object.entries(meansObj).forEach(([part, text]) => {
+                    if (text && (text as string).trim()) {
+                        translations.push(`[${part}] ${text}`);
+                    }
+                });
+
+                const translationString = translations.join("; ");
+                const wordId = `word_${String(index).padStart(4, '0')}`;
+                processedWords[wordId] = {
+                    original: word,
+                    translation: translationString,
+                    transcription: item.transcription || "",
+                    popularity: item.popular || 0,
+                    number: item.number || 0
+                };
+            });
+
+            const uploadData = {
+                info: {
+                    name: "English 2500 (Default)",
+                    sourceLang: "en",
+                    targetLang: "ru",
+                    wordCount: results.length,
+                    createdAt: Date.now()
+                },
+                words: processedWords
+            };
+
+            await dbSet(ref(db, 'shared/dictionaries/dict2500'), uploadData);
+            set(state => ({ ...state, loading: false, error: null }));
+            console.log('Successfully imported 2500 words to Firebase!');
+        } catch (error: any) {
+            console.error('importDefaultDictionary error:', error);
+            set(state => ({ ...state, error: error.message, loading: false }));
+            throw error; // Re-throw to catch in App.tsx
         }
     },
 }));
