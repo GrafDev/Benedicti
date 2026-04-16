@@ -131,19 +131,16 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
             if (snapshot.exists()) {
                 snapshot.forEach((child) => {
                     const data = child.val();
-                    // Filter out learned words during fetch
-                    if (!data.isLearned) {
-                        words_list.push({
-                            id: child.key!,
-                            dictionaryId,
-                            original: data.original,
-                            translation: data.translation,
-                            box: data.box || 0,
-                            nextReview: data.nextReview || Date.now(),
-                            isLearned: data.isLearned || false,
-                            createdAt: data.createdAt || Date.now(),
-                        });
-                    }
+                    words_list.push({
+                        id: child.key!,
+                        dictionaryId,
+                        original: data.original,
+                        translation: data.translation,
+                        box: data.box || 0,
+                        nextReview: data.nextReview || Date.now(),
+                        isLearned: data.isLearned || false,
+                        createdAt: data.createdAt || Date.now(),
+                    });
                 });
             }
             set(state => ({ ...state, words: words_list, loading: false, error: null }));

@@ -13,6 +13,7 @@ export default function Flashcards() {
 
     const fetchWords = useDictionaryStore(state => state.fetchWords);
     const fetchSharedWords = useDictionaryStore(state => state.fetchSharedWords);
+    const markWordAsLearned = useDictionaryStore(state => state.markWordAsLearned);
     const storeWords = useDictionaryStore(state => state.words);
     const loading = useDictionaryStore(state => state.loading);
     const error = useDictionaryStore(state => state.error);
@@ -38,7 +39,10 @@ export default function Flashcards() {
     // Shuffle and set words for session
     useEffect(() => {
         if (storeWords.length > 0) {
-            const shuffled = [...storeWords]
+            // Filter out learned words from the study session
+            const availableWords = storeWords.filter(w => !w.isLearned);
+            
+            const shuffled = [...availableWords]
                 .sort(() => Math.random() - 0.5)
                 .slice(0, 50); 
             setGameWords(shuffled);
