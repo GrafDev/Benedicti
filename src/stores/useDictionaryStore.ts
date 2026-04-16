@@ -253,7 +253,13 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
             
             if (snapshot.exists()) {
                 console.log('✅ Snapshot exists, items found:', snapshot.size);
-                const clean = (text: string) => (text || '').replace(/\[.*?\]/g, '').replace(/;;+/g, ';').trim();
+                const clean = (text: string) => {
+                    if (!text) return '';
+                    // 1. Remove brackets [...] and (...)
+                    let cleaned = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
+                    // 2. Take only the first part before the first semicolon
+                    return cleaned.split(';')[0].trim();
+                };
 
                 snapshot.forEach((child) => {
                     // Skip if marked as learned by THIS user

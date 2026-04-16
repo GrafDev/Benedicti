@@ -148,7 +148,7 @@
 }
 
 .wordToRemember {
-    font-size: clamp(2rem, 10vh, 4rem);
+    font-size: clamp(1.4rem, 7vh, 2.8rem);
     font-weight: 800;
     color: #fff;
     text-transform: uppercase;
@@ -166,32 +166,30 @@
 }
 
 .optionsList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
     width: 100%;
-    flex-grow: 1;
-    justify-content: center;
-    overflow: hidden;
+    margin-top: 1rem;
 }
 
 .optionButton {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border: 1px solid #334155;
-    color: #f1f5f9;
-    padding: 0.75rem;
-    height: 100%;
-    max-height: 52px;
-    min-height: 38px;
-    border-radius: 0.85rem;
-    font-size: 1.1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0.75rem 0.5rem;
+    font-size: 1rem;
     font-weight: 600;
+    color: #fff;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 1;
+    text-align: center;
+    min-height: 3.5rem;
+    height: 100%;
 }
 
 .optionButton:hover {

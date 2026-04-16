@@ -68,21 +68,6 @@ export default function Games() {
                     </button>
                 </div>
 
-                {/* Word Match */}
-                <div className={styles.gameCard}>
-                    <div className={`${styles.iconContainer} ${styles.bgGreen}`}>
-                        <Zap size={40} />
-                    </div>
-                    <h2 className={styles.gameTitle}>Word Match</h2>
-                    <p className={styles.gameDescription}>Race against time to match pairs.</p>
-                    <button 
-                        onClick={() => handlePlay('match')}
-                        className={styles.playButton}
-                    >
-                        <Play size={18} /> Play Now
-                    </button>
-                </div>
-
                 {/* N-back Word */}
                 <div className={styles.gameCard}>
                     <div className={`${styles.iconContainer}`} style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#92400e' }}>
