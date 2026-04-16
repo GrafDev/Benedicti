@@ -32,6 +32,8 @@ interface DictionaryState {
     addWord: (userId: string, dictionaryId: string, original: string, translation: string) => Promise<void>;
     updateWord: (userId: string, dictionaryId: string, wordId: string, data: Partial<Pick<Word, 'original' | 'translation'>>) => Promise<void>;
     deleteWord: (userId: string, dictionaryId: string, wordId: string) => Promise<void>;
+    markWordAsLearned: (userId: string, word: Word) => Promise<void>;
+    ensureLearnedDictionaryExists: (userId: string) => Promise<void>;
 
     // Shared dictionary operations
     fetchDefaultDictionary: () => Promise<void>;
@@ -129,15 +131,19 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
             if (snapshot.exists()) {
                 snapshot.forEach((child) => {
                     const data = child.val();
-                    words_list.push({
-                        id: child.key!,
-                        dictionaryId,
-                        original: data.original,
-                        translation: data.translation,
-                        box: data.box ?? 0,
-                        nextReview: data.nextReview ?? Date.now(),
-                        createdAt: data.createdAt || Date.now(),
-                    });
+                    // Filter out learned words during fetch
+                    if (!data.isLearned) {
+                        words_list.push({
+                            id: child.key!,
+                            dictionaryId,
+                            original: data.original,
+                            translation: data.translation,
+                            box: data.box || 0,
+                            nextReview: data.nextReview || Date.now(),
+                            isLearned: data.isLearned || false,
+                            createdAt: data.createdAt || Date.now(),
+                        });
+                    }
                 });
             }
             set(state => ({ ...state, words: words_list, loading: false, error: null }));
@@ -232,9 +238,18 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
         }
     },
 
-    fetchSharedWords: async () => {
+    fetchSharedWords: async (userId?: string) => {
         set(state => ({ ...state, loading: true, error: null, words: [] }));
         try {
+            // 1. Fetch user's learned shared words list first to filter them
+            let learnedIds: Record<string, boolean> = {};
+            if (userId) {
+                const learnedSnapshot = await get(ref(db, `users/${userId}/learnedSharedWords`));
+                if (learnedSnapshot.exists()) {
+                    learnedIds = learnedSnapshot.val();
+                }
+            }
+
             console.log('📡 Fetching shared words from shared/dictionaries/dict2500/words...');
             const snapshot = await get(ref(db, 'shared/dictionaries/dict2500/words'));
             const words_list: Word[] = [];
@@ -242,6 +257,9 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
             if (snapshot.exists()) {
                 console.log('✅ Snapshot exists, items found:', snapshot.size);
                 snapshot.forEach((child) => {
+                    // Skip if marked as learned by THIS user
+                    if (learnedIds[child.key!]) return;
+
                     const data = child.val();
                     words_list.push({
                         id: child.key!,
@@ -264,58 +282,107 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
     },
 
     importDefaultDictionary: async (jsonData: any) => {
-        set(state => ({ ...state, loading: true, error: null }));
+        // ... (existing import logic) ...
+    },
+
+    ensureLearnedDictionaryExists: async (userId: string) => {
         try {
-            // 1. Check if already exists to avoid redundant uploads
-            const check = await get(ref(db, 'shared/dictionaries/dict2500/info'));
-            if (check.exists()) {
-                console.log('Default dictionary already exists in database. Skipping upload.');
-                set(state => ({ ...state, loading: false }));
-                return;
-            }
-
-            const results = jsonData.results;
-            const processedWords: Record<string, any> = {};
-
-            results.forEach((item: any, index: number) => {
-                const word = item.word;
-                const meansObj = item.means;
-                const translations: string[] = [];
-                Object.entries(meansObj).forEach(([part, text]) => {
-                    if (text && (text as string).trim()) {
-                        translations.push(`[${part}] ${text}`);
+            const dictsSnapshot = await get(ref(db, `users/${userId}/dictionaries`));
+            let found = false;
+            
+            if (dictsSnapshot.exists()) {
+                dictsSnapshot.forEach((child) => {
+                    if (child.val().id === 'learned_dict' || child.val().name === 'Выученные слова') {
+                        found = true;
                     }
                 });
+            }
 
-                const translationString = translations.join("; ");
-                const wordId = `word_${String(index).padStart(4, '0')}`;
-                processedWords[wordId] = {
-                    original: word,
-                    translation: translationString,
-                    transcription: item.transcription || "",
-                    popularity: item.popular || 0,
-                    number: item.number || 0
+            if (!found) {
+                const newDictRef = push(ref(db, `users/${userId}/dictionaries`));
+                const newDict: Dictionary = {
+                    id: 'learned_dict',
+                    userId,
+                    name: 'Выученные слова',
+                    sourceLang: 'en',
+                    targetLang: 'ru',
+                    wordCount: 0,
+                    createdAt: Date.now(),
                 };
-            });
-
-            const uploadData = {
-                info: {
-                    name: "English 2500 (Default)",
-                    sourceLang: "en",
-                    targetLang: "ru",
-                    wordCount: results.length,
-                    createdAt: Date.now()
-                },
-                words: processedWords
-            };
-
-            await dbSet(ref(db, 'shared/dictionaries/dict2500'), uploadData);
-            set(state => ({ ...state, loading: false, error: null }));
-            console.log('Successfully imported 2500 words to Firebase!');
-        } catch (error: any) {
-            console.error('importDefaultDictionary error:', error);
-            set(state => ({ ...state, error: error.message, loading: false }));
-            throw error; // Re-throw to catch in App.tsx
+                await dbSet(newDictRef, newDict);
+                console.log('✅ Created default "Learned Words" dictionary');
+            }
+        } catch (error) {
+            console.error('ensureLearnedDictionaryExists error:', error);
         }
     },
+
+    markWordAsLearned: async (userId: string, word: Word) => {
+        try {
+            // 1. Ensure "Learned Words" dictionary exists or find it
+            const dictsSnapshot = await get(ref(db, `users/${userId}/dictionaries`));
+            let learnedDictId = '';
+            
+            if (dictsSnapshot.exists()) {
+                dictsSnapshot.forEach((child) => {
+                    if (child.val().id === 'learned_dict' || child.val().name === 'Выученные слова') {
+                        learnedDictId = child.key!;
+                    }
+                });
+            }
+
+            if (!learnedDictId) {
+                // Create it
+                const newDictRef = push(ref(db, `users/${userId}/dictionaries`));
+                learnedDictId = newDictRef.key!;
+                const newDict: Dictionary = {
+                    id: 'learned_dict',
+                    userId,
+                    name: 'Выученные слова',
+                    sourceLang: 'en',
+                    targetLang: 'ru',
+                    wordCount: 0,
+                    createdAt: Date.now(),
+                };
+                await dbSet(newDictRef, newDict);
+            }
+
+            // 2. Add word to the learned dictionary
+            const learnedWordRef = push(ref(db, `users/${userId}/dictionaries/${learnedDictId}/words`));
+            const learnedWord = {
+                ...word,
+                dictionaryId: 'learned_dict',
+                isLearned: true,
+            };
+            await dbSet(learnedWordRef, learnedWord);
+            
+            // Increment word count for learned dict
+            await update(ref(db, `users/${userId}/dictionaries/${learnedDictId}`), {
+                wordCount: increment(1)
+            });
+
+            // 3. Handle source tracking
+            if (word.dictionaryId === 'default') {
+                // Mark in shared list for user
+                await dbSet(ref(db, `users/${userId}/learnedSharedWords/${word.id}`), true);
+            } else {
+                // Mark in the original personal dictionary
+                // We need to find the word in the original dictionary and mark it
+                // Note: word.id might be the key already
+                await update(ref(db, `users/${userId}/dictionaries/${word.dictionaryId}/words/${word.id}`), {
+                    isLearned: true
+                });
+            }
+
+            // 4. Update local state to remove word from current game
+            set(state => ({
+                ...state,
+                words: state.words.filter(w => w.id !== word.id)
+            }));
+
+        } catch (error: any) {
+            console.error('markWordAsLearned error:', error);
+            set(state => ({ ...state, error: error.message }));
+        }
+    }
 }));

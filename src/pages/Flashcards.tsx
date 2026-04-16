@@ -27,7 +27,7 @@ export default function Flashcards() {
     useEffect(() => {
         const loadWords = async () => {
             if (dictId === 'default') {
-                await fetchSharedWords();
+                await fetchSharedWords(currentUser?.uid);
             } else if (currentUser && dictId) {
                 await fetchWords(currentUser.uid, dictId);
             }
@@ -95,12 +95,18 @@ export default function Flashcards() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleNext, handlePrev]);
 
-    const handleMarkLearned = () => {
-        // Remove current word from session
+    const handleMarkLearned = async () => {
+        if (!currentUser) return;
+        
+        const currentWord = gameWords[currentIndex];
+        
+        // 1. Call store to mark in DB
+        await markWordAsLearned(currentUser.uid, currentWord);
+        
+        // 2. Locally remove it from gameWords immediately for smooth UI
         const nextWords = gameWords.filter((_, idx) => idx !== currentIndex);
         setGameWords(nextWords);
         
-        // If it was the last word, index will adjust, otherwise keep same index for new word at same position
         if (currentIndex >= nextWords.length && nextWords.length > 0) {
             setCurrentIndex(nextWords.length - 1);
         }

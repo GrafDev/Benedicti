@@ -15,5 +15,6 @@ export interface Word {
     translation: string;
     box: number; // For Leitner system (0-5)
     nextReview: number; // Timestamp
+    isLearned?: boolean;
     createdAt: number;
 }
