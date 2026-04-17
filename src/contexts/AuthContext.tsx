@@ -8,7 +8,8 @@ import {
     OAuthProvider,
     signOut,
     signInWithEmailAndPassword,
-    createUserWithEmailAndPassword
+    createUserWithEmailAndPassword,
+    updateProfile
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -20,6 +21,7 @@ interface AuthContextType {
     signInWithApple: () => Promise<void>;
     loginWithEmail: (email: string, password: string) => Promise<void>;
     signupWithEmail: (email: string, password: string) => Promise<void>;
+    updateProfileName: (name: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -111,6 +113,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const updateProfileName = async (name: string) => {
+        if (!auth.currentUser) return;
+        try {
+            await updateProfile(auth.currentUser, { displayName: name });
+            // Refresh local user state to reflect changes
+            setCurrentUser({ ...auth.currentUser });
+        } catch (error) {
+            console.error('Error updating profile name', error);
+            throw error;
+        }
+    };
+
     const logout = () => signOut(auth);
 
     const value = {
@@ -120,6 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithApple,
         loginWithEmail,
         signupWithEmail,
+        updateProfileName,
         logout
     };
 

@@ -77,7 +77,14 @@ export default function Home() {
             {/* Header / Welcome */}
             <header className={styles.header}>
                 <div className={styles.titleArea}>
-                    <h1 className={styles.mainTitle} dangerouslySetInnerHTML={{ __html: t('home.title', { className: styles.sovereign }) }} />
+                    <h1 className={styles.mainTitle} dangerouslySetInnerHTML={{ 
+                        __html: t('home.title', { 
+                            className: styles.sovereign, 
+                            name: currentUser 
+                                ? (currentUser.displayName || currentUser.email?.split('@')[0] || '').toUpperCase()
+                                : t('common.guest').toUpperCase()
+                        }) 
+                    }} />
                     <p className={styles.subtitle}>{t('home.subtitle')}</p>
                 </div>
                 {currentUser && (

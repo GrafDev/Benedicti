@@ -8,12 +8,11 @@ import DictionaryDetail from './pages/DictionaryDetail';
 import Flashcards from './pages/Flashcards';
 import NBack from './pages/NBack';
 import MatchPairs from './pages/MatchPairs';
+import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import MigrationManager from './components/MigrationManager';
 import SoundToggle from './components/SoundToggle';
 import './App.css';
-
-const Profile = () => <div><h1>User Profile</h1></div>;
 
 function App() {
   return (

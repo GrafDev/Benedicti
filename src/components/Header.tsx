@@ -60,6 +60,7 @@ export default function Header() {
     const isActive = (path: string) => location.pathname === path;
 
     const navLinks = [
+        { name: t('nav.home'), path: '/' },
         { name: t('nav.dictionaries'), path: '/dictionaries' },
         { name: t('nav.games'), path: '/games' },
     ];
@@ -104,7 +105,11 @@ export default function Header() {
 
                             {currentUser ? (
                                 <div className={styles.userInfo}>
-                                    <span className={styles.userEmail}>{currentUser.email}</span>
+                                    <Link to="/profile" className={styles.userNameLink}>
+                                        <span className={styles.userEmail}>
+                                            {currentUser.displayName || currentUser.email?.split('@')[0]}
+                                        </span>
+                                    </Link>
                                     <button
                                         onClick={() => logout()}
                                         className={styles.iconButton}
