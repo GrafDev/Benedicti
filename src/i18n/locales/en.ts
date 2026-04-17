@@ -108,6 +108,7 @@ export const en: Translations = {
     gemOfDay: 'Gem of the Day',
     weeklyGoal: 'Weekly Goal',
     proProgress: 'PRO PROGRESS',
+    totalWords: 'Total Words',
   },
   dictionaryDetail: {
     noWords: 'No words yet',

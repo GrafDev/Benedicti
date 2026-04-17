@@ -242,7 +242,10 @@ export default function Flashcards() {
                                         >
                                             <Volume2 size={24} />
                                         </button>
-                                        <h2 className={styles.wordText}>
+                                        <h2 className={`${styles.wordText} ${
+                                            (isFrontFirst ? currentWord.original : currentWord.translation).length > 16 ? styles.extraLongWord : 
+                                            (isFrontFirst ? currentWord.original : currentWord.translation).length > 12 ? styles.longWord : ''
+                                        }`}>
                                             {isFrontFirst ? currentWord.original : currentWord.translation}
                                         </h2>
                                     </div>
@@ -260,7 +263,10 @@ export default function Flashcards() {
                                         >
                                             <Volume2 size={24} />
                                         </button>
-                                        <h2 className={styles.wordText}>
+                                        <h2 className={`${styles.wordText} ${
+                                            (isFrontFirst ? currentWord.translation : currentWord.original).length > 16 ? styles.extraLongWord : 
+                                            (isFrontFirst ? currentWord.translation : currentWord.original).length > 12 ? styles.longWord : ''
+                                        }`}>
                                             {isFrontFirst ? currentWord.translation : currentWord.original}
                                         </h2>
                                     </div>

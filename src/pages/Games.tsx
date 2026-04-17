@@ -10,17 +10,12 @@ export default function Games() {
     const { currentUser } = useAuth();
     const { t } = useLanguage();
     const navigate = useNavigate();
-    const dictionaries = useDictionaryStore(state => state.dictionaries);
     const fetchDictionaries = useDictionaryStore(state => state.fetchDictionaries);
     
     // Load last used dictionary from localStorage
-    const [selectedDictId, setSelectedDictId] = useState<string>(() => {
+    const [selectedDictId] = useState<string>(() => {
         return localStorage.getItem('lastUsedDictId') || 'default';
     });
-
-    useEffect(() => {
-        localStorage.setItem('lastUsedDictId', selectedDictId);
-    }, [selectedDictId]);
 
     useEffect(() => {
         if (currentUser) {
@@ -36,23 +31,6 @@ export default function Games() {
         <div className={styles.pageContainer}>
             <h1 className={styles.title}>{t('nav.games')}</h1>
             
-            <div className={styles.selectorSection}>
-                <label className={styles.label}>{t('common.chooseDictionary')}</label>
-                <select 
-                    value={selectedDictId} 
-                    onChange={(e) => setSelectedDictId(e.target.value)}
-                    className={styles.select}
-                >
-                    <option value="default">English 2500</option>
-                    <optgroup label={t('common.myDictionaries')}>
-                        {dictionaries.map(dict => (
-                            <option key={dict.id} value={dict.id}>
-                                {dict.name} ({dict.wordCount} words)
-                            </option>
-                        ))}
-                    </optgroup>
-                </select>
-            </div>
 
             <div className={styles.grid}>
                 {/* Flashcards */}

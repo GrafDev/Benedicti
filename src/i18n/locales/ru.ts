@@ -106,6 +106,7 @@ export const ru = {
     gemOfDay: 'Жемчужина дня',
     weeklyGoal: 'Цель на неделю',
     proProgress: 'ПРОГРЕСС',
+    totalWords: 'Всего слов',
   },
   dictionaryDetail: {
     noWords: 'Слов пока нет',

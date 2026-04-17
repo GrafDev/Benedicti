@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-    Layers, 
-    Trophy, 
-    Book, 
-    TrendingUp, 
-    Zap, 
-    Gamepad2, 
+import {
+    Layers,
+    Trophy,
+    Book,
+    TrendingUp,
+    Zap,
+    Gamepad2,
     Sparkles,
     ChevronRight,
     BrainCircuit,
-    Sword 
+    Sword
 } from 'lucide-react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,25 +38,18 @@ export default function Home() {
     // Derived statistics
     const totalDictionaries = dictionaries.length;
     const totalWords = dictionaries.reduce((acc, dict) => acc + (dict.wordCount || 0), 0);
-    
+
     // Fallback logic if no activity
     const getGameTitle = (mode: string) => {
         switch (mode) {
-            case 'nback': return t('games.nbackword.title');
+            case 'nback':
+            case 'nbackword': return t('games.nbackword.title');
             case 'flashcards': return t('games.flashcards.title');
             case 'match-pairs': return t('games.pairwords.title');
             default: return 'GAME';
         }
     };
 
-    const getResumeLabel = (mode: string) => {
-        switch (mode) {
-            case 'nback': return t('home.resumeNBack');
-            case 'flashcards': return t('home.resumeFlashcards');
-            case 'match-pairs': return t('games.pairwords.title'); // Reusing existing translate key
-            default: return t('home.resumeSession');
-        }
-    };
 
     const getResumePath = (act: RecentActivity) => `/play/${act.mode}/${act.dictId}`;
 
@@ -77,48 +70,37 @@ export default function Home() {
             {/* Header / Welcome */}
             <header className={styles.header}>
                 <div className={styles.titleArea}>
-                    <h1 className={styles.mainTitle} dangerouslySetInnerHTML={{ 
-                        __html: t('home.title', { 
-                            className: styles.sovereign, 
-                            name: currentUser 
+                    <h1 className={styles.mainTitle} dangerouslySetInnerHTML={{
+                        __html: t('home.title', {
+                            className: styles.sovereign,
+                            name: currentUser
                                 ? (currentUser.displayName || currentUser.email?.split('@')[0] || '').toUpperCase()
                                 : t('common.guest').toUpperCase()
-                        }) 
+                        })
                     }} />
                     <p className={styles.subtitle}>{t('home.subtitle')}</p>
                 </div>
-                {currentUser && (
-                    <div className={styles.userCard}>
-                        <div className={styles.userAvatar}>
-                            {currentUser.email?.[0].toUpperCase()}
-                        </div>
-                        <div className={styles.userInfo}>
-                            <span className={styles.userLabel}>{t('home.activeServant')}</span>
-                            <span className={styles.userName}>{currentUser.email}</span>
-                        </div>
-                    </div>
-                )}
             </header>
 
             {/* Stats Grid */}
             <div className={styles.statsGrid}>
-                <StatCard 
-                    icon={Layers} 
-                    label={t('nav.dictionaries')} 
-                    value={totalDictionaries} 
-                    colorClass={styles.bgBlue} 
+                <StatCard
+                    icon={Layers}
+                    label={t('nav.dictionaries')}
+                    value={totalDictionaries}
+                    colorClass={styles.bgBlue}
                 />
-                <StatCard 
-                    icon={Book} 
-                    label={t('home.totalWords')} 
-                    value={totalWords} 
-                    colorClass={styles.bgYellow} 
+                <StatCard
+                    icon={Book}
+                    label={t('home.totalWords')}
+                    value={totalWords}
+                    colorClass={styles.bgYellow}
                 />
-                <StatCard 
-                    icon={Zap} 
-                    label={t('home.eliteQuest')} 
-                    value="English 2500" 
-                    colorClass={styles.bgGreen} 
+                <StatCard
+                    icon={Zap}
+                    label={t('home.eliteQuest')}
+                    value="English 2500"
+                    colorClass={styles.bgGreen}
                 />
             </div>
 
@@ -131,12 +113,12 @@ export default function Home() {
                             {recentActivities.slice(0, 2).map((act, index) => {
                                 const dict = dictionaries.find(d => d.id === act.dictId);
                                 const wordCount = dict?.wordCount || 0;
-                                
+
                                 // Determine theme based on game mode
                                 let themeClass = styles.defaultTheme;
                                 let ModeIcon = TrendingUp;
 
-                                if (act.mode === 'nback') {
+                                if (act.mode === 'nback' || act.mode === 'nbackword') {
                                     themeClass = styles.nbackTheme;
                                     ModeIcon = BrainCircuit;
                                 } else if (act.mode === 'flashcards') {
@@ -152,17 +134,17 @@ export default function Home() {
                                         <div className={styles.sparkleDecor}>
                                             <Sparkles size={160} />
                                         </div>
-                                        
+
                                         <div className={styles.resumeBadge}>
                                             <ModeIcon size={14} /> {act.dictName}
                                         </div>
                                         <h2 className={styles.resumeTitle}>
                                             {getGameTitle(act.mode)}
                                         </h2>
-                                        <p className={styles.resumeText} 
-                                           dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: wordCount }) }} />
-                                        
-                                        <Link 
+                                        <p className={styles.resumeText}
+                                            dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: wordCount }) }} />
+
+                                        <Link
                                             to={getResumePath(act)}
                                             className={styles.resumeButton}
                                         >

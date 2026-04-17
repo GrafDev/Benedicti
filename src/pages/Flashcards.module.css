@@ -205,7 +205,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 4rem;
+    padding: 2rem; /* Reduced from 4rem */
     border-radius: 3rem;
     background: rgba(30, 41, 59, 0.4);
     backdrop-filter: blur(20px);
@@ -261,12 +261,32 @@
 }
 
 .wordText {
-    font-size: clamp(2rem, 8vw, 4rem);
+    font-size: clamp(1.5rem, 7vw, 3.5rem);
     font-weight: 900;
     color: #fff;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+    text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    width: 100%;
+    max-width: 100%;
+    line-height: 1.1; /* Tightened line-height */
+    display: -webkit-box; /* Flexbox-based line clamping */
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.longWord {
+    font-size: clamp(1.2rem, 5.5vw, 2.2rem); /* More aggressive reduction */
+}
+
+.extraLongWord {
+    font-size: clamp(1rem, 4.5vw, 1.6rem); /* Even more aggressive reduction */
+    letter-spacing: -0.02em; /* Tighten character spacing for ultra-long words */
 }
 
 .hint {
@@ -329,9 +349,9 @@
 .navButton {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 1.25rem;
-    width: 56px;
-    height: 56px;
+    border-radius: 1rem;
+    width: 100px; /* Widened significantly */
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -356,10 +376,10 @@
     background: linear-gradient(to bottom, #10b981, #059669);
     color: white;
     border: none;
-    border-radius: 1.5rem;
-    padding: 1.1rem 3.5rem;
-    font-weight: 900;
-    font-size: 1.1rem;
+    border-radius: 1.25rem;
+    padding: 0.8rem 2rem; /* Reduced from 1.1rem 3.5rem */
+    font-weight: 800;
+    font-size: 1rem; /* Slightly smaller */
     text-transform: uppercase;
     letter-spacing: 0.1em;
     cursor: pointer;
@@ -451,6 +471,6 @@
     .cardContainer { aspect-ratio: 1.2 / 1; }
     .wordText { font-size: 1.75rem; }
     .controls { gap: 1rem; flex-direction: column-reverse; }
-    .learnedButton { width: 100%; padding: 1rem; }
-    .navButton { width: 48px; height: 48px; }
+    .learnedButton { width: 100%; padding: 0.8rem; }
+    .navButton { width: 80px; height: 44px; } /* Wider on mobile too */
 }
