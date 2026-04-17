@@ -252,42 +252,44 @@ export default function MatchPairs() {
     const isInitialLoading = loading && storeWords.length === 0;
 
     const renderSetup = () => (
-        <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''}`}>
-            <h1 className={styles.royalTitle}>{t('games.pairwords.title')}</h1>
+        <>
+            <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''} ${phase !== 'SETUP' ? styles.compactSetup : ''}`}>
+                <h1 className={styles.royalTitle}>{t('games.pairwords.title')}</h1>
 
-            <div className={styles.dictSelector}>
-                <button 
-                    className={styles.selectorHeader}
-                    onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
-                >
-                    <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
-                    <span className={styles.activeDictName}>
-                        {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
-                    </span>
-                    <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
-                </button>
-                
-                {isDictSelectorOpen && (
-                    <div className={styles.dictOptions}>
-                        <button 
-                            className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
-                            onClick={() => handleDictionaryChange('default')}
-                        >
-                            English 2500
-                        </button>
-                        {dictionaries
-                            .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
-                            .map(d => (
+                <div className={styles.dictSelector}>
+                    <button 
+                        className={styles.selectorHeader}
+                        onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
+                    >
+                        <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
+                        <span className={styles.activeDictName}>
+                            {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
+                        </span>
+                        <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
+                    </button>
+                    
+                    {isDictSelectorOpen && (
+                        <div className={styles.dictOptions}>
                             <button 
-                                key={d.id}
-                                className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
-                                onClick={() => handleDictionaryChange(d.id)}
+                                className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
+                                onClick={() => handleDictionaryChange('default')}
                             >
-                                {d.name}
+                                English 2500
                             </button>
-                        ))}
-                    </div>
-                )}
+                            {dictionaries
+                                .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
+                                .map(d => (
+                                <button 
+                                    key={d.id}
+                                    className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
+                                    onClick={() => handleDictionaryChange(d.id)}
+                                >
+                                    {d.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <p style={{ margin: '1.5rem 0', color: '#94a3b8' }}>{t('common.chooseMight')}</p>
@@ -338,7 +340,7 @@ export default function MatchPairs() {
                     {t('games.pairwords.noWords')}
                 </div>
             )}
-        </div>
+        </>
     );
 
     const isAllDone = matchedIds.size === allWordsPool.length && allWordsPool.length > 0;

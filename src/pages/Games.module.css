@@ -19,21 +19,25 @@
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem; /* Tighter gaps */
+    width: 100%;
+    align-items: stretch; /* Force same height */
 }
 
 .gameCard {
     background: rgba(30, 41, 59, 0.5);
     backdrop-filter: blur(8px);
-    border-radius: 2rem;
-    padding: 3rem 2rem;
+    border-radius: 1.5rem; /* Slightly smaller radius */
+    padding: 2rem 1.5rem; /* Much smaller padding */
     border: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    height: 100%;
+    width: 100%; /* Fill cell width */
+    height: 100%; /* Fill cell height */
+    box-sizing: border-box;
 }
 
 .iconContainer {
@@ -80,47 +84,22 @@
     gap: 0.75rem;
 }
 
+@media (max-width: 1100px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+    }
+    .gameCard {
+        padding: 1.5rem;
+    }
+}
+
 @media (max-width: 768px) {
     .pageContainer {
-        padding: 1.5rem 1rem 5rem; /* Огромный отступ снизу */
+        padding: 1rem 1rem 5rem;
     }
-
-    .title {
-        font-size: 1.75rem;
-        margin-bottom: 1.5rem;
-        text-align: center;
-    }
-
-    .selectorSection {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 1.25rem;
-        margin-bottom: 2rem;
-    }
-
     .grid {
-        display: flex; /* Переход на flex для надежного стекинга */
-        flex-direction: column;
-        gap: 2.5rem; /* Фиксированный зазор, исключающий наложение */
-    }
-
-    .gameCard {
-        height: auto; /* Карточка растет только по контенту */
-        padding: 2rem 1.5rem;
-    }
-
-    .iconContainer {
-        width: 80px;
-        height: 80px;
-        margin-bottom: 1.5rem;
-    }
-
-    .gameTitle {
-        font-size: 1.5rem;
-    }
-
-    .gameDescription {
-        margin-bottom: 2rem;
-        font-size: 0.95rem;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
     }
 }

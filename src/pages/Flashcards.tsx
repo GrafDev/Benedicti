@@ -165,45 +165,47 @@ export default function Flashcards() {
                 <ArrowLeft size={24} />
             </button>
 
-            <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''}`}>
-                <h1 className={styles.royalTitle}>{t('games.flashcards.title')}</h1>
+            {!isInitialLoading && (
+                <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''} ${gameWords.length > 0 ? styles.compactSetup : ''}`}>
+                    <h1 className={styles.royalTitle}>{t('games.flashcards.title')}</h1>
 
-                <div className={styles.dictSelector}>
-                    <button 
-                        className={styles.selectorHeader}
-                        onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
-                    >
-                        <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
-                        <span className={styles.activeDictName}>
-                            {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
-                        </span>
-                        <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
-                    </button>
-                    
-                    {isDictSelectorOpen && (
-                        <div className={styles.dictOptions}>
-                            <button 
-                                className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
-                                onClick={() => handleDictionaryChange('default')}
-                            >
-                                English 2500
-                            </button>
-                            {dictionaries
-                                .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
-                                .map(d => (
-                                    <button 
-                                        key={d.id}
-                                        className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
-                                        onClick={() => handleDictionaryChange(d.id)}
-                                    >
-                                        {d.name}
-                                    </button>
-                                ))
-                            }
-                        </div>
-                    )}
+                    <div className={styles.dictSelector}>
+                        <button 
+                            className={styles.selectorHeader}
+                            onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
+                        >
+                            <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
+                            <span className={styles.activeDictName}>
+                                {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
+                            </span>
+                            <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
+                        </button>
+                        
+                        {isDictSelectorOpen && (
+                            <div className={styles.dictOptions}>
+                                <button 
+                                    className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
+                                    onClick={() => handleDictionaryChange('default')}
+                                >
+                                    English 2500
+                                </button>
+                                {dictionaries
+                                    .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
+                                    .map(d => (
+                                        <button 
+                                            key={d.id}
+                                            className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
+                                            onClick={() => handleDictionaryChange(d.id)}
+                                        >
+                                            {d.name}
+                                        </button>
+                                    ))
+                                }
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {isInitialLoading ? (
                 <div className={styles.loading}>{t('common.loading')}</div>

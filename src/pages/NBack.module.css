@@ -1,5 +1,5 @@
 .container {
-    min-height: 100dvh;
+    height: calc(100dvh - 4.5rem);
     background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
     color: #f8fafc;
     padding: 1rem;
@@ -9,7 +9,7 @@
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
     position: relative;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 .floatingBackButton {
@@ -42,7 +42,30 @@
     text-align: center;
     padding-bottom: 2rem;
     margin: 0 auto;
-    transition: opacity 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+.compactSetup {
+    padding-top: 2.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.royalTitle {
+    font-size: clamp(1.5rem, 5vw, 3.5rem);
+    font-weight: 900;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(to bottom, #fde047 0%, #d4af37 50%, #a16207 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+    transition: all 0.3s ease;
+}
+
+.compactSetup .royalTitle {
+    font-size: 1.35rem;
+    margin-bottom: 0.5rem;
 }
 
 .setupLoading {
@@ -144,13 +167,13 @@
 
 /* Phase: MEMORIZE (Centered, Large) */
 .memorizeContainer {
-    height: 80vh;
+    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    gap: 2rem;
+    gap: 3dvh;
 }
 
 /* Phase: GAME (Within Main, No Scroll) */
@@ -173,6 +196,7 @@
     max-width: 500px;
     height: 100%;
     justify-content: space-evenly;
+    gap: 1dvh;
 }
 
 .gameHeader {
@@ -233,7 +257,7 @@
 }
 
 .wordToRemember {
-    font-size: clamp(1.4rem, 7vh, 2.8rem);
+    font-size: clamp(1.4rem, 6dvh, 2.8rem);
     font-weight: 800;
     color: #fff;
     text-transform: uppercase;
@@ -312,8 +336,8 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 0.75rem;
-    font-size: 1.25rem;
+    padding: 0.5rem;
+    font-size: clamp(0.95rem, 2dvh, 1.25rem);
     font-weight: 700;
     color: #fff;
     cursor: pointer;
@@ -324,8 +348,8 @@
     justify-content: center;
     text-align: center;
     height: 100%;
-    min-height: 2.8rem;
-    max-height: 6rem; /* Significantly larger buttons */
+    min-height: 0;
+    max-height: 8dvh; /* Significantly larger buttons */
 }
 
 .optionButton:hover {
@@ -366,7 +390,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     width: 100%;
     position: relative;
     z-index: 10;
