@@ -104,20 +104,12 @@ export default function Header() {
                             )}
 
                             {currentUser ? (
-                                <div className={styles.userInfo}>
-                                    <Link to="/profile" className={styles.userNameLink}>
-                                        <span className={styles.userEmail}>
-                                            {currentUser.displayName || currentUser.email?.split('@')[0]}
-                                        </span>
-                                    </Link>
-                                    <button
-                                        onClick={() => logout()}
-                                        className={styles.iconButton}
-                                        title={t('nav.logout')}
-                                    >
-                                        <LogOut size={20} />
-                                    </button>
-                                </div>
+                                <Link to="/profile" className={styles.userNameLink}>
+                                    <span className={styles.userEmail}>
+                                        {currentUser.displayName || currentUser.email?.split('@')[0]}
+                                    </span>
+                                    <UserIcon size={20} className={styles.userIcon} />
+                                </Link>
                             ) : (
                                 <button
                                     onClick={() => setIsAuthModalOpen(true)}
@@ -169,18 +161,16 @@ export default function Header() {
                                 )}
 
                                 {currentUser ? (
-                                    <div>
-                                        <p className={styles.userEmail} style={{ padding: '0 0.75rem', marginBottom: '0.5rem' }}>
-                                            {currentUser.email}
-                                        </p>
-                                        <button
-                                            onClick={() => { logout(); setIsMenuOpen(false); }}
-                                            className={styles.mobileSignOutButton}
-                                            style={{ padding: '0 0.75rem' }}
-                                        >
-                                            <LogOut size={18} /> {t('nav.logout')}
-                                        </button>
-                                    </div>
+                                    <Link 
+                                        to="/profile" 
+                                        onClick={() => setIsMenuOpen(false)}
+                                        className={styles.mobileUserLink}
+                                    >
+                                        <span className={styles.userEmail}>
+                                            {currentUser.displayName || currentUser.email?.split('@')[0]}
+                                        </span>
+                                        <UserIcon size={20} />
+                                    </Link>
                                 ) : (
                                     <button
                                         onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}

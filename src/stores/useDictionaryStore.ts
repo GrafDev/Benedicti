@@ -7,6 +7,7 @@ import {
     remove,
     update,
     increment,
+    runTransaction,
 } from 'firebase/database';
 import { db } from '../firebase';
 import type { Dictionary, Word } from '../types';
@@ -43,6 +44,18 @@ interface DictionaryState {
     unpublishDictionary: (userId: string, dictionaryId: string) => Promise<void>;
     fetchSharedDictionaries: () => Promise<Dictionary[]>;
     cleanText: (text: string) => string;
+
+    // Profile & Relationship operations
+    userProfile: { isTeacher: boolean, students: string[], teachers: string[], beneId?: string } | null;
+    beneIdMap: Record<string, string>;
+    fetchProfile: (userId: string) => Promise<void>;
+    toggleTeacherRole: (userId: string, isTeacher: boolean) => Promise<void>;
+    generateBeneId: (userId: string, name: string) => Promise<string>;
+    resolveBeneIds: (uids: string[]) => Promise<void>;
+    addStudent: (teacherId: string, studentIdOrBeneId: string) => Promise<void>;
+    removeStudent: (teacherId: string, studentId: string) => Promise<void>;
+    addTeacher: (studentId: string, teacherIdOrBeneId: string) => Promise<void>;
+    removeTeacher: (studentId: string, teacherId: string) => Promise<void>;
 }
 
 export const useDictionaryStore = create<DictionaryState>((set, get) => ({
@@ -50,6 +63,8 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
     words: [],
     loading: false,
     error: null,
+    userProfile: null,
+    beneIdMap: {},
  
     cleanText: (text: string) => {
         if (!text) return '';
@@ -64,6 +79,7 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
     fetchDictionaries: async (userId: string) => {
         set(state => ({ ...state, loading: true, error: null }));
         try {
+            // 1. Fetch Personal Dictionaries
             const snapshot = await dbGet(ref(db, `users/${userId}/dictionaries`));
             const dicts: Dictionary[] = [];
             if (snapshot.exists()) {
@@ -83,13 +99,60 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                 });
             }
             
-            // 2. Fetch Shared Dictionaries
+            // 2. Fetch Shared Dictionaries (Public)
             const sharedDicts = await get().fetchSharedDictionaries();
             
-            // 3. Merge and set
+            // 3. Fetch Teachers' Dictionaries
+            const teacherDicts: Dictionary[] = [];
+            
+            // Ensure profile is loaded first
+            let profile = get().userProfile;
+            if (!profile) {
+                await get().fetchProfile(userId);
+                profile = get().userProfile;
+            }
+
+            if (profile && profile.teachers && profile.teachers.length > 0) {
+                for (const teacherId of profile.teachers) {
+                    try {
+                        const teacherSnapshot = await dbGet(ref(db, `users/${teacherId}/dictionaries`));
+                        if (teacherSnapshot.exists()) {
+                            teacherSnapshot.forEach((child) => {
+                                const data = child.val();
+                                if (typeof data === 'object' && data !== null && data.name) {
+                                    teacherDicts.push({
+                                        id: child.key!,
+                                        userId: teacherId,
+                                        name: data.name,
+                                        sourceLang: data.sourceLang,
+                                        targetLang: data.targetLang,
+                                        wordCount: data.wordCount || 0,
+                                        createdAt: data.createdAt || Date.now(),
+                                        isTeacherDict: true // Mark as teacher dictionary
+                                    });
+                                }
+                            });
+                        }
+                    } catch (err) {
+                        console.warn(`Could not fetch dictionaries for teacher ${teacherId}:`, err);
+                        // Continue to next teacher
+                    }
+                }
+            }
+            
+            // 4. Merge and resolve names
+            const allDicts = [...dicts, ...sharedDicts, ...teacherDicts];
+            
+            // Resolve any teacher UIDs we found that might not be in the map
+            const teacherUids = teacherDicts.map(d => d.userId);
+            if (teacherUids.length > 0) {
+                console.log('fetchDictionaries: resolving teacher UIDs:', teacherUids);
+                await get().resolveBeneIds(teacherUids);
+            }
+
             set(state => ({ 
                 ...state, 
-                dictionaries: [...dicts, ...sharedDicts], 
+                dictionaries: allDicts, 
                 loading: false, 
                 error: null 
             }));
@@ -181,6 +244,8 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
             let path = `users/${userId}/dictionaries/${dictionaryId}/words`;
             if (dict?.isShared) {
                 path = `shared/dictionaries/${dictionaryId}/words`;
+            } else if (dict?.isTeacherDict) {
+                path = `users/${dict.userId}/dictionaries/${dictionaryId}/words`;
             }
 
             const snapshot = await dbGet(ref(db, path));
@@ -560,6 +625,275 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
         } catch (error: any) {
             console.error('unpublishDictionary error:', error);
             set(state => ({ ...state, error: error.message, loading: false }));
+            throw error;
+        }
+    },
+
+    // ─── Profile & Relationships ──────────────────────────────────────────────────
+    fetchProfile: async (userId: string) => {
+        try {
+            const snapshot = await dbGet(ref(db, `users/${userId}/profile`));
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                
+                // Fetch teachers from shared relations
+                const teachersSnap = await dbGet(ref(db, `shared/relations/student_teachers/${userId}`));
+                const teachersList = teachersSnap.exists() ? Object.keys(teachersSnap.val()) : [];
+
+                set(state => ({
+                    ...state,
+                    userProfile: {
+                        isTeacher: data.isTeacher || false,
+                        beneId: data.beneId,
+                        students: data.students ? Object.keys(data.students) : [],
+                        teachers: teachersList
+                    }
+                }));
+            } else {
+                // Fetch teachers even if profile node is missing
+                const teachersSnap = await dbGet(ref(db, `shared/relations/student_teachers/${userId}`));
+                const teachersList = teachersSnap.exists() ? Object.keys(teachersSnap.val()) : [];
+
+                set(state => ({
+                    ...state,
+                    userProfile: { isTeacher: false, students: [], teachers: teachersList, beneId: undefined }
+                }));
+            }
+
+            // Resolve teacher names if any
+            const profile = get().userProfile;
+            if (profile && profile.teachers.length > 0) {
+                get().resolveBeneIds(profile.teachers);
+            }
+        } catch (error) {
+            console.error('fetchProfile error:', error);
+        }
+    },
+
+    toggleTeacherRole: async (userId: string, isTeacher: boolean) => {
+        try {
+            await update(ref(db, `users/${userId}/profile`), { isTeacher });
+            set(state => ({
+                ...state,
+                userProfile: state.userProfile ? { ...state.userProfile, isTeacher } : { isTeacher, students: [], teachers: [] }
+            }));
+        } catch (error) {
+            console.error('toggleTeacherRole error:', error);
+            throw error;
+        }
+    },
+
+    generateBeneId: async (userId: string, name: string) => {
+        try {
+            // 1. Sanitize name
+            const sanitized = name.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9а-яА-Я_]/g, '');
+            
+            // 2. Get or create user number
+            const profileRef = ref(db, `users/${userId}/profile`);
+            const profileSnap = await dbGet(profileRef);
+            let userNumber = profileSnap.val()?.userNumber;
+
+            if (!userNumber) {
+                // Derive a unique number from UID - fast and no permissions required
+                const hashValue = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                userNumber = (hashValue % 10000).toString().padStart(4, '0');
+                await update(profileRef, { userNumber });
+            }
+
+            const candidate = `Bene_${sanitized}_${userNumber}`;
+
+            // 3. Save mapping (BeneID -> UID for lookup when adding)
+            await update(ref(db, `shared/bene_ids`), { [candidate]: userId });
+            
+            // 4. Save reverse mapping (UID -> BeneID for display in lists)
+            await update(ref(db, `shared/uid_to_beneid`), { [userId]: candidate });
+
+            if (profileSnap.val()?.beneId && profileSnap.val()?.beneId !== candidate) {
+                await remove(ref(db, `shared/bene_ids/${profileSnap.val().beneId}`));
+            }
+
+            await update(profileRef, { beneId: candidate });
+            
+            set(state => {
+                const updatedProfile = state.userProfile 
+                    ? { ...state.userProfile, beneId: candidate }
+                    : { isTeacher: false, students: [], teachers: [], beneId: candidate };
+                
+                return {
+                    ...state,
+                    userProfile: updatedProfile
+                };
+            });
+
+            return candidate;
+        } catch (error) {
+            console.error('generateBeneId error:', error);
+            throw error;
+        }
+    },
+
+    resolveBeneIds: async (uids: string[]) => {
+        if (!uids || uids.length === 0) return;
+        
+        try {
+            const currentMap = get().beneIdMap;
+            const uidsToFetch = uids.filter(uid => !currentMap[uid]);
+            
+            if (uidsToFetch.length === 0) return;
+
+            const newMatches: Record<string, string> = {};
+
+            // Fetch missing names in parallel
+            await Promise.all(uidsToFetch.map(async (uid) => {
+                const snap = await dbGet(ref(db, `shared/uid_to_beneid/${uid}`));
+                if (snap.exists()) {
+                    newMatches[uid] = snap.val();
+                }
+            }));
+
+            if (Object.keys(newMatches).length > 0) {
+                set(state => ({
+                    beneIdMap: { ...state.beneIdMap, ...newMatches }
+                }));
+            }
+        } catch (error) {
+            console.error('resolveBeneIds error:', error);
+        }
+    },
+
+    addStudent: async (teacherId: string, studentIdOrBeneId: string) => {
+        try {
+            let studentId = studentIdOrBeneId.trim();
+
+            // 1. Check if it's a BeneId (starts with Bene_)
+            if (studentId.startsWith('Bene_')) {
+                const idSnapshot = await dbGet(ref(db, `shared/bene_ids/${studentId}`));
+                if (!idSnapshot.exists()) {
+                    throw new Error('Пользователь с таким BeneID не найден');
+                }
+                const beneId = studentId;
+                studentId = idSnapshot.val();
+
+                // Seed the reverse map so it's immediate
+                await update(ref(db, `shared/uid_to_beneid`), { [studentId]: beneId });
+                set(state => ({
+                    beneIdMap: { ...state.beneIdMap, [studentId]: beneId }
+                }));
+            }
+
+            // 2. Link in teacher's profile (their own, they have permission)
+            await update(ref(db, `users/${teacherId}/profile/students`), { [studentId]: true });
+            
+            // 3. Link in shared relations (instead of student's private profile)
+            await update(ref(db, `shared/relations/teacher_students/${teacherId}`), { [studentId]: true });
+            await update(ref(db, `shared/relations/student_teachers/${studentId}`), { [teacherId]: true });
+            
+            // Update local state
+            const currentProfile = get().userProfile;
+            if (currentProfile) {
+                set(state => ({
+                    ...state,
+                    userProfile: {
+                        ...currentProfile,
+                        students: [...new Set([...currentProfile.students, studentId])]
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('addStudent error:', error);
+            throw error;
+        }
+    },
+
+    removeStudent: async (teacherId: string, studentId: string) => {
+        try {
+            // 1. Remove from teacher's profile
+            await remove(ref(db, `users/${teacherId}/profile/students/${studentId}`));
+            
+            // 2. Remove from shared relations
+            await remove(ref(db, `shared/relations/teacher_students/${teacherId}/${studentId}`));
+            await remove(ref(db, `shared/relations/student_teachers/${studentId}/${teacherId}`));
+            
+            // Update local state
+            const currentProfile = get().userProfile;
+            if (currentProfile) {
+                set(state => ({
+                    ...state,
+                    userProfile: {
+                        ...currentProfile,
+                        students: currentProfile.students.filter(id => id !== studentId)
+                    }
+                }));
+            }
+        } catch (error) {
+            console.error('removeStudent error:', error);
+            throw error;
+        }
+    },
+
+    addTeacher: async (studentId: string, teacherIdOrBeneId: string) => {
+        try {
+            let teacherId = teacherIdOrBeneId;
+            
+            // 1. Resolve BeneId if needed
+            if (teacherId.startsWith('Bene_')) {
+                const snap = await dbGet(ref(db, `shared/bene_ids/${teacherId}`));
+                if (!snap.exists()) {
+                    throw new Error('Учитель с таким BeneID не найден');
+                }
+                const beneId = teacherId;
+                teacherId = snap.val();
+                
+                // Seed reverse map
+                await update(ref(db, `shared/uid_to_beneid`), { [teacherId]: beneId });
+                set(state => ({
+                    beneIdMap: { ...state.beneIdMap, [teacherId]: beneId }
+                }));
+            }
+
+            // 2. Update relations in both directions
+            await update(ref(db, `shared/relations/student_teachers/${studentId}`), { [teacherId]: true });
+            await update(ref(db, `shared/relations/teacher_students/${teacherId}`), { [studentId]: true });
+
+            // 3. Update local state
+            const currentProfile = get().userProfile;
+            if (currentProfile) {
+                set(state => ({
+                    ...state,
+                    userProfile: {
+                        ...currentProfile,
+                        teachers: [...new Set([...currentProfile.teachers, teacherId])]
+                    }
+                }));
+            }
+
+            // 4. Refresh dictionaries to show teacher's content
+            await get().fetchDictionaries(studentId);
+        } catch (error) {
+            console.error('addTeacher error:', error);
+            throw error;
+        }
+    },
+
+    removeTeacher: async (studentId: string, teacherId: string) => {
+        try {
+            await remove(ref(db, `shared/relations/student_teachers/${studentId}/${teacherId}`));
+            await remove(ref(db, `shared/relations/teacher_students/${teacherId}/${studentId}`));
+
+            const currentProfile = get().userProfile;
+            if (currentProfile) {
+                set(state => ({
+                    ...state,
+                    userProfile: {
+                        ...currentProfile,
+                        teachers: currentProfile.teachers.filter(id => id !== teacherId)
+                    }
+                }));
+            }
+            // Refresh dictionaries
+            await get().fetchDictionaries(studentId);
+        } catch (error) {
+            console.error('removeTeacher error:', error);
             throw error;
         }
     }

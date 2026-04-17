@@ -19,6 +19,7 @@ export default function Dictionaries() {
     const addDictionary = useDictionaryStore(state => state.addDictionary);
     const publishDictionary = useDictionaryStore(state => state.publishDictionary);
     const unpublishDictionary = useDictionaryStore(state => state.unpublishDictionary);
+    const beneIdMap = useDictionaryStore(state => state.beneIdMap);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newDictName, setNewDictName] = useState('');
@@ -122,16 +123,34 @@ export default function Dictionaries() {
                 </button>
             </div>
 
-            <div className={styles.grid}>
+            <div 
+                className={styles.grid}
+                style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                    gridAutoRows: 'auto',
+                    gap: '2.5rem',
+                    alignItems: 'start',
+                    width: '100%'
+                }}
+            >
                 {(dictionaries || []).map((dict) => (
-                    <Link key={dict.id} to={`/dict/${dict.id}`} className={styles.cardLink}>
-                        <div className={styles.card}>
+                    <Link key={dict.id} to={`/dict/${dict.id}`} className={styles.cardLink} style={{ display: 'block', textDecoration: 'none', minHeight: '220px' }}>
+                        <div className={styles.card} style={{ background: 'rgba(30, 41, 59, 0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '1.5rem', padding: '2rem', minHeight: '220px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
                             <div className={styles.cardHeader}>
                                 <div className={styles.iconWrapper}>
                                     <Book size={24} />
                                 </div>
-                                <span className={`${styles.langBadge} ${dict.isShared ? styles.sharedBadge : ''}`}>
-                                    {dict.isShared ? t('common.common') : (dict.sourceLang.toUpperCase() + ' → ' + dict.targetLang.toUpperCase())}
+                                <span className={`
+                                    ${styles.langBadge} 
+                                    ${dict.isShared ? styles.sharedBadge : ''} 
+                                    ${dict.isTeacherDict ? styles.teacherBadge : ''}
+                                `}>
+                                    {dict.isTeacherDict 
+                                        ? t('common.fromTeacher', { name: beneIdMap[dict.userId] || dict.userId }) 
+                                        : (dict.isShared 
+                                            ? t('common.common') 
+                                            : (dict.sourceLang.toUpperCase() + ' → ' + dict.targetLang.toUpperCase()))}
                                 </span>
                             </div>
                             <h3 className={styles.cardTitle}>{dict.name}</h3>
@@ -174,16 +193,19 @@ export default function Dictionaries() {
             {isModalOpen && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
-                        <div className={styles.header} style={{ marginBottom: '1rem' }}>
+                        <div className={styles.header}>
                             <h2 className={styles.modalTitle}>{t('common.createNewDictionary')}</h2>
-                            <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
+                            <button onClick={() => setIsModalOpen(false)} className={styles.closeButton}>
                                 <X size={24} />
                             </button>
                         </div>
 
                         <form onSubmit={handleCreateDictionary}>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>{t('common.dictionaryName')}</label>
+                                <label className={styles.label}>
+                                    <Book size={14} style={{ marginRight: '0.5rem' }} />
+                                    {t('common.dictionaryName')}
+                                </label>
                                 <input
                                     type="text"
                                     required
@@ -196,7 +218,10 @@ export default function Dictionaries() {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <div className={styles.formGroup}>
-                                    <label className={styles.label}>{t('common.from')}</label>
+                                    <label className={styles.label}>
+                                        <Globe size={14} style={{ marginRight: '0.5rem' }} />
+                                        {t('common.from')}
+                                    </label>
                                     <select
                                         value={sourceLang}
                                         onChange={(e) => setSourceLang(e.target.value)}
@@ -211,7 +236,10 @@ export default function Dictionaries() {
                                     </select>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label className={styles.label}>{t('common.to')}</label>
+                                    <label className={styles.label}>
+                                        <Globe size={14} style={{ marginRight: '0.5rem' }} />
+                                        {t('common.to')}
+                                    </label>
                                     <select
                                         value={targetLang}
                                         onChange={(e) => setTargetLang(e.target.value)}
