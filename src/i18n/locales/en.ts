@@ -53,8 +53,8 @@ export const en: Translations = {
     logout: 'Logout',
   },
   games: {
-    benedicto: {
-      title: 'BENEDICTO',
+    nbackword: {
+      title: 'NBACKWORD',
       description: 'Path to the throne through memory trials. Become a king!',
       start: 'To the Throne!',
       nextWord: 'Next Word',
@@ -74,8 +74,8 @@ export const en: Translations = {
       returnToHall: 'Return to Hall',
     },
     pairwords: {
-      title: 'PAIRWORDS',
-      description: 'Match word pairs. Classic matching mode.',
+      title: 'MATCH PAIRS',
+      description: 'Find pairs of words and their translations. Speed is everything!',
       score: 'Score',
       pairsCount: '{{count}} pairs',
       eliteMode: 'Elite Mode (By Ear)',
@@ -86,7 +86,7 @@ export const en: Translations = {
     },
     flashcards: {
       title: 'FLASHCARDS',
-      description: 'Classic flashcards for memorization.',
+      description: 'Classic word knowledge challenge. Simple and effective.',
       sessionComplete: 'You have completed all cards in this session.',
     },
   },
@@ -98,7 +98,7 @@ export const en: Translations = {
     continueConquest: 'Continue Your Conquest',
     masteryWords: 'Mastery over <strong>{{count}} words</strong> is just one session away.',
     resumeSession: 'Resume Session',
-    resumeNBack: 'Resume N-Back',
+    resumeNBack: 'Resume Nbackword',
     resumeFlashcards: 'Resume Cards',
     throneAwaits: 'Throne Awaits',
     createFirstDict: 'Create your first dictionary to begin your reign.',

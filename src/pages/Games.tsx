@@ -75,8 +75,8 @@ export default function Games() {
                     <div className={`${styles.iconContainer}`} style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#92400e' }}>
                         <Crown size={40} />
                     </div>
-                    <h2 className={styles.gameTitle}>{t('games.benedicto.title')}</h2>
-                    <p className={styles.gameDescription}>{t('games.benedicto.description')}</p>
+                    <h2 className={styles.gameTitle}>{t('games.nbackword.title')}</h2>
+                    <p className={styles.gameDescription}>{t('games.nbackword.description')}</p>
                     <button 
                         onClick={() => handlePlay('nback')}
                         className={styles.playButton}

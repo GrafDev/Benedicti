@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
+import { saveRecentActivity } from '../utils/activity';
 import { Trophy, Shield, Sword, Crown, User, Landmark, Ghost, ChevronDown, Volume2, ArrowLeft, Sparkles } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import { soundService } from '../utils/soundUtils';
@@ -30,13 +31,13 @@ export default function NBack() {
 
     const RANKS = useMemo<Rank[]>(() => [
         { id: 'peasant', name: t('ranks.peasant.name'), n: 1, optionsCount: 4, icon: Ghost, description: t('ranks.peasant.desc') },
-        { id: 'citizen', name: t('ranks.citizen.name'), n: 2, optionsCount: 4, icon: User, description: t('ranks.citizen.desc') },
-        { id: 'knight', name: t('ranks.knight.name'), n: 2, optionsCount: 6, icon: Sword, description: t('ranks.knight.desc') },
-        { id: 'baron', name: t('ranks.baron.name'), n: 3, optionsCount: 6, icon: Shield, description: t('ranks.baron.desc') },
-        { id: 'count', name: t('ranks.count.name'), n: 3, optionsCount: 8, icon: Landmark, description: t('ranks.count.desc') },
-        { id: 'duke', name: t('ranks.duke.name'), n: 4, optionsCount: 8, icon: Trophy, description: t('ranks.duke.desc') },
-        { id: 'king', name: t('ranks.king.name'), n: 5, optionsCount: 10, icon: Crown, description: t('ranks.king.desc') },
-        { id: 'emperor', name: t('ranks.emperor.name'), n: 6, optionsCount: 12, icon: Sparkles, description: t('ranks.emperor.desc') },
+        { id: 'citizen', name: t('ranks.citizen.name'), n: 1, optionsCount: 6, icon: User, description: t('ranks.citizen.desc') },
+        { id: 'knight', name: t('ranks.knight.name'), n: 1, optionsCount: 8, icon: Sword, description: t('ranks.knight.desc') },
+        { id: 'baron', name: t('ranks.baron.name'), n: 2, optionsCount: 4, icon: Shield, description: t('ranks.baron.desc') },
+        { id: 'count', name: t('ranks.count.name'), n: 2, optionsCount: 6, icon: Landmark, description: t('ranks.count.desc') },
+        { id: 'duke', name: t('ranks.duke.name'), n: 2, optionsCount: 8, icon: Trophy, description: t('ranks.duke.desc') },
+        { id: 'king', name: t('ranks.king.name'), n: 3, optionsCount: 6, icon: Crown, description: t('ranks.king.desc') },
+        { id: 'emperor', name: t('ranks.emperor.name'), n: 4, optionsCount: 6, icon: Sparkles, description: t('ranks.emperor.desc') },
     ], [t]);
 
     const fetchWords = useDictionaryStore(state => state.fetchWords);
@@ -74,12 +75,11 @@ export default function NBack() {
         if (dictId && dictId !== 'default' && dictionaries.length > 0) {
             const currentDict = dictionaries.find(d => d.id === dictId);
             if (currentDict) {
-                localStorage.setItem('benedicti_last_activity', JSON.stringify({
+                saveRecentActivity({
                     dictId,
                     dictName: currentDict.name,
-                    mode: 'nback',
-                    timestamp: Date.now()
-                }));
+                    mode: 'nbackword'
+                });
             }
         }
     }, [dictId, dictionaries]);
@@ -316,17 +316,24 @@ export default function NBack() {
 
     const getInstructionSuffix = (n: number) => {
         if (language === 'ru') {
-            if (n === 1) return t('games.benedicto.steps_one');
-            if (n >= 2 && n <= 4) return t('games.benedicto.steps_few');
-            return t('games.benedicto.steps_many');
+            if (n === 1) return t('games.nbackword.steps_one');
+            if (n >= 2 && n <= 4) return t('games.nbackword.steps_few');
+            return t('games.nbackword.steps_many');
         }
-        return n === 1 ? t('games.benedicto.steps_one') : t('games.benedicto.steps_few');
+        return n === 1 ? t('games.nbackword.steps_one') : t('games.nbackword.steps_few');
     };
 
     return (
         <div className={styles.container}>
-            {(phase === 'SETUP' || phase === 'GAMEOVER' || isInitialLoading) && (
-                <button className={styles.floatingBackButton} onClick={() => navigate('/games')} title={t('common.back')}>
+            {(phase === 'SETUP' || phase === 'GAMEOVER' || phase === 'MEMORIZE' || phase === 'PLAY' || isInitialLoading) && (
+                <button 
+                    className={styles.floatingBackButton} 
+                    onClick={() => {
+                        if (timerRef.current) window.clearInterval(timerRef.current);
+                        navigate('/games');
+                    }} 
+                    title={t('common.back')}
+                >
                     <ArrowLeft size={24} />
                 </button>
             )}
@@ -337,7 +344,7 @@ export default function NBack() {
                 <>
                     {phase === 'SETUP' && (
                         <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''}`}>
-                    <h1 className={styles.royalTitle}>{t('games.benedicto.title')}</h1>
+                    <h1 className={styles.royalTitle}>{t('games.nbackword.title')}</h1>
                     
                     <div className={styles.dictSelector}>
                         <button 
@@ -388,7 +395,7 @@ export default function NBack() {
                                 <div className={styles.toggleThumb} />
                             </div>
                             <span className={styles.toggleText}>
-                                {isEliteMode ? t('games.benedicto.eliteMode') : t('games.benedicto.normalMode')}
+                                {isEliteMode ? t('games.nbackword.eliteMode') : t('games.nbackword.normalMode')}
                             </span>
                         </label>
                     </div>
@@ -415,7 +422,7 @@ export default function NBack() {
             {phase === 'MEMORIZE' && selectedRank && (
                 <div className={styles.gameArea}>
                     <div className={styles.memorizeContainer}>
-                        <h2 className={styles.royalTitle}>{t('games.benedicto.rememberN', { n: currentIndexInQueue + 1 })}</h2>
+                        <h2 className={styles.royalTitle}>{t('games.nbackword.rememberN', { n: currentIndexInQueue + 1 })}</h2>
                         <div className={styles.wordToRemember}>
                             {(() => {
                                 const word = wordQueue[currentIndexInQueue] as any;
@@ -440,10 +447,10 @@ export default function NBack() {
                             })()}
                         </div>
                         <div className={styles.progressText} style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 600 }}>
-                            {t('games.benedicto.prepareStatus', { current: currentIndexInQueue + 1, total: selectedRank.n })}
+                            {t('games.nbackword.prepareStatus', { current: currentIndexInQueue + 1, total: selectedRank.n })}
                         </div>
                         <button className={styles.royalButton} onClick={handleNextMemorize}>
-                            {currentIndexInQueue < selectedRank.n - 1 ? t('games.benedicto.nextWord') : t('games.benedicto.start')}
+                            {currentIndexInQueue < selectedRank.n - 1 ? t('games.nbackword.nextWord') : t('games.nbackword.start')}
                         </button>
                     </div>
                 </div>
@@ -454,7 +461,7 @@ export default function NBack() {
                     <div className={styles.gameArea}>
                         <div className={styles.gameHeader}>
                             <div className={styles.score}>
-                                {t('games.benedicto.step', { current: score + 1, total: SESSION_SIZE - selectedRank.n })}
+                                {t('games.nbackword.step', { current: score + 1, total: SESSION_SIZE - selectedRank.n })}
                             </div>
                             <div className={styles.timerWrapper}>
                                 <div className={styles.timer}>{timer.toFixed(2)}</div>
@@ -466,7 +473,7 @@ export default function NBack() {
 
                         <div className={styles.currentWordBox}>
                             <div style={{ color: '#94a3b8', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                                {t('games.benedicto.rememberCurrent')}
+                                {t('games.nbackword.rememberCurrent')}
                             </div>
                             <h2 className={styles.wordToRemember} style={{ margin: 0 }}>
                                 {(() => {
@@ -494,7 +501,7 @@ export default function NBack() {
                         </div>
 
                         <div className={styles.gameInstruction}>
-                            {t('games.benedicto.instruction', { n: selectedRank.n, steps: getInstructionSuffix(selectedRank.n) })}
+                            {t('games.nbackword.instruction', { n: selectedRank.n, steps: getInstructionSuffix(selectedRank.n) })}
                         </div>
 
                         <div className={styles.optionsList}>
@@ -519,7 +526,7 @@ export default function NBack() {
             {phase === 'GAMEOVER' && selectedRank && (
                 <div className={styles.gameArea}>
                     <div className={styles.results}>
-                        <h1 className={styles.royalTitle}>{t('games.benedicto.challengeCompleted')}</h1>
+                        <h1 className={styles.royalTitle}>{t('games.nbackword.challengeCompleted')}</h1>
                         <div className={styles.finalRankBadge}>
                             <selectedRank.icon size={48} color="#fde047" />
                             <div className={styles.finalRank}>{selectedRank.name}</div>
@@ -527,25 +534,25 @@ export default function NBack() {
                         
                         <div className={styles.resultsGrid}>
                             <div className={styles.resultItem}>
-                                <span>{t('games.benedicto.pureTime')}</span>
+                                <span>{t('games.nbackword.pureTime')}</span>
                                 <strong>{timer.toFixed(2)}s</strong>
                             </div>
                             <div className={styles.resultItem}>
-                                <span>{t('games.benedicto.penalties')}</span>
+                                <span>{t('games.nbackword.penalties')}</span>
                                 <strong style={{ color: '#ef4444' }}>+{penaltySeconds}s</strong>
                             </div>
                             <div className={styles.totalResult}>
-                                <span>{t('games.benedicto.total')}:</span>
+                                <span>{t('games.nbackword.total')}:</span>
                                 <strong>{totalFinalTime.toFixed(2)}s</strong>
                             </div>
                         </div>
 
                         <div className={styles.resultsButtons}>
                             <button className={styles.royalButton} onClick={() => setPhase('SETUP')}>
-                                {t('games.benedicto.repeatFeat')}
+                                {t('games.nbackword.repeatFeat')}
                             </button>
                             <button className={styles.secondaryButton} onClick={() => navigate('/games')}>
-                                {t('games.benedicto.returnToHall')}
+                                {t('games.nbackword.returnToHall')}
                             </button>
                         </div>
                     </div>

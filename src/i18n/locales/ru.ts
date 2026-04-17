@@ -51,8 +51,8 @@ export const ru = {
     logout: 'Выйти',
   },
   games: {
-    benedicto: {
-      title: 'BENEDICTO',
+    nbackword: {
+      title: 'NBACKWORD',
       description: 'Путь к трону через испытание памяти. Станьте королем!',
       start: 'К Трону!',
       nextWord: 'Следующее Слово',
@@ -72,8 +72,8 @@ export const ru = {
       returnToHall: 'Вернуться в Зал',
     },
     pairwords: {
-      title: 'PAIRWORDS',
-      description: 'Выбери пару слов. Классический режим сопоставления.',
+      title: 'СОПОСТАВЛЕНИЕ',
+      description: 'Найдите пары слов и их переводов. Скорость решает всё!',
       score: 'Счёт',
       pairsCount: '{{count}} пар',
       eliteMode: 'Элитный режим (На слух)',
@@ -83,8 +83,8 @@ export const ru = {
       notEnoughWords: 'В этом словаре недостаточно слов для ранга {{rank}} (нужно минимум {{count}})',
     },
     flashcards: {
-      title: 'Карточки',
-      description: 'Классические карточки для запоминания слов.',
+      title: 'КАРТОЧКИ',
+      description: 'Классическое испытание на знание слов. Просто и эффективно.',
       sessionComplete: 'Вы прошли все карточки в этой сессии.',
     },
   },
@@ -96,7 +96,7 @@ export const ru = {
     continueConquest: 'Продолжить завоевание',
     masteryWords: 'Мастерство над <strong>{{count}} словами</strong> всего в одной сессии от вас.',
     resumeSession: 'Продолжить сессию',
-    resumeNBack: 'Продолжить Benedicto',
+    resumeNBack: 'Продолжить Nbackword',
     resumeFlashcards: 'Продолжить Карточки',
     throneAwaits: 'Трон ждет',
     createFirstDict: 'Создайте свой первый словарь, чтобы начать правление.',

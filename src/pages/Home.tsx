@@ -16,11 +16,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import styles from './Home.module.css';
 
+import { getRecentActivities, type RecentActivity } from '../utils/activity';
+
 export default function Home() {
     const { currentUser } = useAuth();
     const { dictionaries, fetchDictionaries } = useDictionaryStore();
     const { t } = useLanguage();
-    const [lastActivity, setLastActivity] = useState<{ dictId: string, dictName: string, mode: string } | null>(null);
+    const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
 
     useEffect(() => {
         if (currentUser) {
@@ -29,36 +31,24 @@ export default function Home() {
     }, [currentUser, fetchDictionaries]);
 
     useEffect(() => {
-        const saved = localStorage.getItem('benedicti_last_activity');
-        if (saved) {
-            try {
-                setLastActivity(JSON.parse(saved));
-            } catch (e) {
-                console.error('Failed to parse last activity', e);
-            }
-        }
+        setRecentActivities(getRecentActivities());
     }, []);
 
     // Derived statistics
     const totalDictionaries = dictionaries.length;
     const totalWords = dictionaries.reduce((acc, dict) => acc + (dict.wordCount || 0), 0);
     
-    // Fallback dictionary if no active game
-    const recentDictionary = dictionaries.length > 0 
-        ? [...dictionaries].sort((a, b) => b.createdAt - a.createdAt)[0] 
-        : null;
+    // Fallback logic if no activity
+    const getResumeLabel = (mode: string) => {
+        switch (mode) {
+            case 'nback': return t('home.resumeNBack');
+            case 'flashcards': return t('home.resumeFlashcards');
+            case 'match-pairs': return t('games.pairwords.title'); // Reusing existing translate key
+            default: return t('home.resumeSession');
+        }
+    };
 
-    const activeDictId = lastActivity?.dictId || recentDictionary?.id;
-    const activeDictName = lastActivity?.dictName || recentDictionary?.name;
-    const activeWordCount = dictionaries.find(d => d.id === activeDictId)?.wordCount || 0;
-    
-    const resumePath = lastActivity 
-        ? `/play/${lastActivity.mode}/${lastActivity.dictId}`
-        : activeDictId ? `/dict/${activeDictId}` : '/dictionaries';
-
-    const resumeLabel = lastActivity 
-        ? (lastActivity.mode === 'nback' ? t('home.resumeNBack') : t('home.resumeFlashcards'))
-        : t('home.resumeSession');
+    const getResumePath = (act: RecentActivity) => `/play/${act.mode}/${act.dictId}`;
 
     const StatCard = ({ icon: Icon, label, value, colorClass }: any) => (
         <div className={styles.statCard}>
@@ -125,27 +115,38 @@ export default function Home() {
             <div className={styles.contentGrid}>
                 {/* Main Dashboard Area */}
                 <div className={styles.mainArea}>
-                    {/* Resume Training Card */}
-                    {activeDictId ? (
-                        <div className={styles.resumeCard}>
-                            <div className={styles.sparkleDecor}>
-                                <Sparkles size={160} />
-                            </div>
-                            
-                            <div className={styles.resumeBadge}>
-                                <TrendingUp size={14} /> {t('home.continueConquest')}
-                            </div>
-                            <h2 className={styles.resumeTitle}>
-                                {activeDictName}
-                            </h2>
-                            <p className={styles.resumeText} dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: activeWordCount }) }} />
-                            
-                            <Link 
-                                to={resumePath}
-                                className={styles.resumeButton}
-                            >
-                                {resumeLabel} <ChevronRight size={18} />
-                            </Link>
+                    {/* Recent Games Area */}
+                    {recentActivities.length > 0 ? (
+                        <div className={recentActivities.length >= 2 ? styles.recentGamesGrid : ''}>
+                            {recentActivities.slice(0, 2).map((act, index) => {
+                                const dict = dictionaries.find(d => d.id === act.dictId);
+                                const wordCount = dict?.wordCount || 0;
+                                const isSmall = recentActivities.length >= 2;
+
+                                return (
+                                    <div key={`${act.dictId}-${act.mode}-${index}`} className={`${styles.resumeCard} ${isSmall ? styles.resumeCardSmall : ''}`}>
+                                        <div className={styles.sparkleDecor}>
+                                            <Sparkles size={isSmall ? 80 : 160} />
+                                        </div>
+                                        
+                                        <div className={styles.resumeBadge}>
+                                            <TrendingUp size={14} /> {t('home.continueConquest')}
+                                        </div>
+                                        <h2 className={`${styles.resumeTitle} ${isSmall ? styles.resumeTitleSmall : ''}`}>
+                                            {act.dictName}
+                                        </h2>
+                                        <p className={`${styles.resumeText} ${isSmall ? styles.resumeTextSmall : ''}`} 
+                                           dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: wordCount }) }} />
+                                        
+                                        <Link 
+                                            to={getResumePath(act)}
+                                            className={`${styles.resumeButton} ${isSmall ? styles.resumeButtonSmall : ''}`}
+                                        >
+                                            {getResumeLabel(act.mode)} <ChevronRight size={18} />
+                                        </Link>
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className={styles.resumeCard} style={{ textAlign: 'center', background: 'rgba(30,30,50,0.2)' }}>
@@ -167,7 +168,7 @@ export default function Home() {
                                     <BrainCircuit size={28} />
                                 </div>
                                 <div className="text-left">
-                                    <div className={styles.appName}>BENEDICTO</div>
+                                    <div className={styles.appName}>{t('games.nbackword.title').toUpperCase()}</div>
                                     <div className={styles.appDesc}>{t('home.memoryTraining')}</div>
                                 </div>
                             </div>

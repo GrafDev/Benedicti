@@ -300,18 +300,21 @@
 .optionsList {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0.75rem;
+    grid-auto-rows: 1fr; /* Each button takes equal share of remaining height */
+    gap: 0.5rem;
     width: 100%;
     margin-top: 1rem;
+    flex: 1; /* Grow to fill space */
+    min-height: 0;
 }
 
 .optionButton {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 0.75rem 0.5rem;
-    font-size: 1rem;
-    font-weight: 600;
+    padding: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
     color: #fff;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -320,8 +323,9 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 3.5rem;
     height: 100%;
+    min-height: 2.8rem;
+    max-height: 6rem; /* Significantly larger buttons */
 }
 
 .optionButton:hover {

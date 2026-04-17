@@ -6,6 +6,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { ArrowLeft, Volume2, RefreshCw, Ghost, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronRight, BrainCircuit, Gamepad2, ChevronDown } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import { soundService } from '../utils/soundUtils';
+import { saveRecentActivity } from '../utils/activity';
 import type { Word } from '../types';
 import styles from './MatchPairs.module.css';
 
@@ -70,8 +71,23 @@ export default function MatchPairs() {
     const nextWordIndex = useRef(0);
     
     const [phase, setPhase] = useState<Phase>('SETUP');
+    const [status, setStatus] = useState<'playing' | 'preview' | 'complete'>('playing');
     const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
+
+    // Track activity
+    useEffect(() => {
+        if (dictId && dictId !== 'default' && dictionaries.length > 0) {
+            const currentDict = dictionaries.find(d => d.id === dictId);
+            if (currentDict) {
+                saveRecentActivity({
+                    dictId,
+                    dictName: currentDict.name,
+                    mode: 'match-pairs'
+                });
+            }
+        }
+    }, [dictId, dictionaries]);
 
     // Initial Load
     useEffect(() => {

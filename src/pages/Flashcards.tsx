@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Volume2, ChevronDown } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
+import { saveRecentActivity } from '../utils/activity';
 import type { Word } from '../types';
 import styles from './Flashcards.module.css';
 
@@ -38,6 +39,7 @@ export default function Flashcards() {
 
     useEffect(() => {
         const loadWords = async () => {
+            setGameWords([]); // Clear current session before loading new data
             if (dictId === 'default') {
                 await fetchSharedWords(currentUser?.uid);
             } else if (currentUser && dictId) {
@@ -56,22 +58,21 @@ export default function Flashcards() {
     // Track activity
     useEffect(() => {
         if (dictId && dictId !== 'default' && dictionaries.length > 0) {
-            const dict = dictionaries.find(d => d.id === dictId);
-            if (dict) {
-                localStorage.setItem('lastUsedDictId', dictId);
-                localStorage.setItem('benedicti_last_activity', JSON.stringify({
+            const currentDict = dictionaries.find(d => d.id === dictId);
+            if (currentDict) {
+                saveRecentActivity({
                     dictId,
-                    dictName: dict.name,
-                    mode: 'flashcards',
-                    timestamp: Date.now()
-                }));
+                    dictName: currentDict.name,
+                    mode: 'flashcards'
+                });
             }
         }
     }, [dictId, dictionaries]);
 
-    // Shuffle and set words for session
+    // Shuffle and set words for session only when words are first loaded
     useEffect(() => {
-        if (storeWords.length > 0) {
+        // Only initialize if we don't have game words yet and we have store words
+        if (storeWords.length > 0 && gameWords.length === 0) {
             // Filter out learned words from the study session
             const availableWords = storeWords.filter(w => !w.isLearned);
             
@@ -82,10 +83,10 @@ export default function Flashcards() {
             setInitialCount(shuffled.length);
             setCurrentIndex(0);
             setIsFlipped(false);
-        } else {
+        } else if (storeWords.length === 0 && !loading) {
             setGameWords([]);
         }
-    }, [storeWords]);
+    }, [storeWords, gameWords.length, loading]);
 
     const handleNext = useCallback(() => {
         if (currentIndex < gameWords.length - 1) {
@@ -304,7 +305,7 @@ export default function Flashcards() {
                                 onClick={handleNext} 
                                 disabled={currentIndex === gameWords.length - 1}
                                 className={styles.navButton}
-                                title={t('games.benedicto.nextWord')}
+                                title={t('games.nbackword.nextWord')}
                             >
                                 <ChevronRight size={32} />
                             </button>
