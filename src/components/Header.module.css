@@ -49,10 +49,11 @@
     display: none;
 }
 
-@media (min-width: 768px) {
+/* Show desktop nav only in landscape and above 850px */
+@media (min-width: 850px) and (orientation: landscape) {
     .desktopNav {
         display: flex;
-        gap: 1rem;
+        gap: 1.25rem;
     }
 }
 
@@ -83,11 +84,11 @@
     display: none;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 850px) and (orientation: landscape) {
     .authButtons {
         display: flex;
         align-items: center;
-        gap: 1.5rem;
+        gap: 1.25rem;
     }
 }
 
@@ -96,11 +97,22 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.25rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 999px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 1100px) {
+    .userNameLink {
+        padding: 0.6rem;
+        aspect-ratio: 1;
+        justify-content: center;
+    }
+    .userNameLink .userEmail {
+        display: none;
+    }
 }
 
 .userNameLink:hover {
@@ -142,7 +154,7 @@
     gap: 0.5rem;
     background: rgba(251, 191, 36, 0.05);
     color: #fbbf24;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.25rem;
     border-radius: 0.75rem;
     border: 1px solid rgba(251, 191, 36, 0.3);
     font-weight: 700;
@@ -153,6 +165,17 @@
     cursor: pointer;
 }
 
+@media (max-width: 1100px) {
+    .installButton {
+        padding: 0.6rem;
+        aspect-ratio: 1;
+        justify-content: center;
+    }
+    .installButton .btnText {
+        display: none;
+    }
+}
+
 .installButton:hover {
     background: rgba(251, 191, 36, 0.1);
     border-color: #fbbf24;
@@ -161,15 +184,20 @@
 
 .mobileMenuButton {
     display: block;
-    padding: 0.5rem;
+    padding: 0.6rem;
     border-radius: 0.75rem;
     color: #fbbf24;
     background: rgba(251, 191, 36, 0.05);
     border: 1px solid rgba(251, 191, 36, 0.1);
     cursor: pointer;
+    transition: all 0.2s;
 }
 
-@media (min-width: 768px) {
+.mobileMenuButton:active {
+    transform: scale(0.95);
+}
+
+@media (min-width: 850px) and (orientation: landscape) {
     .mobileMenuButton {
         display: none;
     }

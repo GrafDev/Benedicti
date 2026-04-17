@@ -99,7 +99,7 @@ export default function Header() {
                                     title="Install App"
                                 >
                                     <Download size={18} />
-                                    Install
+                                    <span className={styles.btnText}>Install</span>
                                 </button>
                             )}
 

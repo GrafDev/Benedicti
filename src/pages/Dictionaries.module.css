@@ -179,7 +179,7 @@
     opacity: 0.5;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 850px), (orientation: portrait) {
     .pageContainer {
         padding: 1.5rem 1rem 5rem !important;
     }
