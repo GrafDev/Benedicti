@@ -1,0 +1,113 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modal {
+    background: #1e293b;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 2rem;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    animation: modalSlide 0.4s ease-out;
+}
+
+@keyframes modalSlide {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.closeButton {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    color: #64748b;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.closeButton:hover {
+    color: #fff;
+}
+
+.title {
+    color: #fbbf24;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.stepNumber {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.stepContent {
+    color: #cbd5e1;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.iconWrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 6px;
+    margin: 0 4px;
+    vertical-align: middle;
+}
+
+.highlight {
+    color: #fff;
+    font-weight: 700;
+}
+
+.footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-style: italic;
+}

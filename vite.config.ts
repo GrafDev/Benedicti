@@ -10,20 +10,26 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'BeneDicti - Language Learning',
-        short_name: 'BeneDicti',
+        name: 'benetict - Language Learning',
+        short_name: 'benetict',
         description: 'Master new languages with spaced repetition and games',
         theme_color: '#ffffff',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'favicon.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'favicon.png',
             sizes: '512x512',
             type: 'image/png'
+          },
+          {
+            src: 'favicon.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       },

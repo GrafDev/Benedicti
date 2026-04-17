@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Globe, User as UserIcon, LogOut } from 'lucide-react';
+import { Menu, X, Globe, User as UserIcon, LogOut, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
+import InstallInstructions from './InstallInstructions';
 import styles from './Header.module.css';
 
 export default function Header() {
@@ -10,6 +11,48 @@ export default function Header() {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const { currentUser, logout } = useAuth();
     const location = useLocation();
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [isIOS, setIsIOS] = useState(false);
+    const [isSafari, setIsSafari] = useState(false);
+    const [isStandalone, setIsStandalone] = useState(false);
+    const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
+
+    useEffect(() => {
+        // Detect iOS
+        const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+        setIsIOS(isIOSDevice);
+
+        // Detect Safari (including Desktop)
+        const isSafariBrowser = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        setIsSafari(isSafariBrowser);
+
+        // Detect if already installed/standalone
+        const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+        setIsStandalone(isStandaloneMode);
+
+        const handler = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (isSafari || isIOS) {
+            setIsInstructionsOpen(true);
+            return;
+        }
+
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
+
+    const showInstallButton = (deferredPrompt !== null) || ((isIOS || isSafari) && !isStandalone);
 
     const isActive = (path: string) => location.pathname === path;
 
@@ -26,8 +69,8 @@ export default function Header() {
                 <div className={styles.container}>
                     <div className={styles.navContainer}>
                         <Link to="/" className={styles.logo}>
-                            <Globe size={28} />
-                            <span>BeneDicti</span>
+                            <img src="/favicon.png" alt="benetict" className={styles.logoIcon} />
+                            <span>benetict</span>
                         </Link>
 
                         {/* Desktop Navigation */}
@@ -45,6 +88,17 @@ export default function Header() {
 
                         {/* Auth Buttons */}
                         <div className={styles.authButtons}>
+                            {showInstallButton && (
+                                <button
+                                    onClick={handleInstallClick}
+                                    className={styles.installButton}
+                                    title="Install App"
+                                >
+                                    <Download size={18} />
+                                    Install
+                                </button>
+                            )}
+
                             {currentUser ? (
                                 <div className={styles.userInfo}>
                                     <span className={styles.userEmail}>{currentUser.email}</span>
@@ -92,6 +146,16 @@ export default function Header() {
                                 </Link>
                             ))}
                             <div className={styles.mobileAuth}>
+                                {showInstallButton && (
+                                    <button
+                                        onClick={() => { handleInstallClick(); setIsMenuOpen(false); }}
+                                        className={styles.mobileInstallButton}
+                                        style={{ marginBottom: '0.75rem' }}
+                                    >
+                                        <Download size={18} /> Install App
+                                    </button>
+                                )}
+
                                 {currentUser ? (
                                     <div>
                                         <p className={styles.userEmail} style={{ padding: '0 0.75rem', marginBottom: '0.5rem' }}>
@@ -120,6 +184,11 @@ export default function Header() {
             </header>
 
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+            <InstallInstructions 
+                isOpen={isInstructionsOpen} 
+                onClose={() => setIsInstructionsOpen(false)} 
+                isMac={isSafari && !isIOS}
+            />
         </>
     );
 }

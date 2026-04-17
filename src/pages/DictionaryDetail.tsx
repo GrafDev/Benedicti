@@ -30,6 +30,9 @@ export default function DictionaryDetail() {
     const [editOriginal, setEditOriginal] = useState('');
     const [editTranslation, setEditTranslation] = useState('');
 
+    // Mobile expand state
+    const [expandedWordId, setExpandedWordId] = useState<string | null>(null);
+
     const dictionary = (dictionaries || []).find(d => d.id === dictionaryId);
 
     useEffect(() => {
@@ -39,6 +42,11 @@ export default function DictionaryDetail() {
     }, [currentUser, dictionaryId, fetchWords]);
 
     // ─── Handlers ──────────────────────────────────────────────────────────────
+
+    const toggleExpand = (id: string) => {
+        if (editingWordId) return; // Don't expand while editing
+        setExpandedWordId(prev => prev === id ? null : id);
+    };
 
     const handleAddWord = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,6 +61,7 @@ export default function DictionaryDetail() {
         setEditingWordId(wordId);
         setEditOriginal(original);
         setEditTranslation(translation);
+        setExpandedWordId(null); // Collapse when starting to edit
     };
 
     const cancelEdit = () => {
@@ -161,12 +170,13 @@ export default function DictionaryDetail() {
                     {(words || []).map(word => (
                         <div
                             key={word.id}
-                            className={`${styles.wordCard} ${editingWordId === word.id ? styles.editing : ''}`}
+                            onClick={() => toggleExpand(word.id)}
+                            className={`${styles.wordCard} ${editingWordId === word.id ? styles.editing : ''} ${expandedWordId === word.id ? styles.expanded : ''}`}
                         >
                             {editingWordId === word.id ? (
                                 // ── Inline edit mode ──────────────────────────────────────────
                                 <>
-                                    <div className={styles.editInputs}>
+                                    <div className={styles.editInputs} onClick={e => e.stopPropagation()}>
                                         <input
                                             className={styles.editInput}
                                             value={editOriginal}
@@ -181,7 +191,7 @@ export default function DictionaryDetail() {
                                             placeholder="Translation"
                                         />
                                     </div>
-                                    <div className={styles.wordActions}>
+                                    <div className={styles.wordActions} onClick={e => e.stopPropagation()}>
                                         <button
                                             className={styles.saveButton}
                                             onClick={() => handleSaveEdit(word.id)}
@@ -203,10 +213,10 @@ export default function DictionaryDetail() {
                                 <>
                                     <div className={styles.wordTexts}>
                                         <span className={styles.original}>{word.original}</span>
-                                        <span className={styles.arrow}>→</span>
+                                        <span className={styles.arrow}>-</span>
                                         <span className={styles.translation}>{word.translation}</span>
                                     </div>
-                                    <div className={styles.wordActions}>
+                                    <div className={styles.wordActions} onClick={e => e.stopPropagation()}>
                                         <button
                                             className={styles.iconButton}
                                             onClick={() => startEdit(word.id, word.original, word.translation)}

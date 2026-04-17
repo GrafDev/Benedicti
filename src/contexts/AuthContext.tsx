@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
     onAuthStateChanged,
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     GoogleAuthProvider,
     OAuthProvider,
     signOut,
@@ -45,16 +47,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(false);
         });
 
+        // Handle redirect result for mobile logins
+        getRedirectResult(auth).catch((error) => {
+            console.error('Error handling redirect result', error);
+        });
+
         return () => {
             clearTimeout(timeout);
             unsubscribe();
         };
     }, []);
 
+    // Detect "mobile context" based on width or device type
+    const isMobileContext = () => {
+        const isNarrow = window.innerWidth <= 768;
+        const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        return isNarrow || isMobileDevice;
+    };
+
     const signInWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+            if (isMobileContext()) {
+                await signInWithRedirect(auth, provider);
+            } else {
+                await signInWithPopup(auth, provider);
+            }
         } catch (error) {
             console.error('Error signing in with Google', error);
             throw error;
@@ -64,7 +82,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signInWithApple = async () => {
         const provider = new OAuthProvider('apple.com');
         try {
-            await signInWithPopup(auth, provider);
+            if (isMobileContext()) {
+                await signInWithRedirect(auth, provider);
+            } else {
+                await signInWithPopup(auth, provider);
+            }
         } catch (error) {
             console.error('Error signing in with Apple', error);
             throw error;

@@ -14,12 +14,10 @@ import {
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import styles from './Home.module.css';
-import type { Word } from '../types';
 
 export default function Home() {
     const { currentUser } = useAuth();
     const { dictionaries, fetchDictionaries } = useDictionaryStore();
-    const [dailyWord] = useState<Word | null>(null);
     const [lastActivity, setLastActivity] = useState<{ dictId: string, dictName: string, mode: string } | null>(null);
 
     useEffect(() => {

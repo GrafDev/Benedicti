@@ -138,7 +138,7 @@
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 0.5rem;
     min-width: 0;
 }
 
@@ -146,11 +146,7 @@
     font-weight: 800;
     font-size: 1.1rem;
     color: #fff;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
-    flex: 1;
 }
 
 .arrow {
@@ -163,11 +159,6 @@
     font-size: 1rem;
     font-weight: 500;
     color: #94a3b8;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
 }
 
 .wordActions {
@@ -427,4 +418,111 @@
     justify-content: center;
     align-items: center;
     height: 20rem;
+}
+@media (max-width: 640px) {
+    .pageContainer {
+        padding: 1rem 1rem 5rem 1rem;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .titleWrapper {
+        gap: 0.75rem;
+    }
+
+    .title {
+        font-size: 1.75rem;
+        text-align: center;
+    }
+
+    .meta {
+        justify-content: center;
+    }
+
+    .headerActions {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 0.75rem;
+    }
+
+    .addButton {
+        flex: 1;
+        justify-content: center;
+        padding: 0.85rem;
+    }
+
+    .wordList {
+        gap: 0.5rem;
+    }
+
+    .wordCard {
+        flex-wrap: wrap;
+        padding: 0.6rem 1rem;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.3s, border-color 0.3s, transform 0.2s;
+    }
+
+    .wordCard:active {
+        transform: scale(0.98);
+    }
+
+    .wordTexts {
+        gap: 1rem;
+    }
+
+    .original {
+        font-size: 1rem;
+    }
+
+    .arrow {
+        font-size: 1rem;
+    }
+
+    .translation {
+        font-size: 0.9rem;
+    }
+
+    .wordActions {
+        width: 100%;
+        display: none; /* Hide by default on mobile */
+        justify-content: flex-end;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        margin-top: 0.25rem;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .wordCard.expanded .wordActions {
+        display: flex; /* Show when expanded */
+    }
+
+    .wordCard.editing {
+        padding: 1rem;
+    }
+
+    .editInputs {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .iconButton {
+        width: 2.75rem; /* Larger touch targets */
+        height: 2.75rem;
+    }
+
+    .saveButton {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
 }

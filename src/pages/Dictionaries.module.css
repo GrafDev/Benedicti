@@ -71,10 +71,9 @@
 }
 
 .card:hover {
-    transform: translateY(-8px);
+    transform: translateY(-5px);
     background: rgba(30, 41, 59, 0.8);
     border-color: rgba(251, 191, 36, 0.3);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
 }
 
 .cardHeader {
@@ -89,13 +88,6 @@
     padding: 1rem;
     border-radius: 1rem;
     color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    transition: all 0.3s;
-}
-
-.card:hover .iconWrapper {
-    transform: scale(1.1) rotate(5deg);
-    background: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
 }
 
 .langBadge {
@@ -106,7 +98,6 @@
     border-radius: 999px;
     color: #fbbf24;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
 }
 
 .cardTitle {
@@ -114,14 +105,12 @@
     font-weight: 800;
     margin-bottom: 0.5rem;
     color: #fff;
-    transition: color 0.2s;
 }
 
 .cardSubtitle {
     color: #94a3b8;
     font-size: 0.95rem;
     margin: 0;
-    line-height: 1.5;
 }
 
 .emptyState {
@@ -131,123 +120,49 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     color: #94a3b8;
     cursor: pointer;
-    background: rgba(30, 41, 59, 0.2);
-    min-height: 250px;
-    transition: all 0.3s;
+    min-height: 200px;
 }
 
-.emptyState:hover {
-    border-color: #fbbf24;
-    color: #fbbf24;
-    background: rgba(30, 41, 59, 0.4);
-}
+@media (max-width: 768px) {
+    .pageContainer {
+        padding: 1.5rem 1rem 5rem !important;
+    }
 
-.emptyStateIcon {
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
 
-.emptyStateText {
-    font-weight: 700;
-    font-size: 1.1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
+    .title {
+        font-size: 1.75rem;
+        text-align: center;
+    }
 
-/* Modal Styles */
-.modalOverlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    padding: 1rem;
-}
+    .grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2rem !important;
+        height: auto !important;
+    }
 
-.modalContent {
-    background-color: #1e293b;
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    border-radius: 1.5rem;
-    width: 100%;
-    max-width: 30rem;
-    padding: 2.5rem;
-    color: white;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+    .cardLink {
+        height: auto !important;
+        display: block !important;
+        margin-bottom: 0 !important;
+    }
 
-@keyframes modalIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
+    .card {
+        padding: 1.5rem !important;
+        height: auto !important;
+        min-height: min-content !important;
+        transform: none !important; /* Убираем любые трансформации */
+    }
 
-.modalTitle {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin-bottom: 1.5rem;
-    color: #fff;
-    text-align: center;
-}
-
-.formGroup {
-    margin-bottom: 1.5rem;
-}
-
-.label {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #94a3b8;
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.input,
-.select {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.85rem 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: #0f172a;
-    border-radius: 0.75rem;
-    color: white;
-    font-size: 1rem;
-    outline: none;
-    transition: all 0.2s;
-}
-
-.input:focus,
-.select:focus {
-    border-color: #fbbf24;
-    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1);
-}
-
-.modalActions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 2rem;
-}
-
-.cancelButton {
-    padding: 0.75rem 1.5rem;
-    color: #94a3b8;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.cancelButton:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: white;
+    .card:hover {
+        transform: none !important;
+    }
 }

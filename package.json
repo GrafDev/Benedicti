@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "import-dict": "node scripts/import_default_dict.js"
+    "import-dict": "node scripts/import_default_dict.js",
+    "deploy": "npm run build && firebase deploy"
   },
   "dependencies": {
     "classnames": "^2.5.1",
