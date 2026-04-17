@@ -2,137 +2,191 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
+    min-height: 100dvh;
+    color: #f8fafc;
 }
 
 .title {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin-bottom: 2rem;
-    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 900;
+    margin-bottom: 2.5rem;
+    background: linear-gradient(to right, #fde047 0%, #fff 50%, #fde047 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
 }
 
 .selectorSection {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    padding: 1.5rem;
-    border-radius: 1rem;
-    border: 1px solid rgba(229, 231, 235, 0.5);
-    margin-bottom: 2.5rem;
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    padding: 1.5rem 2rem;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    margin-bottom: 3rem;
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
 }
 
 .label {
-    font-weight: 600;
-    color: #374151;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
 }
 
 .select {
     flex: 1;
-    max-width: 400px;
-    padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    background-color: white;
-    font-size: 1rem;
+    max-width: 450px;
+    padding: 0.85rem 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    background-color: rgba(15, 23, 42, 0.8);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.select:hover {
+    border-color: rgba(251, 191, 36, 0.5);
+    background-color: rgba(15, 23, 42, 1);
 }
 
 .select:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.15);
+}
+
+.select option {
+    background-color: #1e293b;
+    color: #fff;
+    padding: 1rem;
 }
 
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 2.5rem;
 }
 
 .gameCard {
-    background: white;
-    border-radius: 1.5rem;
-    padding: 2.5rem 2rem;
-    border: 1px solid #e5e7eb;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(8px);
+    border-radius: 2rem;
+    padding: 3rem 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     position: relative;
     overflow: hidden;
-    height: 100%; /* Ensure card takes full height of the grid cell */
+    height: 100%;
+}
+
+.gameCard::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(to right, transparent, rgba(251, 191, 36, 0.5), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
 }
 
 .gameCard:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(-12px);
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(251, 191, 36, 0.3);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.gameCard:hover::before {
+    opacity: 1;
 }
 
 .iconContainer {
-    width: 100px;
-    height: 100px;
-    border-radius: 2rem;
+    width: 110px;
+    height: 110px;
+    border-radius: 2.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
     flex-shrink: 0;
+    transition: transform 0.5s ease;
+}
+
+.gameCard:hover .iconContainer {
+    transform: rotate(10deg) scale(1.1);
 }
 
 .bgBlue {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    color: #1e40af;
-}
-
-.bgGreen {
-    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-    color: #166534;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
 }
 
 .gameTitle {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 0.75rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 1rem;
     flex-shrink: 0;
 }
 
 .gameDescription {
-    color: #6b7280;
-    margin-bottom: 2rem;
-    line-height: 1.6;
-    flex-grow: 1; /* This pushes the button to the bottom */
-    display: flex;
-    align-items: center;
-    max-width: 250px;
+    color: #94a3b8;
+    margin-bottom: 2.5rem;
+    line-height: 1.7;
+    flex-grow: 1;
+    font-size: 1.05rem;
 }
 
 .playButton {
     width: 100%;
-    background: #2563eb;
+    background: linear-gradient(to bottom, #3b82f6, #1e40af);
     color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
+    padding: 1rem 1.5rem;
+    border-radius: 1.25rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    transition: background 0.2s, transform 0.1s;
+    gap: 0.75rem;
+    transition: all 0.3s;
+    box-shadow: 0 6px 15px rgba(30, 64, 175, 0.4);
 }
 
 .playButton:hover {
-    background: #1d4ed8;
+    background: linear-gradient(to bottom, #60a5fa, #2563eb);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.5);
 }
 
 .playButton:active {
-    transform: scale(0.98);
+    transform: scale(0.96);
+}
+
+@media (max-width: 640px) {
+    .pageContainer { padding: 1.5rem; }
+    .selectorSection { flex-direction: column; align-items: stretch; gap: 1rem; }
+    .select { max-width: none; }
+    .grid { grid-template-columns: 1fr; }
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Settings2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from 'lucide-react';
 import type { Word } from '../types';
 import styles from './Flashcards.module.css';
 
@@ -14,15 +14,16 @@ export default function Flashcards() {
     const fetchWords = useDictionaryStore(state => state.fetchWords);
     const fetchSharedWords = useDictionaryStore(state => state.fetchSharedWords);
     const markWordAsLearned = useDictionaryStore(state => state.markWordAsLearned);
+    const dictionaries = useDictionaryStore(state => state.dictionaries);
     const storeWords = useDictionaryStore(state => state.words);
     const loading = useDictionaryStore(state => state.loading);
-    const error = useDictionaryStore(state => state.error);
+    // const error = useDictionaryStore(state => state.error);
 
     const [gameWords, setGameWords] = useState<Word[]>([]);
     const [initialCount, setInitialCount] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
-    const [isFrontFirst, setIsFrontFirst] = useState(true);
+    const [isFrontFirst] = useState(true);
 
     // Initial Load
     useEffect(() => {
@@ -35,6 +36,21 @@ export default function Flashcards() {
         };
         loadWords();
     }, [dictId, currentUser, fetchWords, fetchSharedWords]);
+
+    // Track activity
+    useEffect(() => {
+        if (dictId && dictId !== 'default' && dictionaries.length > 0) {
+            const dict = dictionaries.find(d => d.id === dictId);
+            if (dict) {
+                localStorage.setItem('benedicti_last_activity', JSON.stringify({
+                    dictId,
+                    dictName: dict.name,
+                    mode: 'flashcards',
+                    timestamp: Date.now()
+                }));
+            }
+        }
+    }, [dictId, dictionaries]);
 
     // Shuffle and set words for session
     useEffect(() => {

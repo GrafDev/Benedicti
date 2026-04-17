@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { Book, Zap, Layers, Play, Crown } from 'lucide-react';
+import { Layers, Play, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Games.module.css';
 

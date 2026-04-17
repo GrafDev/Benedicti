@@ -104,34 +104,33 @@ export default function DictionaryDetail() {
 
     return (
         <div className={styles.pageContainer}>
-            {/* Back button */}
-            <Link to="/dictionaries" className={styles.backButton}>
-                <ArrowLeft size={16} /> Back to Dictionaries
-            </Link>
-
             {/* Header */}
             <div className={styles.header}>
-                <div className={styles.titleGroup}>
-                    <h1 className={styles.title}>
-                        {dictionary?.name ?? 'Dictionary'}
-                    </h1>
-                    <div className={styles.meta}>
-                        {dictionary && (
-                            <span className={styles.langBadge}>
-                                {dictionary.sourceLang.toUpperCase()} → {dictionary.targetLang.toUpperCase()}
+                <div className={styles.titleWrapper}>
+                    <Link to="/dictionaries" className={styles.backArrow} title="Back to Dictionaries">
+                        <ArrowLeft size={28} />
+                    </Link>
+                    <div className={styles.titleGroup}>
+                        <h1 className={styles.title}>
+                            {dictionary?.name ?? 'Dictionary'}
+                        </h1>
+                        <div className={styles.meta}>
+                            {dictionary && (
+                                <span className={styles.langBadge}>
+                                    {dictionary.sourceLang.toUpperCase()} → {dictionary.targetLang.toUpperCase()}
+                                </span>
+                            )}
+                            <span className={styles.wordCount}>
+                                {(words || []).length} word{(words || []).length !== 1 ? 's' : ''}
                             </span>
-                        )}
-                        <span className={styles.wordCount}>
-                            {(words || []).length} word{(words || []).length !== 1 ? 's' : ''}
-                        </span>
+                        </div>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className={styles.headerActions}>
                     <button
                         onClick={handleDeleteDictionary}
                         className={`${styles.iconButton} ${styles.danger}`}
                         title="Delete dictionary"
-                        style={{ width: 'auto', padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
                     >
                         <Trash2 size={16} />
                     </button>

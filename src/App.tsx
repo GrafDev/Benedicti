@@ -8,11 +8,10 @@ import DictionaryDetail from './pages/DictionaryDetail';
 import Flashcards from './pages/Flashcards';
 import NBack from './pages/NBack';
 import Importer from './pages/Importer';
+import ProtectedRoute from './components/ProtectedRoute';
 import MigrationManager from './components/MigrationManager';
 import './App.css';
 
-// Placeholder components for remaining routes
-const Game = () => <div><h1>Game Mode</h1></div>;
 const Profile = () => <div><h1>User Profile</h1></div>;
 
 function App() {
@@ -28,7 +27,11 @@ function App() {
             <Route path="/games" element={<Games />} />
             <Route path="/play/flashcards/:dictId" element={<Flashcards />} />
             <Route path="/play/nback/:dictId" element={<NBack />} />
-            <Route path="/import-deser" element={<Importer />} />
+            <Route path="/import-deser" element={
+              <ProtectedRoute>
+                <Importer />
+              </ProtectedRoute>
+            } />
             <Route path="/play/:mode/:dictId" element={<div><h1>Other Game Mode</h1></div>} />
             <Route path="/profile" element={<Profile />} />
           </Route>

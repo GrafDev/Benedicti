@@ -1,0 +1,374 @@
+.pageContainer {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 5rem 1.5rem;
+    animation: slideIn 1s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* ─── Header ─────────────────────────────────────────────── */
+
+.header {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 3.5rem;
+}
+
+@media (min-width: 768px) {
+    .header {
+        flex-direction: row;
+        align-items: center;
+    }
+}
+
+.titleArea {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mainTitle {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.sovereign {
+    background: linear-gradient(135deg, #fde047 0%, #fbbf24 50%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+}
+
+.userCard {
+    background: rgba(30, 41, 59, 0.4);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.75rem 1.5rem;
+    border-radius: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.userAvatar {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 900;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.userLabel {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.userName {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #cbd5e1;
+}
+
+/* ─── Stats Grid ─────────────────────────────────────────── */
+
+.statsGrid {
+    display: grid;
+    grid-template-cols: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+@media (min-width: 640px) {
+    .statsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .statsGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.statCard {
+    background: rgba(30, 41, 59, 0.3);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: all 0.3s;
+}
+
+.statCard:hover {
+    background: rgba(30, 41, 59, 0.5);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.statIcon {
+    padding: 0.75rem;
+    border-radius: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.statValue {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.2;
+}
+
+.statLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ─── Main Content Layout ────────────────────────────────── */
+
+.contentGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+    .contentGrid {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+.mainArea {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* ─── Resume Card ────────────────────────────────────────── */
+
+.resumeCard {
+    position: relative;
+    background: linear-gradient(145deg, rgba(37, 99, 235, 0.2), rgba(30, 41, 59, 0.8));
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 2.5rem;
+    padding: 2.5rem;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+
+.resumeCard:hover {
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.5);
+}
+
+.resumeBadge {
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: #60a5fa;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.resumeTitle {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 900;
+    color: #fff;
+    margin: 0 0 1rem 0;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+}
+
+.resumeText {
+    font-size: 1.1rem;
+    color: #94a3b8;
+    margin-bottom: 2.5rem;
+    max-width: 320px;
+}
+
+.resumeButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    background: linear-gradient(to bottom, #fbbf24, #d97706);
+    color: #451a03;
+    padding: 1.25rem 2.5rem;
+    border-radius: 1.25rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    font-size: 0.9rem;
+    box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.4);
+    transition: all 0.3s;
+}
+
+.resumeButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px -5px rgba(217, 119, 6, 0.5);
+    filter: brightness(1.1);
+}
+
+.sparkleDecor {
+    position: absolute;
+    top: -2rem;
+    right: -2rem;
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+/* ─── Quick Apps ─────────────────────────────────────────── */
+
+.quickApps {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+    .quickApps {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.appLink {
+    background: rgba(30, 41, 59, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.75rem;
+    border-radius: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.appLink:hover {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(251, 191, 36, 0.2);
+    transform: translateY(-2px);
+}
+
+.appInfo {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.appIcon {
+    padding: 1rem;
+    border-radius: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.appName {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+.appDesc {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* ─── Widgets ────────────────────────────────────────────── */
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.widget {
+    background: rgba(30, 41, 59, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 2rem;
+    padding: 1.5rem;
+}
+
+.wordWidget {
+    border-color: rgba(251, 191, 36, 0.15);
+}
+
+.widgetLabel {
+    font-size: 10px;
+    font-weight: 900;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: 1rem;
+}
+
+.wordTitle {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+.wordTranslation {
+    color: #94a3b8;
+    font-style: italic;
+    font-weight: 500;
+}
+
+/* ─── Shared utility colors ──────────────────────────────── */
+
+.bgBlue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.bgYellow { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.bgGreen { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.bgPurple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+.bgEmerald { background: rgba(16, 185, 129, 0.15); color: #34d399; }

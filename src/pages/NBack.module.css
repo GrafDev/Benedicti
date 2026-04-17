@@ -156,6 +156,25 @@
     margin: 0;
 }
 
+.wordWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.mainWord {
+    line-height: 1.1;
+}
+
+.translationHint {
+    font-size: 0.55em;
+    color: #94a3b8;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0.05em;
+}
+
 .gameInstruction {
     color: #fbbf24;
     font-size: 0.9rem;
@@ -448,4 +467,69 @@
     .currentWordBox { padding: 1rem; min-height: 80px; }
     .optionsList { gap: 0.25rem; }
     .optionButton { font-size: 0.95rem; padding: 0.5rem; }
+}
+
+/* Difficulty Toggle Styles */
+.difficultyContainer {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+}
+
+.toggleLabel {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.hiddenCheckbox {
+    display: none;
+}
+
+.customToggle {
+    width: 3.5rem;
+    height: 1.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.customToggle.active {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: #fbbf24;
+}
+
+.toggleThumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: #94a3b8;
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.active .toggleThumb {
+    transform: translateX(1.75rem);
+    background: linear-gradient(to bottom, #fde047, #d4af37);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.toggleText {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    transition: color 0.3s;
+}
+
+.active + .toggleText {
+    color: #fbbf24;
 }

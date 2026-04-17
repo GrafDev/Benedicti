@@ -1,64 +1,80 @@
 .overlay {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+    z-index: 100;
     padding: 1rem;
 }
 
 .modal {
-    background-color: white;
-    border-radius: 1rem;
-    /* xl */
+    background-color: #1e293b;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 2rem;
     width: 100%;
-    max-width: 28rem;
-    /* md */
-    padding: 1.5rem;
+    max-width: 30rem;
+    padding: 3rem;
     position: relative;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
 .closeButton {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    color: #6b7280;
-    background: none;
+    top: 1.5rem;
+    right: 1.5rem;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.05);
     border: none;
-    padding: 0;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
     cursor: pointer;
+    transition: all 0.2s;
 }
 
 .closeButton:hover {
-    color: #374151;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .title {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 1.5rem;
+    font-size: 2rem;
+    font-weight: 900;
+    margin-bottom: 2rem;
     text-align: center;
-    color: #111827;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: linear-gradient(to right, #fde047, #fff, #fde047);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .error {
-    background-color: #fee2e2;
-    border: 1px solid #f87171;
-    color: #b91c1c;
-    padding: 0.75rem 1rem;
-    border-radius: 0.25rem;
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
 }
 
 .socialButtons {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
+    gap: 1rem;
+    margin-bottom: 2rem;
 }
 
 .socialButton {
@@ -66,18 +82,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    padding: 0.625rem;
-    background-color: white;
-    color: #374151;
-    font-weight: 500;
-    transition: background-color 0.2s;
+    gap: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 0.85rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    color: #fff;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    font-size: 0.85rem;
 }
 
 .socialButton:hover {
-    background-color: #f9fafb;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(251, 191, 36, 0.4);
 }
 
 .googleIcon {
@@ -87,7 +107,7 @@
 
 .divider {
     position: relative;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .dividerLineContainer {
@@ -99,7 +119,7 @@
 
 .dividerLine {
     width: 100%;
-    border-top: 1px solid #d1d5db;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dividerTextContainer {
@@ -109,16 +129,19 @@
 }
 
 .dividerText {
-    padding: 0 0.5rem;
-    background-color: white;
-    color: #6b7280;
-    font-size: 0.875rem;
+    padding: 0 1rem;
+    background-color: #1e293b;
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
 }
 
 .form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .inputGroup {
@@ -128,10 +151,12 @@
 
 .label {
     display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
-    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .inputWrapper {
@@ -140,62 +165,80 @@
 
 .inputIcon {
     position: absolute;
-    left: 0.75rem;
+    left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #9ca3af;
+    color: #475569;
 }
 
 .input {
     width: 100%;
     box-sizing: border-box;
-    padding: 0.5rem 1rem 0.5rem 2.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
+    padding: 0.85rem 1.25rem 0.85rem 3rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #0f172a;
+    border-radius: 1rem;
+    color: #fff;
+    font-size: 1rem;
     outline: none;
-    transition: box-shadow 0.2s, border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .passwordInput {
-    padding-left: 1rem;
+    padding-left: 1.25rem;
 }
 
 .input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    border-color: #fbbf24;
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1);
 }
 
 .submitButton {
     width: 100%;
-    background-color: #2563eb;
-    color: white;
-    font-weight: bold;
-    padding: 0.75rem;
-    border-radius: 0.5rem;
+    background: linear-gradient(to bottom, #fbbf24, #d97706);
+    color: #451a03;
+    font-weight: 900;
+    padding: 1rem;
+    border-radius: 1.25rem;
     border: none;
-    transition: background-color 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+    margin-top: 0.5rem;
 }
 
 .submitButton:hover {
-    background-color: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(217, 119, 6, 0.5);
+    filter: brightness(1.1);
+}
+
+.submitButton:active {
+    transform: scale(0.98);
 }
 
 .footer {
-    margin-top: 1.5rem;
+    margin-top: 2rem;
     text-align: center;
-    color: #4b5563;
-    font-size: 0.875rem;
+    color: #64748b;
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 .toggleButton {
-    color: #2563eb;
-    font-weight: 600;
+    color: #fbbf24;
+    font-weight: 700;
     background: none;
     border: none;
     padding: 0;
-    margin-left: 0.25rem;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    transition: color 0.2s;
 }
 
 .toggleButton:hover {
+    color: #f59e0b;
     text-decoration: underline;
 }

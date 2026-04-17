@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { ArrowLeft, Trophy, Shield, Sword, Crown, User, Coins, Landmark, Ghost, ChevronDown } from 'lucide-react';
+import { Trophy, Shield, Sword, Crown, User, Coins, Landmark, Ghost, ChevronDown } from 'lucide-react';
 import { ref, get } from 'firebase/database';
 import { db } from '../firebase';
 import type { Word } from '../types';
@@ -53,8 +53,24 @@ export default function NBack() {
     const [penaltySeconds, setPenaltySeconds] = useState(0);
     const [errorWordId, setErrorWordId] = useState<string | null>(null);
 
+    const [isEliteMode, setIsEliteMode] = useState(true);
     const timerRef = useRef<number | null>(null);
     const gameStartTimeRef = useRef<number>(0);
+
+    // Track activity
+    useEffect(() => {
+        if (dictId && dictId !== 'default' && dictionaries.length > 0) {
+            const currentDict = dictionaries.find(d => d.id === dictId);
+            if (currentDict) {
+                localStorage.setItem('benedicti_last_activity', JSON.stringify({
+                    dictId,
+                    dictName: currentDict.name,
+                    mode: 'nback',
+                    timestamp: Date.now()
+                }));
+            }
+        }
+    }, [dictId, dictionaries]);
 
     // Initial Load
     useEffect(() => {
@@ -88,7 +104,7 @@ export default function NBack() {
 
     const SESSION_SIZE = 15;
 
-    const generateOptions = useCallback((correctWord: any, count: number, distPool: any[], side: 'original' | 'translation') => {
+    const generateOptions = useCallback((correctWord: any, count: number, distPool: any[]) => {
         const distractors = distPool
             .filter(w => w.id !== correctWord.id)
             .sort(() => Math.random() - 0.5)
@@ -170,8 +186,7 @@ export default function NBack() {
             setWordQueue(newQueue);
             
             const targetWord = newQueue[0];
-            const answerSide = targetWord.displaySide === 'original' ? 'translation' : 'original';
-            setCurrentOptions(generateOptions(targetWord, selectedRank.optionsCount, sessionWords, answerSide));
+            setCurrentOptions(generateOptions(targetWord, selectedRank.optionsCount, sessionWords));
             
             gameStartTimeRef.current = Date.now();
             startTimer();
@@ -207,8 +222,7 @@ export default function NBack() {
             setWordQueue(newQueue);
             
             const newTarget = newQueue[0] as any;
-            const answerSide = newTarget.displaySide === 'original' ? 'translation' : 'original';
-            setCurrentOptions(generateOptions(newTarget, selectedRank.optionsCount, sessionWords, answerSide));
+            setCurrentOptions(generateOptions(newTarget, selectedRank.optionsCount, sessionWords));
         } else {
             setErrorWordId(chosenWord.id);
             setPenaltySeconds(prev => prev + 1);
@@ -262,6 +276,24 @@ export default function NBack() {
                     </div>
 
                     <p>Выберите ваш титул и начните путь к престолу</p>
+                    
+                    <div className={styles.difficultyContainer}>
+                        <label className={styles.toggleLabel}>
+                            <input 
+                                type="checkbox" 
+                                checked={isEliteMode}
+                                onChange={(e) => setIsEliteMode(e.target.checked)}
+                                className={styles.hiddenCheckbox}
+                            />
+                            <div className={`${styles.customToggle} ${isEliteMode ? styles.active : ''}`}>
+                                <div className={styles.toggleThumb} />
+                            </div>
+                            <span className={styles.toggleText}>
+                                {isEliteMode ? 'Элитный режим (Без перевода)' : 'Обычный режим (С подсказками)'}
+                            </span>
+                        </label>
+                    </div>
+
                     <div className={styles.rankGrid}>
                         {RANKS.map(rank => (
                             <div key={rank.id} className={styles.rankCard} onClick={() => startMemorizing(rank)}>
@@ -279,7 +311,19 @@ export default function NBack() {
                 <div className={styles.memorizeContainer}>
                     <h2 className={styles.royalTitle}>Запомните {currentIndexInQueue + 1}</h2>
                     <div className={styles.wordToRemember}>
-                        {(wordQueue[currentIndexInQueue] as any)[(wordQueue[currentIndexInQueue] as any).displaySide]}
+                        {(() => {
+                            const word = wordQueue[currentIndexInQueue] as any;
+                            const mainText = word[word.displaySide];
+                            const hintText = word[word.displaySide === 'original' ? 'translation' : 'original'];
+                            return (
+                                <div className={styles.wordWrapper}>
+                                    <div className={styles.mainWord}>{mainText}</div>
+                                    {!isEliteMode && (
+                                        <div className={styles.translationHint}>— {hintText} —</div>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
                     <div className={styles.progressText} style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 600 }}>
                         Подготовка: {currentIndexInQueue + 1} из {selectedRank.n} слов
@@ -310,7 +354,19 @@ export default function NBack() {
                                 Запомните текущее:
                             </div>
                             <h2 className={styles.wordToRemember} style={{ margin: 0 }}>
-                                {(wordQueue[wordQueue.length - 1] as any)[(wordQueue[wordQueue.length - 1] as any).displaySide]}
+                                {(() => {
+                                    const word = wordQueue[wordQueue.length - 1] as any;
+                                    const mainText = word[word.displaySide];
+                                    const hintText = word[word.displaySide === 'original' ? 'translation' : 'original'];
+                                    return (
+                                        <div className={styles.wordWrapper}>
+                                            <div className={styles.mainWord}>{mainText}</div>
+                                            {!isEliteMode && (
+                                                <div className={styles.translationHint}>— {hintText} —</div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </h2>
                         </div>
 

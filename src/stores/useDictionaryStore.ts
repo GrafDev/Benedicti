@@ -37,7 +37,7 @@ interface DictionaryState {
 
     // Shared dictionary operations
     fetchDefaultDictionary: () => Promise<void>;
-    fetchSharedWords: () => Promise<void>;
+    fetchSharedWords: (userId?: string) => Promise<void>;
     importDefaultDictionary: (jsonData: any) => Promise<void>;
 }
 
@@ -286,7 +286,7 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
         }
     },
 
-    importDefaultDictionary: async (jsonData: any) => {
+    importDefaultDictionary: async (_jsonData: any) => {
         // ... (existing import logic) ...
     },
 

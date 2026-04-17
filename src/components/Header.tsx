@@ -17,6 +17,7 @@ export default function Header() {
         { name: 'Home', path: '/' },
         { name: 'Dictionaries', path: '/dictionaries' },
         { name: 'Games', path: '/games' },
+        ...(currentUser ? [{ name: 'Import', path: '/import-deser' }] : []),
     ];
 
     return (
