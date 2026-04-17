@@ -9,7 +9,6 @@ import {
     increment,
 } from 'firebase/database';
 import { db } from '../firebase';
-import { ADMIN_EMAILS } from '../constants/admin';
 import type { Dictionary, Word } from '../types';
 
 /**
@@ -38,7 +37,8 @@ interface DictionaryState {
 
     // Shared dictionary operations
     fetchDefaultDictionary: () => Promise<void>;
-    exportSharedWords: (dictionaryId: string) => Promise<void>;
+    fetchSharedWords: (userId?: string) => Promise<void>;
+    importDefaultDictionary: (jsonData: any) => Promise<void>;
     publishDictionary: (userId: string, dictionaryId: string) => Promise<void>;
     unpublishDictionary: (userId: string, dictionaryId: string) => Promise<void>;
     fetchSharedDictionaries: () => Promise<Dictionary[]>;

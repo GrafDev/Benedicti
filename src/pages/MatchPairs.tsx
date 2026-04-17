@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
-import { ArrowLeft, Volume2, RefreshCw, Ghost, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronRight, BrainCircuit, Gamepad2, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Volume2, RefreshCw, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronDown } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import { soundService } from '../utils/soundUtils';
 import { saveRecentActivity } from '../utils/activity';
@@ -71,7 +71,6 @@ export default function MatchPairs() {
     const nextWordIndex = useRef(0);
     
     const [phase, setPhase] = useState<Phase>('SETUP');
-    const [status, setStatus] = useState<'playing' | 'preview' | 'complete'>('playing');
     const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
 

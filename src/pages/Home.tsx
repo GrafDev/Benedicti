@@ -9,7 +9,8 @@ import {
     Gamepad2, 
     Sparkles,
     ChevronRight,
-    BrainCircuit 
+    BrainCircuit,
+    Sword 
 } from 'lucide-react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,6 +40,15 @@ export default function Home() {
     const totalWords = dictionaries.reduce((acc, dict) => acc + (dict.wordCount || 0), 0);
     
     // Fallback logic if no activity
+    const getGameTitle = (mode: string) => {
+        switch (mode) {
+            case 'nback': return t('games.nbackword.title');
+            case 'flashcards': return t('games.flashcards.title');
+            case 'match-pairs': return t('games.pairwords.title');
+            default: return 'GAME';
+        }
+    };
+
     const getResumeLabel = (mode: string) => {
         switch (mode) {
             case 'nback': return t('home.resumeNBack');
@@ -121,28 +131,42 @@ export default function Home() {
                             {recentActivities.slice(0, 2).map((act, index) => {
                                 const dict = dictionaries.find(d => d.id === act.dictId);
                                 const wordCount = dict?.wordCount || 0;
-                                const isSmall = recentActivities.length >= 2;
+                                
+                                // Determine theme based on game mode
+                                let themeClass = styles.defaultTheme;
+                                let ModeIcon = TrendingUp;
+
+                                if (act.mode === 'nback') {
+                                    themeClass = styles.nbackTheme;
+                                    ModeIcon = BrainCircuit;
+                                } else if (act.mode === 'flashcards') {
+                                    themeClass = styles.flashcardsTheme;
+                                    ModeIcon = Gamepad2;
+                                } else if (act.mode === 'match-pairs') {
+                                    themeClass = styles.matchTheme;
+                                    ModeIcon = Sword;
+                                }
 
                                 return (
-                                    <div key={`${act.dictId}-${act.mode}-${index}`} className={`${styles.resumeCard} ${isSmall ? styles.resumeCardSmall : ''}`}>
+                                    <div key={`${act.dictId}-${act.mode}-${index}`} className={`${styles.resumeCard} ${themeClass}`}>
                                         <div className={styles.sparkleDecor}>
-                                            <Sparkles size={isSmall ? 80 : 160} />
+                                            <Sparkles size={160} />
                                         </div>
                                         
                                         <div className={styles.resumeBadge}>
-                                            <TrendingUp size={14} /> {t('home.continueConquest')}
+                                            <ModeIcon size={14} /> {act.dictName}
                                         </div>
-                                        <h2 className={`${styles.resumeTitle} ${isSmall ? styles.resumeTitleSmall : ''}`}>
-                                            {act.dictName}
+                                        <h2 className={styles.resumeTitle}>
+                                            {getGameTitle(act.mode)}
                                         </h2>
-                                        <p className={`${styles.resumeText} ${isSmall ? styles.resumeTextSmall : ''}`} 
+                                        <p className={styles.resumeText} 
                                            dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: wordCount }) }} />
                                         
                                         <Link 
                                             to={getResumePath(act)}
-                                            className={`${styles.resumeButton} ${isSmall ? styles.resumeButtonSmall : ''}`}
+                                            className={styles.resumeButton}
                                         >
-                                            {getResumeLabel(act.mode)} <ChevronRight size={18} />
+                                            {t('common.playNow')} <ChevronRight size={18} />
                                         </Link>
                                     </div>
                                 );
@@ -160,34 +184,7 @@ export default function Home() {
                         </div>
                     )}
 
-                    {/* Quick Access Games */}
-                    <div className={styles.quickApps}>
-                        <Link to="/play/nback/default" className={styles.appLink}>
-                            <div className={styles.appInfo}>
-                                <div className={`${styles.appIcon} ${styles.bgPurple}`}>
-                                    <BrainCircuit size={28} />
-                                </div>
-                                <div className="text-left">
-                                    <div className={styles.appName}>{t('games.nbackword.title').toUpperCase()}</div>
-                                    <div className={styles.appDesc}>{t('home.memoryTraining')}</div>
-                                </div>
-                            </div>
-                            <ChevronRight size={20} color="#475569" />
-                        </Link>
-
-                        <Link to="/play/flashcards/default" className={styles.appLink}>
-                            <div className={styles.appInfo}>
-                                <div className={`${styles.appIcon} ${styles.bgEmerald}`}>
-                                    <Gamepad2 size={28} />
-                                </div>
-                                <div className="text-left">
-                                    <div className={styles.appName}>{t('games.flashcards.title')}</div>
-                                    <div className={styles.appDesc}>{t('home.vocabRepetition')}</div>
-                                </div>
-                            </div>
-                            <ChevronRight size={20} color="#475569" />
-                        </Link>
-                    </div>
+                    {/* Sidebar section */}
                 </div>
 
                 {/* Sidebar area */}

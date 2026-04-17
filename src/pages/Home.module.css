@@ -144,23 +144,45 @@
 
 .resumeCard {
     position: relative;
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
-    border-radius: 28px;
-    padding: 2rem;
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 32px;
+    padding: 2.5rem;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    transition: transform 0.3s ease;
-}
-
-/* Small variation for split layout */
-.resumeCardSmall {
-    padding: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
 }
 
 .resumeCard:hover {
-    transform: translateY(-4px);
-    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-8px) scale(1.01);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.nbackTheme {
+    background: linear-gradient(135deg, rgba(88, 28, 135, 0.2) 0%, rgba(16, 23, 42, 0.8) 100%);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+.nbackTheme .sparkleDecor { color: #a855f7; }
+.nbackTheme .resumeBadge { background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
+
+.flashcardsTheme {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.2) 0%, rgba(16, 23, 42, 0.8) 100%);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+.flashcardsTheme .sparkleDecor { color: #10b981; }
+.flashcardsTheme .resumeBadge { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+
+.matchTheme {
+    background: linear-gradient(135deg, rgba(120, 53, 15, 0.2) 0%, rgba(16, 23, 42, 0.8) 100%);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+.matchTheme .sparkleDecor { color: #f59e0b; }
+.matchTheme .resumeBadge { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+
+.defaultTheme {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
 }
 
 .sparkleDecor {
@@ -189,56 +211,37 @@
 }
 
 .resumeTitle {
-    font-size: 2.25rem;
-    font-weight: 900;
+    font-size: 2.5rem;
+    font-weight: 950;
     color: #fff;
     margin: 0 0 1rem 0;
-    letter-spacing: -0.01em;
-}
-
-.resumeTitleSmall {
-    font-size: 1.5rem;
-    height: 2.8rem;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
 }
 
 .resumeText {
     color: #94a3b8;
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 2rem;
-    max-width: 80%;
-}
-
-.resumeTextSmall {
-    font-size: 0.85rem;
-    margin-bottom: 1.5rem;
-    max-width: 100%;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin-bottom: 2.5rem;
+    max-width: 90%;
+    flex-grow: 1;
 }
 
 .resumeButton {
     display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
     background: #fff;
     color: #0f172a;
-    padding: 0.9rem 2rem;
-    border-radius: 14px;
-    font-weight: 700;
+    padding: 1.25rem 2.5rem;
+    border-radius: 20px;
+    font-weight: 800;
     text-decoration: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-}
-
-.resumeButtonSmall {
-    padding: 0.75rem 1.5rem;
-    font-size: 0.9rem;
-    width: 100%;
-    justify-content: center;
-    box-sizing: border-box;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    font-size: 1.1rem;
+    margin-top: auto;
 }
 
 .resumeButton:hover {

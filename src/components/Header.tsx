@@ -71,8 +71,8 @@ export default function Header() {
                 <div className={styles.container}>
                     <div className={styles.navContainer}>
                         <Link to="/" className={styles.logo}>
-                            <img src="/favicon.png" alt="benetict" className={styles.logoIcon} />
-                            <span>benetict</span>
+                            <img src="/favicon.png" alt="BeneDict" className={styles.logoIcon} />
+                            <span>BeneDict</span>
                         </Link>
 
                         {/* Desktop Navigation */}

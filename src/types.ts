@@ -18,4 +18,5 @@ export interface Word {
     nextReview: number; // Timestamp
     isLearned?: boolean;
     createdAt: number;
+    displaySide?: 'original' | 'translation';
 }

@@ -72,7 +72,7 @@ export const ru = {
       returnToHall: 'Вернуться в Зал',
     },
     pairwords: {
-      title: 'СОПОСТАВЛЕНИЕ',
+      title: 'MATCH PAIRS',
       description: 'Найдите пары слов и их переводов. Скорость решает всё!',
       score: 'Счёт',
       pairsCount: '{{count}} пар',
@@ -83,7 +83,7 @@ export const ru = {
       notEnoughWords: 'В этом словаре недостаточно слов для ранга {{rank}} (нужно минимум {{count}})',
     },
     flashcards: {
-      title: 'КАРТОЧКИ',
+      title: 'FLASHCARDS',
       description: 'Классическое испытание на знание слов. Просто и эффективно.',
       sessionComplete: 'Вы прошли все карточки в этой сессии.',
     },
@@ -96,8 +96,8 @@ export const ru = {
     continueConquest: 'Продолжить завоевание',
     masteryWords: 'Мастерство над <strong>{{count}} словами</strong> всего в одной сессии от вас.',
     resumeSession: 'Продолжить сессию',
-    resumeNBack: 'Продолжить Nbackword',
-    resumeFlashcards: 'Продолжить Карточки',
+    resumeNBack: 'Resume Nbackword',
+    resumeFlashcards: 'Resume Flashcards',
     throneAwaits: 'Трон ждет',
     createFirstDict: 'Создайте свой первый словарь, чтобы начать правление.',
     createDict: 'Создать словарь',

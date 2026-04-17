@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
-import { Save, LogOut, User, ShieldCheck, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { Save, LogOut, ShieldCheck, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import styles from './Profile.module.css';
 
 export default function Profile() {
