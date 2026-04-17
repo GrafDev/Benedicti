@@ -1,4 +1,4 @@
-import { X, Share, PlusSquare, Monitor, Layout } from 'lucide-react';
+import { X, Share, PlusSquare } from 'lucide-react';
 import styles from './InstallInstructions.module.css';
 
 interface InstallInstructionsProps {

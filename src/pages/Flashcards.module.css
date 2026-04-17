@@ -114,6 +114,31 @@
     pointer-events: none;
 }
 
+.wordWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+.speakButton {
+    background: none;
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.speakButton:hover {
+    color: #fbbf24;
+    transform: scale(1.1);
+}
+
 .cardBack {
     transform: rotateY(180deg);
     background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);

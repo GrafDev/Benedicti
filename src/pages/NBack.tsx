@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { Trophy, Shield, Sword, Crown, User, Coins, Landmark, Ghost, ChevronDown } from 'lucide-react';
+import { Trophy, Shield, Sword, Crown, User, Coins, Landmark, Ghost, ChevronDown, Volume2 } from 'lucide-react';
+import { speechService } from '../utils/speechUtils';
 import { ref, get } from 'firebase/database';
 import { db } from '../firebase';
 import type { Word } from '../types';
@@ -53,7 +54,15 @@ export default function NBack() {
     const [penaltySeconds, setPenaltySeconds] = useState(0);
     const [errorWordId, setErrorWordId] = useState<string | null>(null);
 
-    const [isEliteMode, setIsEliteMode] = useState(true);
+    const [isEliteMode, setIsEliteMode] = useState(() => {
+        const saved = localStorage.getItem('benedicti_nback_elite');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('benedicti_nback_elite', JSON.stringify(isEliteMode));
+    }, [isEliteMode]);
+
     const timerRef = useRef<number | null>(null);
     const gameStartTimeRef = useRef<number>(0);
 
@@ -93,6 +102,46 @@ export default function NBack() {
     const handleDictionaryChange = (newDictId: string) => {
         navigate(`/play/nback/${newDictId}`);
         setIsDictSelectorOpen(false);
+    };
+
+    // Auto-speak in N-Back (with delay to avoid overlap)
+    useEffect(() => {
+        if ((phase === 'MEMORIZE' || phase === 'PLAY') && wordQueue.length > 0) {
+            const currentDict = dictionaries.find(d => d.id === dictId);
+            const word = (phase === 'MEMORIZE' 
+                ? wordQueue[currentIndexInQueue] 
+                : wordQueue[wordQueue.length - 1]) as any;
+            
+            if (word) {
+                const text = word[word.displaySide];
+                const lang = word.displaySide === 'original' 
+                    ? (currentDict?.sourceLang || 'en') 
+                    : (currentDict?.targetLang || 'ru');
+                
+                // Immediate silence when word changes
+                window.speechSynthesis.cancel();
+                
+                // Add a more noticeable delay for auto-speak
+                const timer = setTimeout(() => {
+                    speechService.speak(text, lang);
+                }, 800);
+
+                return () => {
+                    clearTimeout(timer);
+                    window.speechSynthesis.cancel();
+                };
+            }
+        }
+    }, [phase, currentIndexInQueue, wordQueue[wordQueue.length - 1]?.id]);
+
+    const handleManualSpeak = (e: React.MouseEvent, word: any) => {
+        e.stopPropagation();
+        const currentDict = dictionaries.find(d => d.id === dictId);
+        const text = word[word.displaySide];
+        const lang = word.displaySide === 'original' 
+            ? (currentDict?.sourceLang || 'en') 
+            : (currentDict?.targetLang || 'ru');
+        speechService.speak(text, lang);
     };
 
     // Cleanup timer
@@ -210,6 +259,11 @@ export default function NBack() {
             const currentTotalProcessed = selectedRank.n + 1 + score;
             const newScore = score + 1;
             setScore(newScore);
+
+            // Audio feedback for correct answer
+            const currentDict = dictionaries.find(d => d.id === dictId);
+            const answerSide = targetWord.displaySide === 'original' ? 'translation' : 'original';
+            speechService.speak(chosenWord[answerSide], answerSide === 'original' ? (currentDict?.sourceLang || 'en') : (currentDict?.targetLang || 'ru'));
             
             if (currentTotalProcessed >= SESSION_SIZE) {
                 if (timerRef.current) window.clearInterval(timerRef.current);
@@ -317,7 +371,15 @@ export default function NBack() {
                             const hintText = word[word.displaySide === 'original' ? 'translation' : 'original'];
                             return (
                                 <div className={styles.wordWrapper}>
-                                    <div className={styles.mainWord}>{mainText}</div>
+                                    <div className={styles.wordWithSpeaker}>
+                                        <div className={styles.mainWord}>{mainText}</div>
+                                        <button 
+                                            className={styles.playButton} 
+                                            onClick={(e) => handleManualSpeak(e, word)}
+                                        >
+                                            <Volume2 size={24} />
+                                        </button>
+                                    </div>
                                     {!isEliteMode && (
                                         <div className={styles.translationHint}>— {hintText} —</div>
                                     )}
@@ -360,7 +422,15 @@ export default function NBack() {
                                     const hintText = word[word.displaySide === 'original' ? 'translation' : 'original'];
                                     return (
                                         <div className={styles.wordWrapper}>
-                                            <div className={styles.mainWord}>{mainText}</div>
+                                            <div className={styles.wordWithSpeaker}>
+                                                <div className={styles.mainWord}>{mainText}</div>
+                                                <button 
+                                                    className={styles.playButton} 
+                                                    onClick={(e) => handleManualSpeak(e, word)}
+                                                >
+                                                    <Volume2 size={24} />
+                                                </button>
+                                            </div>
                                             {!isEliteMode && (
                                                 <div className={styles.translationHint}>— {hintText} —</div>
                                             )}

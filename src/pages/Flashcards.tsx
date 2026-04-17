@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Volume2 } from 'lucide-react';
+import { speechService } from '../utils/speechUtils';
 import type { Word } from '../types';
 import styles from './Flashcards.module.css';
 
@@ -159,6 +160,7 @@ export default function Flashcards() {
     }
 
     const currentWord = gameWords[currentIndex];
+    const dictionary = dictionaries.find(d => d.id === dictId);
     // Calculate progress: how many words were already passed (learned or skipped)
     const progress = initialCount > 0 ? ((initialCount - gameWords.length + currentIndex) / initialCount) * 100 : 0;
 
@@ -181,16 +183,38 @@ export default function Flashcards() {
                     <div className={styles.cardInner}>
                         {/* Front */}
                         <div className={styles.cardFront}>
-                            <h2 className={styles.wordText}>
-                                {isFrontFirst ? currentWord.original : currentWord.translation}
-                            </h2>
+                            <div className={styles.wordWrapper}>
+                                <button 
+                                    className={styles.speakButton}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        speechService.speak(currentWord.original, dictionary?.sourceLang || 'en');
+                                    }}
+                                >
+                                    <Volume2 size={24} />
+                                </button>
+                                <h2 className={styles.wordText}>
+                                    {isFrontFirst ? currentWord.original : currentWord.translation}
+                                </h2>
+                            </div>
                             <p className={styles.hint}>Click to flip</p>
                         </div>
                         {/* Back */}
                         <div className={styles.cardBack}>
-                            <h2 className={styles.wordText}>
-                                {isFrontFirst ? currentWord.translation : currentWord.original}
-                            </h2>
+                            <div className={styles.wordWrapper}>
+                                <button 
+                                    className={styles.speakButton}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        speechService.speak(currentWord.original, dictionary?.sourceLang || 'en');
+                                    }}
+                                >
+                                    <Volume2 size={24} />
+                                </button>
+                                <h2 className={styles.wordText}>
+                                    {isFrontFirst ? currentWord.translation : currentWord.original}
+                                </h2>
+                            </div>
                             <p className={styles.hint}>Click to flip</p>
                         </div>
                     </div>

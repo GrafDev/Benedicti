@@ -10,6 +10,7 @@ import NBack from './pages/NBack';
 import Importer from './pages/Importer';
 import ProtectedRoute from './components/ProtectedRoute';
 import MigrationManager from './components/MigrationManager';
+import SoundToggle from './components/SoundToggle';
 import './App.css';
 
 const Profile = () => <div><h1>User Profile</h1></div>;
@@ -36,6 +37,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
+        <SoundToggle />
       </BrowserRouter>
     </AuthProvider>
   );

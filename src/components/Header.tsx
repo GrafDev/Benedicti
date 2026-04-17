@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Globe, User as UserIcon, LogOut, Download } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
 import InstallInstructions from './InstallInstructions';

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
-import { ArrowLeft, Plus, Pencil, Trash2, Check, X, BookOpen, Loader } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, Check, X, BookOpen, Loader, Volume2 } from 'lucide-react';
+import { speechService } from '../utils/speechUtils';
 import styles from './DictionaryDetail.module.css';
 
 export default function DictionaryDetail() {
@@ -212,7 +213,19 @@ export default function DictionaryDetail() {
                                 // ── Read mode ─────────────────────────────────────────────────
                                 <>
                                     <div className={styles.wordTexts}>
-                                        <span className={styles.original}>{word.original}</span>
+                                        <div className={styles.originalWrapper}>
+                                            <button 
+                                                className={styles.speakButton}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    speechService.speak(word.original, dictionary?.sourceLang || 'en');
+                                                }}
+                                                title="Listen"
+                                            >
+                                                <Volume2 size={16} />
+                                            </button>
+                                            <span className={styles.original}>{word.original}</span>
+                                        </div>
                                         <span className={styles.arrow}>-</span>
                                         <span className={styles.translation}>{word.translation}</span>
                                     </div>

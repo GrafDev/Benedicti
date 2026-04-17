@@ -15,6 +15,29 @@
     gap: 1.5rem;
 }
 
+.originalWrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.speakButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s;
+}
+
+.speakButton:hover {
+    color: #fbbf24;
+    transform: scale(1.1);
+}
+
 .titleWrapper {
     display: flex;
     align-items: center;
@@ -114,6 +137,30 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+}
+
+.wordWithSpeaker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.playButton {
+    background: none;
+    border: none;
+    color: #fbbf24;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s;
+}
+
+.playButton:hover {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
 }
 
 .wordCard {
