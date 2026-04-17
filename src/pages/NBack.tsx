@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { Trophy, Shield, Sword, Crown, User, Coins, Landmark, Ghost, ChevronDown, Volume2 } from 'lucide-react';
+import { Trophy, Shield, Sword, Crown, User, Coins, Landmark, Ghost, ChevronDown, Volume2, ArrowLeft } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import { ref, get } from 'firebase/database';
 import { db } from '../firebase';
@@ -104,35 +104,54 @@ export default function NBack() {
         setIsDictSelectorOpen(false);
     };
 
-    // Auto-speak in N-Back (with delay to avoid overlap)
+    // Auto-speak in N-Back (sequenced audio)
     useEffect(() => {
-        if ((phase === 'MEMORIZE' || phase === 'PLAY') && wordQueue.length > 0) {
-            const currentDict = dictionaries.find(d => d.id === dictId);
-            const word = (phase === 'MEMORIZE' 
-                ? wordQueue[currentIndexInQueue] 
-                : wordQueue[wordQueue.length - 1]) as any;
-            
-            if (word) {
-                const text = word[word.displaySide];
-                const lang = word.displaySide === 'original' 
-                    ? (currentDict?.sourceLang || 'en') 
-                    : (currentDict?.targetLang || 'ru');
-                
-                // Immediate silence when word changes
-                window.speechSynthesis.cancel();
-                
-                // Add a more noticeable delay for auto-speak
-                const timer = setTimeout(() => {
-                    speechService.speak(text, lang);
-                }, 800);
+        let isActive = true;
 
-                return () => {
-                    clearTimeout(timer);
-                    window.speechSynthesis.cancel();
-                };
+        const playSequence = async () => {
+            if ((phase === 'MEMORIZE' || phase === 'PLAY') && wordQueue.length > 0) {
+                const currentDict = dictionaries.find(d => d.id === dictId);
+                const word = (phase === 'MEMORIZE' 
+                    ? wordQueue[currentIndexInQueue] 
+                    : wordQueue[wordQueue.length - 1]) as any;
+                
+                if (word && isActive) {
+                    const text = word[word.displaySide];
+                    const lang = word.displaySide === 'original' 
+                        ? (currentDict?.sourceLang || 'en') 
+                        : (currentDict?.targetLang || 'ru');
+                    
+                    // 1. Initial wait for word to appear visually
+                    await new Promise(r => setTimeout(r, 600));
+                    if (!isActive) return;
+
+                    // 2. Speak main word and WAIT for it to finish
+                    await speechService.speak(text, lang);
+                    
+                    // 3. If not elite mode, speak the hint (translation)
+                    if (!isEliteMode && isActive) {
+                        const hintText = word[word.displaySide === 'original' ? 'translation' : 'original'];
+                        const hintLang = word.displaySide === 'original' 
+                            ? (currentDict?.targetLang || 'ru') 
+                            : (currentDict?.sourceLang || 'en');
+                        
+                        // Brief natural pause between words
+                        await new Promise(r => setTimeout(r, 400));
+                        if (!isActive) return;
+
+                        await speechService.speak(hintText, hintLang);
+                    }
+                }
             }
-        }
-    }, [phase, currentIndexInQueue, wordQueue[wordQueue.length - 1]?.id]);
+        };
+
+        playSequence();
+
+        return () => {
+            isActive = false;
+            speechService.cancel();
+        };
+    }, [phase, currentIndexInQueue, wordQueue[wordQueue.length - 1]?.id, isEliteMode]);
 
     const handleManualSpeak = (e: React.MouseEvent, word: any) => {
         e.stopPropagation();
@@ -292,6 +311,10 @@ export default function NBack() {
 
     return (
         <div className={styles.container}>
+            <button className={styles.floatingBackButton} onClick={() => navigate('/games')}>
+                <ArrowLeft size={24} />
+            </button>
+
             {phase === 'SETUP' && (
                 <div className={styles.setupContainer}>
                     <h1 className={styles.royalTitle}>Трон Бенедикта</h1>

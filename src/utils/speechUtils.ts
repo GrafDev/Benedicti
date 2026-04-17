@@ -53,29 +53,50 @@ class SpeechService {
     }
 
     /**
-     * Speaks the given text in the specified language
+     * Speaks the given text in the specified language.
+     * Returns a Promise that resolves when speech finishes.
      */
-    public speak(text: string, lang: string = 'en') {
-        if (!text || !this.synth || this.isMuted) return;
+    public speak(text: string, lang: string = 'en'): Promise<void> {
+        return new Promise((resolve) => {
+            if (!text || !this.synth || this.isMuted) {
+                resolve();
+                return;
+            }
 
-        // Cancel any ongoing speech
-        this.synth.cancel();
+            // Cancel any ongoing speech
+            this.synth.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(text);
-        const voice = this.findVoice(lang);
-        
-        if (voice) {
-            utterance.voice = voice;
-        } else {
-            // Fallback: set the lang string directly
-            utterance.lang = lang === 'en' ? 'en-US' : lang === 'ru' ? 'ru-RU' : lang;
+            const utterance = new SpeechSynthesisUtterance(text);
+            const voice = this.findVoice(lang);
+            
+            if (voice) {
+                utterance.voice = voice;
+            } else {
+                // Fallback: set the lang string directly
+                utterance.lang = lang === 'en' ? 'en-US' : lang === 'ru' ? 'ru-RU' : lang;
+            }
+
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            utterance.onend = () => {
+                resolve();
+            };
+
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                resolve(); // Resolve anyway to avoid hanging promise chains
+            };
+
+            this.synth.speak(utterance);
+        });
+    }
+
+    public cancel() {
+        if (this.synth) {
+            this.synth.cancel();
         }
-
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
-
-        this.synth.speak(utterance);
     }
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { Layers, Play, Crown } from 'lucide-react';
+import { Layers, Play, Crown, Grid } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import styles from './Games.module.css';
 
@@ -79,6 +79,22 @@ export default function Games() {
                         onClick={() => handlePlay('nback')}
                         className={styles.playButton}
                         style={{ background: 'linear-gradient(to right, #b45309, #d97706)' }}
+                    >
+                        <Play size={18} /> Play Now
+                    </button>
+                </div>
+                
+                {/* Match Pairs */}
+                <div className={styles.gameCard}>
+                    <div className={`${styles.iconContainer}`} style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)', color: '#5b21b6' }}>
+                        <Grid size={40} />
+                    </div>
+                    <h2 className={styles.gameTitle}>Match Pairs</h2>
+                    <p className={styles.gameDescription}>Выбери пару слов. Классический режим сопоставления.</p>
+                    <button 
+                        onClick={() => handlePlay('match-pairs')}
+                        className={styles.playButton}
+                        style={{ background: 'linear-gradient(to right, #7c3aed, #6d28d9)' }}
                     >
                         <Play size={18} /> Play Now
                     </button>
