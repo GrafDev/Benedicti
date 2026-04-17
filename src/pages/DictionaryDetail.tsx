@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
-import { ArrowLeft, Plus, Pencil, Trash2, Check, X, BookOpen, Loader, Volume2 } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
+import { ArrowLeft, Plus, Pencil, Trash2, Check, X, BookOpen, Loader, Volume2, Globe } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
+import { ADMIN_EMAILS } from '../constants/admin';
 import styles from './DictionaryDetail.module.css';
 
 export default function DictionaryDetail() {
     const { id: dictionaryId } = useParams<{ id: string }>();
     const { currentUser } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
 
     // Using selectors for better stability
@@ -35,6 +38,9 @@ export default function DictionaryDetail() {
     const [expandedWordId, setExpandedWordId] = useState<string | null>(null);
 
     const dictionary = (dictionaries || []).find(d => d.id === dictionaryId);
+    
+    const isAdmin = currentUser?.email && ADMIN_EMAILS.includes(currentUser.email);
+    const canEdit = !dictionary?.isShared || isAdmin;
 
     useEffect(() => {
         if (currentUser && dictionaryId) {
@@ -87,7 +93,7 @@ export default function DictionaryDetail() {
 
     const handleDeleteDictionary = async () => {
         if (!currentUser || !dictionaryId) return;
-        if (!confirm('Delete this dictionary and all its words?')) return;
+        if (!confirm(t('dictionaryDetail.deleteDict'))) return;
         await deleteDictionary(currentUser.uid, dictionaryId);
         navigate('/dictionaries');
     };
@@ -97,7 +103,7 @@ export default function DictionaryDetail() {
     if (!currentUser) {
         return (
             <div className={styles.pageContainer}>
-                <p>Please sign in to view this dictionary.</p>
+                <p>{t('common.signInToView')}</p>
             </div>
         );
     }
@@ -117,12 +123,12 @@ export default function DictionaryDetail() {
             {/* Header */}
             <div className={styles.header}>
                 <div className={styles.titleWrapper}>
-                    <Link to="/dictionaries" className={styles.backArrow} title="Back to Dictionaries">
+                    <Link to="/dictionaries" className={styles.backArrow} title={t('common.back')}>
                         <ArrowLeft size={28} />
                     </Link>
                     <div className={styles.titleGroup}>
                         <h1 className={styles.title}>
-                            {dictionary?.name ?? 'Dictionary'}
+                            {dictionary?.name ?? t('common.dictionary')}
                         </h1>
                         <div className={styles.meta}>
                             {dictionary && (
@@ -131,8 +137,13 @@ export default function DictionaryDetail() {
                                 </span>
                             )}
                             <span className={styles.wordCount}>
-                                {(words || []).length} word{(words || []).length !== 1 ? 's' : ''}
+                                {t('common.wordsCount', { count: (words || []).length })}
                             </span>
+                            {dictionary?.isShared && (
+                                <span className={styles.sharedBadge}>
+                                    <Globe size={12} /> {t('common.common')}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -140,7 +151,7 @@ export default function DictionaryDetail() {
                     <button
                         onClick={handleDeleteDictionary}
                         className={`${styles.iconButton} ${styles.danger}`}
-                        title="Delete dictionary"
+                        title={t('common.delete')}
                     >
                         <Trash2 size={16} />
                     </button>
@@ -148,7 +159,7 @@ export default function DictionaryDetail() {
                         onClick={() => setIsAddModalOpen(true)}
                         className={styles.addButton}
                     >
-                        <Plus size={18} /> Add Word
+                        <Plus size={18} /> {t('dictionaryDetail.addWord')}
                     </button>
                 </div>
             </div>
@@ -157,14 +168,16 @@ export default function DictionaryDetail() {
             {(!words || words.length === 0) ? (
                 <div className={styles.emptyState}>
                     <BookOpen size={48} />
-                    <h3>No words yet</h3>
-                    <p>Add your first word to get started.</p>
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className={styles.addButton}
-                    >
-                        <Plus size={16} /> Add Word
-                    </button>
+                    <h3>{t('dictionaryDetail.noWords')}</h3>
+                    <p>{canEdit ? t('dictionaryDetail.addFirstWord') : t('dictionaryDetail.emptyCommon')}</p>
+                    {canEdit && (
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className={styles.addButton}
+                        >
+                            <Plus size={16} /> {t('dictionaryDetail.addWord')}
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className={styles.wordList}>
@@ -182,28 +195,28 @@ export default function DictionaryDetail() {
                                             className={styles.editInput}
                                             value={editOriginal}
                                             onChange={e => setEditOriginal(e.target.value)}
-                                            placeholder="Original"
+                                            placeholder={t('dictionaryDetail.placeholderOriginal')}
                                             autoFocus
                                         />
                                         <input
                                             className={styles.editInput}
                                             value={editTranslation}
                                             onChange={e => setEditTranslation(e.target.value)}
-                                            placeholder="Translation"
+                                            placeholder={t('dictionaryDetail.placeholderTranslation')}
                                         />
                                     </div>
                                     <div className={styles.wordActions} onClick={e => e.stopPropagation()}>
                                         <button
                                             className={styles.saveButton}
                                             onClick={() => handleSaveEdit(word.id)}
-                                            title="Save"
+                                            title={t('common.save')}
                                         >
                                             <Check size={16} />
                                         </button>
                                         <button
                                             className={styles.iconButton}
                                             onClick={cancelEdit}
-                                            title="Cancel"
+                                            title={t('common.cancel')}
                                         >
                                             <X size={16} />
                                         </button>
@@ -220,7 +233,7 @@ export default function DictionaryDetail() {
                                                     e.stopPropagation();
                                                     speechService.speak(word.original, dictionary?.sourceLang || 'en');
                                                 }}
-                                                title="Listen"
+                                                title={t('dictionaryDetail.listen')}
                                             >
                                                 <Volume2 size={16} />
                                             </button>
@@ -229,22 +242,24 @@ export default function DictionaryDetail() {
                                         <span className={styles.arrow}>-</span>
                                         <span className={styles.translation}>{word.translation}</span>
                                     </div>
-                                    <div className={styles.wordActions} onClick={e => e.stopPropagation()}>
-                                        <button
-                                            className={styles.iconButton}
-                                            onClick={() => startEdit(word.id, word.original, word.translation)}
-                                            title="Edit"
-                                        >
-                                            <Pencil size={15} />
-                                        </button>
-                                        <button
-                                            className={`${styles.iconButton} ${styles.danger}`}
-                                            onClick={() => handleDeleteWord(word.id)}
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={15} />
-                                        </button>
-                                    </div>
+                                    {canEdit && (
+                                        <div className={styles.wordActions} onClick={e => e.stopPropagation()}>
+                                            <button
+                                                className={styles.iconButton}
+                                                onClick={() => startEdit(word.id, word.original, word.translation)}
+                                                title={t('dictionaryDetail.edit')}
+                                            >
+                                                <Pencil size={15} />
+                                            </button>
+                                            <button
+                                                className={`${styles.iconButton} ${styles.danger}`}
+                                                onClick={() => handleDeleteWord(word.id)}
+                                                title={t('common.delete')}
+                                            >
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>
@@ -257,7 +272,7 @@ export default function DictionaryDetail() {
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
                         <div className={styles.modalHeader}>
-                            <h2 className={styles.modalTitle}>Add New Word</h2>
+                            <h2 className={styles.modalTitle}>{t('dictionaryDetail.addNewWord')}</h2>
                             <button
                                 className={styles.closeButton}
                                 onClick={() => setIsAddModalOpen(false)}
@@ -268,7 +283,7 @@ export default function DictionaryDetail() {
                         <form onSubmit={handleAddWord}>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>
-                                    Original ({dictionary?.sourceLang.toUpperCase() ?? 'Source'})
+                                    {t('dictionaryDetail.source')} ({dictionary?.sourceLang.toUpperCase() ?? 'Source'})
                                 </label>
                                 <input
                                     type="text"
@@ -277,12 +292,12 @@ export default function DictionaryDetail() {
                                     value={newOriginal}
                                     onChange={e => setNewOriginal(e.target.value)}
                                     className={styles.input}
-                                    placeholder="e.g., Hello"
+                                    placeholder={t('dictionaryDetail.placeholderOriginal')}
                                 />
                             </div>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>
-                                    Translation ({dictionary?.targetLang.toUpperCase() ?? 'Target'})
+                                    {t('dictionaryDetail.target')} ({dictionary?.targetLang.toUpperCase() ?? 'Target'})
                                 </label>
                                 <input
                                     type="text"
@@ -290,7 +305,7 @@ export default function DictionaryDetail() {
                                     value={newTranslation}
                                     onChange={e => setNewTranslation(e.target.value)}
                                     className={styles.input}
-                                    placeholder="e.g., Привет"
+                                    placeholder={t('dictionaryDetail.placeholderTranslation')}
                                 />
                             </div>
                             <div className={styles.modalActions}>
@@ -299,10 +314,10 @@ export default function DictionaryDetail() {
                                     className={styles.cancelButton}
                                     onClick={() => setIsAddModalOpen(false)}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button type="submit" className={styles.submitButton}>
-                                    Add Word
+                                    {t('dictionaryDetail.addWord')}
                                 </button>
                             </div>
                         </form>

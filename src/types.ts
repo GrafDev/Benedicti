@@ -6,6 +6,7 @@ export interface Dictionary {
     targetLang: string;
     wordCount: number;
     createdAt: number;
+    isShared?: boolean;
 }
 
 export interface Word {

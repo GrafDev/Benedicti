@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User as UserIcon, LogOut, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../i18n/LanguageContext';
+import LanguageSwitcher from './LanguageSwitcher';
 import AuthModal from './AuthModal';
 import InstallInstructions from './InstallInstructions';
 import styles from './Header.module.css';
@@ -10,6 +12,7 @@ export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const { currentUser, logout } = useAuth();
+    const { t } = useLanguage();
     const location = useLocation();
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isIOS, setIsIOS] = useState(false);
@@ -57,10 +60,8 @@ export default function Header() {
     const isActive = (path: string) => location.pathname === path;
 
     const navLinks = [
-        { name: 'Home', path: '/' },
-        { name: 'Dictionaries', path: '/dictionaries' },
-        { name: 'Games', path: '/games' },
-        ...(currentUser ? [{ name: 'Import', path: '/import-deser' }] : []),
+        { name: t('nav.dictionaries'), path: '/dictionaries' },
+        { name: t('nav.games'), path: '/games' },
     ];
 
     return (
@@ -86,8 +87,10 @@ export default function Header() {
                             ))}
                         </nav>
 
-                        {/* Auth Buttons */}
+                        {/* Interaction Corner */}
                         <div className={styles.authButtons}>
+                            <LanguageSwitcher />
+
                             {showInstallButton && (
                                 <button
                                     onClick={handleInstallClick}
@@ -105,7 +108,7 @@ export default function Header() {
                                     <button
                                         onClick={() => logout()}
                                         className={styles.iconButton}
-                                        title="Sign Out"
+                                        title={t('nav.logout')}
                                     >
                                         <LogOut size={20} />
                                     </button>
@@ -146,6 +149,10 @@ export default function Header() {
                                 </Link>
                             ))}
                             <div className={styles.mobileAuth}>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <LanguageSwitcher />
+                                </div>
+
                                 {showInstallButton && (
                                     <button
                                         onClick={() => { handleInstallClick(); setIsMenuOpen(false); }}
@@ -166,7 +173,7 @@ export default function Header() {
                                             className={styles.mobileSignOutButton}
                                             style={{ padding: '0 0.75rem' }}
                                         >
-                                            <LogOut size={18} /> Sign Out
+                                            <LogOut size={18} /> {t('nav.logout')}
                                         </button>
                                     </div>
                                 ) : (

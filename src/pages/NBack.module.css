@@ -9,6 +9,7 @@
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
     position: relative;
+    overflow-x: hidden;
 }
 
 .floatingBackButton {
@@ -35,12 +36,18 @@
     transform: translateX(-3px);
 }
 
-/* Phase: SETUP (Scrollable, Large, Beautiful) */
 .setupContainer {
     max-width: 1000px;
     width: 100%;
     text-align: center;
     padding-bottom: 2rem;
+    margin: 0 auto;
+    transition: opacity 0.3s ease;
+}
+
+.setupLoading {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .royalTitle {
@@ -55,50 +62,84 @@
     filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
 }
 
+.gameArea {
+    flex: 1;
+    width: 100%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3rem;
+    min-height: 0;
+}
+
 .rankGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
-    margin-top: 1rem;
+    margin: 1rem auto;
+    justify-content: center;
+    width: 100%;
+    max-width: 1000px;
 }
 
 .rankCard {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(212, 175, 55, 0.3);
     border-radius: 1.5rem;
-    padding: 2rem 1.5rem;
+    padding: 1.5rem;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 0.75rem;
-    text-align: center;
+    gap: 1.25rem;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
 }
 
 .rankCard:hover {
     background: rgba(212, 175, 55, 0.15);
     border-color: #d4af37;
-    transform: translateY(-8px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
 }
 
 .rankIcon {
+    width: 56px;
+    height: 56px;
+    background: rgba(212, 175, 55, 0.1);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #fde047;
-    margin-bottom: 0.5rem;
-}
-
-.rankName {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #fff;
+    flex-shrink: 0;
 }
 
 .rankDetails {
-    font-size: 0.875rem;
+    flex: 1;
+}
+
+.rankName {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 0.25rem 0;
+}
+
+.rankDetailSub {
+    font-size: 0.8rem;
     color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+}
+
+.rankDescSmall {
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.25rem;
 }
 
 /* Phase: MEMORIZE (Centered, Large) */

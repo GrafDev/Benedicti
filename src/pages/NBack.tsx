@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { Trophy, Shield, Sword, Crown, User, Coins, Landmark, Ghost, ChevronDown, Volume2, ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
+import { Trophy, Shield, Sword, Crown, User, Landmark, Ghost, ChevronDown, Volume2, ArrowLeft, Sparkles } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
+import { soundService } from '../utils/soundUtils';
 import { ref, get } from 'firebase/database';
 import { db } from '../firebase';
 import type { Word } from '../types';
@@ -20,21 +22,22 @@ interface Rank {
     description: string;
 }
 
-const RANKS: Rank[] = [
-    { id: 'peasant', name: 'Крестьянин', n: 1, optionsCount: 4, icon: Ghost, description: 'Запоминайте вчерашнее' },
-    { id: 'merchant', name: 'Купец', n: 1, optionsCount: 6, icon: Coins, description: 'Учет каждой сделки' },
-    { id: 'citizen', name: 'Горожанин', n: 2, optionsCount: 4, icon: User, description: 'Слухи по городу' },
-    { id: 'knight', name: 'Рыцарь', n: 2, optionsCount: 6, icon: Sword, description: 'Кодекс чести и памяти' },
-    { id: 'baron', name: 'Барон', n: 3, optionsCount: 6, icon: Shield, description: 'Управление поместьем' },
-    { id: 'count', name: 'Граф', n: 3, optionsCount: 8, icon: Landmark, description: 'Интриги при дворе' },
-    { id: 'duke', name: 'Герцог', n: 4, optionsCount: 8, icon: Trophy, description: 'Правая рука короля' },
-    { id: 'king', name: 'Король', n: 5, optionsCount: 10, icon: Crown, description: 'Властелин памяти' },
-];
-
 export default function NBack() {
     const { dictId } = useParams<{ dictId: string }>();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
+    const { t, language } = useLanguage();
+
+    const RANKS = useMemo<Rank[]>(() => [
+        { id: 'peasant', name: t('ranks.peasant.name'), n: 1, optionsCount: 4, icon: Ghost, description: t('ranks.peasant.desc') },
+        { id: 'citizen', name: t('ranks.citizen.name'), n: 2, optionsCount: 4, icon: User, description: t('ranks.citizen.desc') },
+        { id: 'knight', name: t('ranks.knight.name'), n: 2, optionsCount: 6, icon: Sword, description: t('ranks.knight.desc') },
+        { id: 'baron', name: t('ranks.baron.name'), n: 3, optionsCount: 6, icon: Shield, description: t('ranks.baron.desc') },
+        { id: 'count', name: t('ranks.count.name'), n: 3, optionsCount: 8, icon: Landmark, description: t('ranks.count.desc') },
+        { id: 'duke', name: t('ranks.duke.name'), n: 4, optionsCount: 8, icon: Trophy, description: t('ranks.duke.desc') },
+        { id: 'king', name: t('ranks.king.name'), n: 5, optionsCount: 10, icon: Crown, description: t('ranks.king.desc') },
+        { id: 'emperor', name: t('ranks.emperor.name'), n: 6, optionsCount: 12, icon: Sparkles, description: t('ranks.emperor.desc') },
+    ], [t]);
 
     const fetchWords = useDictionaryStore(state => state.fetchWords);
     const fetchSharedWords = useDictionaryStore(state => state.fetchSharedWords);
@@ -100,6 +103,7 @@ export default function NBack() {
     }, [dictId, currentUser, fetchWords, fetchSharedWords]);
 
     const handleDictionaryChange = (newDictId: string) => {
+        localStorage.setItem('lastUsedDictId', newDictId);
         navigate(`/play/nback/${newDictId}`);
         setIsDictSelectorOpen(false);
     };
@@ -190,7 +194,6 @@ export default function NBack() {
             
             const sharedSnapshot = await get(ref(db, 'shared/dictionaries/dict2500/words'));
             if (sharedSnapshot.exists()) {
-                console.log('✅ Snapshot exists, items found:', sharedSnapshot.size);
                 const clean = (text: string) => {
                     if (!text) return '';
                     let cleaned = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
@@ -220,7 +223,7 @@ export default function NBack() {
         }
 
         if (pool.length < SESSION_SIZE) {
-            alert('Недостаточно слов в словарях для начала игры!');
+            alert(t('common.notEnoughWords'));
             return;
         }
 
@@ -275,6 +278,7 @@ export default function NBack() {
         const sessionWords = (window as any)._sessionWords as Word[];
 
         if (chosenWord.id === targetWord.id) {
+            soundService.playSuccessSound();
             const currentTotalProcessed = selectedRank.n + 1 + score;
             const newScore = score + 1;
             setScore(newScore);
@@ -297,6 +301,7 @@ export default function NBack() {
             const newTarget = newQueue[0] as any;
             setCurrentOptions(generateOptions(newTarget, selectedRank.optionsCount, sessionWords));
         } else {
+            soundService.playErrorSound();
             setErrorWordId(chosenWord.id);
             setPenaltySeconds(prev => prev + 1);
             setTimeout(() => {
@@ -305,28 +310,43 @@ export default function NBack() {
         }
     };
 
-    if (loading) return <div className={styles.container}>Загрузка...</div>;
+    const isInitialLoading = loading && storeWords.length === 0;
 
     const totalFinalTime = timer + penaltySeconds;
 
+    const getInstructionSuffix = (n: number) => {
+        if (language === 'ru') {
+            if (n === 1) return t('games.benedicto.steps_one');
+            if (n >= 2 && n <= 4) return t('games.benedicto.steps_few');
+            return t('games.benedicto.steps_many');
+        }
+        return n === 1 ? t('games.benedicto.steps_one') : t('games.benedicto.steps_few');
+    };
+
     return (
         <div className={styles.container}>
-            <button className={styles.floatingBackButton} onClick={() => navigate('/games')}>
-                <ArrowLeft size={24} />
-            </button>
+            {(phase === 'SETUP' || phase === 'GAMEOVER' || isInitialLoading) && (
+                <button className={styles.floatingBackButton} onClick={() => navigate('/games')} title={t('common.back')}>
+                    <ArrowLeft size={24} />
+                </button>
+            )}
 
-            {phase === 'SETUP' && (
-                <div className={styles.setupContainer}>
-                    <h1 className={styles.royalTitle}>Трон Бенедикта</h1>
+            {isInitialLoading ? (
+                <div className={styles.loading}>{t('common.loading')}</div>
+            ) : (
+                <>
+                    {phase === 'SETUP' && (
+                        <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''}`}>
+                    <h1 className={styles.royalTitle}>{t('games.benedicto.title')}</h1>
                     
                     <div className={styles.dictSelector}>
                         <button 
                             className={styles.selectorHeader}
                             onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
                         >
-                            <span className={styles.selectorLabel}>Словарь:</span>
+                            <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
                             <span className={styles.activeDictName}>
-                                {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || 'Мой словарь'}
+                                {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
                             </span>
                             <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                         </button>
@@ -339,7 +359,9 @@ export default function NBack() {
                                 >
                                     English 2500
                                 </button>
-                                {dictionaries.map(d => (
+                                {dictionaries
+                                    .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
+                                    .map(d => (
                                     <button 
                                         key={d.id}
                                         className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
@@ -352,7 +374,7 @@ export default function NBack() {
                         )}
                     </div>
 
-                    <p>Выберите ваш титул и начните путь к престолу</p>
+                    <p>{t('common.chooseMight')}</p>
                     
                     <div className={styles.difficultyContainer}>
                         <label className={styles.toggleLabel}>
@@ -366,7 +388,7 @@ export default function NBack() {
                                 <div className={styles.toggleThumb} />
                             </div>
                             <span className={styles.toggleText}>
-                                {isEliteMode ? 'Элитный режим (Без перевода)' : 'Обычный режим (С подсказками)'}
+                                {isEliteMode ? t('games.benedicto.eliteMode') : t('games.benedicto.normalMode')}
                             </span>
                         </label>
                     </div>
@@ -374,10 +396,16 @@ export default function NBack() {
                     <div className={styles.rankGrid}>
                         {RANKS.map(rank => (
                             <div key={rank.id} className={styles.rankCard} onClick={() => startMemorizing(rank)}>
-                                <rank.icon size={32} className={styles.rankIcon} />
-                                <div className={styles.rankName}>{rank.name}</div>
-                                <div className={styles.rankDetails}>N={rank.n} • {rank.optionsCount} вариантов</div>
-                                <small>{rank.description}</small>
+                                <div className={styles.rankIcon}>
+                                    <rank.icon size={32} />
+                                </div>
+                                <div className={styles.rankDetails}>
+                                    <div className={styles.rankName}>{rank.name}</div>
+                                    <div className={styles.rankDetailSub}>
+                                        N={rank.n} • {rank.optionsCount} variants
+                                    </div>
+                                    <small className={styles.rankDescSmall}>{rank.description}</small>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -385,37 +413,39 @@ export default function NBack() {
             )}
 
             {phase === 'MEMORIZE' && selectedRank && (
-                <div className={styles.memorizeContainer}>
-                    <h2 className={styles.royalTitle}>Запомните {currentIndexInQueue + 1}</h2>
-                    <div className={styles.wordToRemember}>
-                        {(() => {
-                            const word = wordQueue[currentIndexInQueue] as any;
-                            const mainText = word[word.displaySide];
-                            const hintText = word[word.displaySide === 'original' ? 'translation' : 'original'];
-                            return (
-                                <div className={styles.wordWrapper}>
-                                    <div className={styles.wordWithSpeaker}>
-                                        <div className={styles.mainWord}>{mainText}</div>
-                                        <button 
-                                            className={styles.playButton} 
-                                            onClick={(e) => handleManualSpeak(e, word)}
-                                        >
-                                            <Volume2 size={24} />
-                                        </button>
+                <div className={styles.gameArea}>
+                    <div className={styles.memorizeContainer}>
+                        <h2 className={styles.royalTitle}>{t('games.benedicto.rememberN', { n: currentIndexInQueue + 1 })}</h2>
+                        <div className={styles.wordToRemember}>
+                            {(() => {
+                                const word = wordQueue[currentIndexInQueue] as any;
+                                const mainText = word[word.displaySide];
+                                const hintText = word[word.displaySide === 'original' ? 'translation' : 'original'];
+                                return (
+                                    <div className={styles.wordWrapper}>
+                                        <div className={styles.wordWithSpeaker}>
+                                            <div className={styles.mainWord}>{mainText}</div>
+                                            <button 
+                                                className={styles.playButton} 
+                                                onClick={(e) => handleManualSpeak(e, word)}
+                                            >
+                                                <Volume2 size={24} />
+                                            </button>
+                                        </div>
+                                        {!isEliteMode && (
+                                            <div className={styles.translationHint}>— {hintText} —</div>
+                                        )}
                                     </div>
-                                    {!isEliteMode && (
-                                        <div className={styles.translationHint}>— {hintText} —</div>
-                                    )}
-                                </div>
-                            );
-                        })()}
+                                );
+                            })()}
+                        </div>
+                        <div className={styles.progressText} style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 600 }}>
+                            {t('games.benedicto.prepareStatus', { current: currentIndexInQueue + 1, total: selectedRank.n })}
+                        </div>
+                        <button className={styles.royalButton} onClick={handleNextMemorize}>
+                            {currentIndexInQueue < selectedRank.n - 1 ? t('games.benedicto.nextWord') : t('games.benedicto.start')}
+                        </button>
                     </div>
-                    <div className={styles.progressText} style={{ color: '#94a3b8', fontSize: '1.2rem', fontWeight: 600 }}>
-                        Подготовка: {currentIndexInQueue + 1} из {selectedRank.n} слов
-                    </div>
-                    <button className={styles.royalButton} onClick={handleNextMemorize}>
-                        {currentIndexInQueue < selectedRank.n - 1 ? 'Следующее Слово' : 'К Трону!'}
-                    </button>
                 </div>
             )}
 
@@ -424,7 +454,7 @@ export default function NBack() {
                     <div className={styles.gameArea}>
                         <div className={styles.gameHeader}>
                             <div className={styles.score}>
-                                Шаг: {score + 1} / {SESSION_SIZE - selectedRank.n}
+                                {t('games.benedicto.step', { current: score + 1, total: SESSION_SIZE - selectedRank.n })}
                             </div>
                             <div className={styles.timerWrapper}>
                                 <div className={styles.timer}>{timer.toFixed(2)}</div>
@@ -436,7 +466,7 @@ export default function NBack() {
 
                         <div className={styles.currentWordBox}>
                             <div style={{ color: '#94a3b8', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                                Запомните текущее:
+                                {t('games.benedicto.rememberCurrent')}
                             </div>
                             <h2 className={styles.wordToRemember} style={{ margin: 0 }}>
                                 {(() => {
@@ -464,7 +494,7 @@ export default function NBack() {
                         </div>
 
                         <div className={styles.gameInstruction}>
-                            Выберите перевод того, что было {selectedRank.n} {selectedRank.n === 1 ? 'шаг' : 'шага'} назад:
+                            {t('games.benedicto.instruction', { n: selectedRank.n, steps: getInstructionSuffix(selectedRank.n) })}
                         </div>
 
                         <div className={styles.optionsList}>
@@ -487,37 +517,42 @@ export default function NBack() {
             )}
 
             {phase === 'GAMEOVER' && selectedRank && (
-                <div className={styles.gameOverContainer}>
-                    <h1 className={styles.royalTitle}>Испытание завершено</h1>
-                    <div className={styles.finalRankBadge}>
-                        <selectedRank.icon size={48} color="#fde047" />
-                        <div className={styles.finalRank}>{selectedRank.name}</div>
-                    </div>
-                    
-                    <div className={styles.resultsGrid}>
-                        <div className={styles.resultItem}>
-                            <span>Чистое время:</span>
-                            <strong>{timer.toFixed(2)}с</strong>
+                <div className={styles.gameArea}>
+                    <div className={styles.results}>
+                        <h1 className={styles.royalTitle}>{t('games.benedicto.challengeCompleted')}</h1>
+                        <div className={styles.finalRankBadge}>
+                            <selectedRank.icon size={48} color="#fde047" />
+                            <div className={styles.finalRank}>{selectedRank.name}</div>
                         </div>
-                        <div className={styles.resultItem}>
-                            <span>Штрафы:</span>
-                            <strong style={{ color: '#ef4444' }}>+{penaltySeconds}с</strong>
+                        
+                        <div className={styles.resultsGrid}>
+                            <div className={styles.resultItem}>
+                                <span>{t('games.benedicto.pureTime')}</span>
+                                <strong>{timer.toFixed(2)}s</strong>
+                            </div>
+                            <div className={styles.resultItem}>
+                                <span>{t('games.benedicto.penalties')}</span>
+                                <strong style={{ color: '#ef4444' }}>+{penaltySeconds}s</strong>
+                            </div>
+                            <div className={styles.totalResult}>
+                                <span>{t('games.benedicto.total')}:</span>
+                                <strong>{totalFinalTime.toFixed(2)}s</strong>
+                            </div>
                         </div>
-                        <div className={styles.totalResult}>
-                            <span>Итог:</span>
-                            <strong>{totalFinalTime.toFixed(2)}с</strong>
-                        </div>
-                    </div>
 
-                    <button className={styles.royalButton} onClick={() => setPhase('SETUP')}>
-                        Начать заново
-                    </button>
-                    <br />
-                    <button className={styles.backButton} onClick={() => navigate('/games')}>
-                        В главное меню
-                    </button>
+                        <div className={styles.resultsButtons}>
+                            <button className={styles.royalButton} onClick={() => setPhase('SETUP')}>
+                                {t('games.benedicto.repeatFeat')}
+                            </button>
+                            <button className={styles.secondaryButton} onClick={() => navigate('/games')}>
+                                {t('games.benedicto.returnToHall')}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
-        </div>
+        </>
+    )}
+</div>
     );
 }

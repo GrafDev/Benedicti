@@ -8,7 +8,6 @@ import DictionaryDetail from './pages/DictionaryDetail';
 import Flashcards from './pages/Flashcards';
 import NBack from './pages/NBack';
 import MatchPairs from './pages/MatchPairs';
-import Importer from './pages/Importer';
 import ProtectedRoute from './components/ProtectedRoute';
 import MigrationManager from './components/MigrationManager';
 import SoundToggle from './components/SoundToggle';
@@ -30,11 +29,6 @@ function App() {
             <Route path="/play/flashcards/:dictId" element={<Flashcards />} />
             <Route path="/play/nback/:dictId" element={<NBack />} />
             <Route path="/play/match-pairs/:dictId" element={<MatchPairs />} />
-            <Route path="/import-deser" element={
-              <ProtectedRoute>
-                <Importer />
-              </ProtectedRoute>
-            } />
             <Route path="/play/:mode/:dictId" element={<div><h1>Other Game Mode</h1></div>} />
             <Route path="/profile" element={<Profile />} />
           </Route>

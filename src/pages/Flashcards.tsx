@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Volume2 } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
+import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Volume2, ChevronDown } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import type { Word } from '../types';
 import styles from './Flashcards.module.css';
@@ -11,22 +12,30 @@ export default function Flashcards() {
     const { dictId } = useParams<{ dictId: string }>();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
+    const { t } = useLanguage();
 
     const fetchWords = useDictionaryStore(state => state.fetchWords);
     const fetchSharedWords = useDictionaryStore(state => state.fetchSharedWords);
+    const fetchDictionaries = useDictionaryStore(state => state.fetchDictionaries);
     const markWordAsLearned = useDictionaryStore(state => state.markWordAsLearned);
     const dictionaries = useDictionaryStore(state => state.dictionaries);
     const storeWords = useDictionaryStore(state => state.words);
     const loading = useDictionaryStore(state => state.loading);
-    // const error = useDictionaryStore(state => state.error);
 
     const [gameWords, setGameWords] = useState<Word[]>([]);
     const [initialCount, setInitialCount] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [isFrontFirst] = useState(true);
+    const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
 
     // Initial Load
+    useEffect(() => {
+        if (currentUser) {
+            fetchDictionaries(currentUser.uid);
+        }
+    }, [currentUser, fetchDictionaries]);
+
     useEffect(() => {
         const loadWords = async () => {
             if (dictId === 'default') {
@@ -38,11 +47,18 @@ export default function Flashcards() {
         loadWords();
     }, [dictId, currentUser, fetchWords, fetchSharedWords]);
 
+    const handleDictionaryChange = (newDictId: string) => {
+        localStorage.setItem('lastUsedDictId', newDictId);
+        navigate(`/play/flashcards/${newDictId}`);
+        setIsDictSelectorOpen(false);
+    };
+
     // Track activity
     useEffect(() => {
         if (dictId && dictId !== 'default' && dictionaries.length > 0) {
             const dict = dictionaries.find(d => d.id === dictId);
             if (dict) {
+                localStorage.setItem('lastUsedDictId', dictId);
                 localStorage.setItem('benedicti_last_activity', JSON.stringify({
                     dictId,
                     dictName: dict.name,
@@ -61,11 +77,13 @@ export default function Flashcards() {
             
             const shuffled = [...availableWords]
                 .sort(() => Math.random() - 0.5)
-                .slice(0, 50); 
+                .slice(0, 15); 
             setGameWords(shuffled);
             setInitialCount(shuffled.length);
             setCurrentIndex(0);
             setIsFlipped(false);
+        } else {
+            setGameWords([]);
         }
     }, [storeWords]);
 
@@ -94,7 +112,7 @@ export default function Flashcards() {
     const handleRestart = () => {
         const reshuffled = [...storeWords]
             .sort(() => Math.random() - 0.5)
-            .slice(0, 50);
+            .slice(0, 15);
         setGameWords(reshuffled);
         setCurrentIndex(0);
         setIsFlipped(false);
@@ -134,142 +152,174 @@ export default function Flashcards() {
         setIsFlipped(false);
     };
 
-    if (loading) {
-        return (
-            <div className={styles.container}>
-                <div className={styles.loading}>Loading cards...</div>
-            </div>
-        );
-    }
-
-    if (gameWords.length === 0) {
-        return (
-            <div className={styles.container}>
-                <div className={styles.empty}>
-                    <h2>🎉 All words learned!</h2>
-                    <p>Good job! You've gone through all the words in this session.</p>
-                    <button onClick={handleRestart} className={styles.retryButton}>
-                        Study Again
-                    </button>
-                    <button onClick={() => navigate('/games')} className={styles.backButton}>
-                        Go Back
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    const currentWord = gameWords[currentIndex];
-    const dictionary = dictionaries.find(d => d.id === dictId);
-    // Calculate progress: how many words were already passed (learned or skipped)
-    const progress = initialCount > 0 ? ((initialCount - gameWords.length + currentIndex) / initialCount) * 100 : 0;
+    const isInitialLoading = loading && storeWords.length === 0;
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <button onClick={() => navigate('/games')} className={styles.circularButton} title="Back to Games">
-                    <ArrowLeft size={24} />
-                </button>
-                {/* Space holder or title */}
-                <div className={styles.headerTitle}>Flashcards</div>
-                <div style={{ width: 44 }}></div> {/* Balance for symmetry */}
-            </div>
+            <button 
+                className={styles.floatingBackButton} 
+                onClick={() => navigate('/games')}
+                title={t('common.back')}
+            >
+                <ArrowLeft size={24} />
+            </button>
 
-            <div className={styles.gameArea}>
-                <div 
-                    className={`${styles.cardContainer} ${isFlipped ? styles.flipped : ''}`}
-                    onClick={handleFlip}
-                >
-                    <div className={styles.cardInner}>
-                        {/* Front */}
-                        <div className={styles.cardFront}>
-                            <div className={styles.wordWrapper}>
-                                <button 
-                                    className={styles.speakButton}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        speechService.speak(currentWord.original, dictionary?.sourceLang || 'en');
-                                    }}
-                                >
-                                    <Volume2 size={24} />
-                                </button>
-                                <h2 className={styles.wordText}>
-                                    {isFrontFirst ? currentWord.original : currentWord.translation}
-                                </h2>
-                            </div>
-                            <p className={styles.hint}>Click to flip</p>
-                        </div>
-                        {/* Back */}
-                        <div className={styles.cardBack}>
-                            <div className={styles.wordWrapper}>
-                                <button 
-                                    className={styles.speakButton}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        speechService.speak(currentWord.original, dictionary?.sourceLang || 'en');
-                                    }}
-                                >
-                                    <Volume2 size={24} />
-                                </button>
-                                <h2 className={styles.wordText}>
-                                    {isFrontFirst ? currentWord.translation : currentWord.original}
-                                </h2>
-                            </div>
-                            <p className={styles.hint}>Click to flip</p>
-                        </div>
-                    </div>
-                </div>
+            <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''}`}>
+                <h1 className={styles.royalTitle}>{t('games.flashcards.title')}</h1>
 
-                <div className={styles.statsUnderCard}>
-                    <div className={styles.progressColumn}>
-                        <div className={styles.progressBar}>
-                            <div 
-                                className={styles.progressFill} 
-                                style={{ width: `${progress}%` }}
-                            />
-                        </div>
-                        <span className={styles.progressText}>
-                            {currentIndex + 1} / {gameWords.length}
+                <div className={styles.dictSelector}>
+                    <button 
+                        className={styles.selectorHeader}
+                        onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
+                    >
+                        <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
+                        <span className={styles.activeDictName}>
+                            {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
                         </span>
-                    </div>
+                        <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
+                    </button>
+                    
+                    {isDictSelectorOpen && (
+                        <div className={styles.dictOptions}>
+                            <button 
+                                className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
+                                onClick={() => handleDictionaryChange('default')}
+                            >
+                                English 2500
+                            </button>
+                            {dictionaries
+                                .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
+                                .map(d => (
+                                    <button 
+                                        key={d.id}
+                                        className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
+                                        onClick={() => handleDictionaryChange(d.id)}
+                                    >
+                                        {d.name}
+                                    </button>
+                                ))
+                            }
+                        </div>
+                    )}
                 </div>
-
-                <div className={styles.controls}>
-                    <button 
-                        onClick={handlePrev} 
-                        disabled={currentIndex === 0}
-                        className={styles.navButton}
-                        title="Previous (Arrow Left)"
-                    >
-                        <ChevronLeft size={32} />
-                    </button>
-
-                    <button 
-                        onClick={handleMarkLearned} 
-                        className={styles.learnedButton}
-                        title="I know this word!"
-                    >
-                        Learned
-                    </button>
-
-                    <button 
-                        onClick={handleNext} 
-                        disabled={currentIndex === gameWords.length - 1}
-                        className={styles.navButton}
-                        title="Next (Arrow Right)"
-                    >
-                        <ChevronRight size={32} />
-                    </button>
-                </div>
-
-                <button 
-                    onClick={handleRestart} 
-                    className={styles.restartButton}
-                    title="Reset session"
-                >
-                    <RotateCcw size={16} /> Restart Session
-                </button>
             </div>
+
+            {isInitialLoading ? (
+                <div className={styles.loading}>{t('common.loading')}</div>
+            ) : gameWords.length === 0 ? (
+                <div className={styles.empty}>
+                    <h2>🎉 {t('common.allLearned')}</h2>
+                    <p>{t('games.flashcards.sessionComplete')}</p>
+                    <button onClick={handleRestart} className={styles.retryButton}>
+                        {t('common.restart')}
+                    </button>
+                    <button onClick={() => navigate('/games')} className={styles.backButton}>
+                        {t('common.back')}
+                    </button>
+                </div>
+            ) : (() => {
+                const currentWord = gameWords[currentIndex];
+                const dictionary = dictionaries.find(d => d.id === dictId);
+                const progress = initialCount > 0 ? ((initialCount - gameWords.length + currentIndex) / initialCount) * 100 : 0;
+
+                return (
+                    <div className={styles.gameArea}>
+                        <div 
+                            className={`${styles.cardContainer} ${isFlipped ? styles.flipped : ''}`}
+                            onClick={handleFlip}
+                        >
+                            <div className={styles.cardInner}>
+                                {/* Front */}
+                                <div className={styles.cardFront}>
+                                    <div className={styles.wordWrapper}>
+                                        <button 
+                                            className={styles.speakButton}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                speechService.speak(currentWord.original, dictionary?.sourceLang || 'en');
+                                            }}
+                                        >
+                                            <Volume2 size={24} />
+                                        </button>
+                                        <h2 className={styles.wordText}>
+                                            {isFrontFirst ? currentWord.original : currentWord.translation}
+                                        </h2>
+                                    </div>
+                                    <p className={styles.hint}>{t('common.clickToFlip')}</p>
+                                </div>
+                                {/* Back */}
+                                <div className={styles.cardBack}>
+                                    <div className={styles.wordWrapper}>
+                                        <button 
+                                            className={styles.speakButton}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                speechService.speak(currentWord.original, dictionary?.sourceLang || 'en');
+                                            }}
+                                        >
+                                            <Volume2 size={24} />
+                                        </button>
+                                        <h2 className={styles.wordText}>
+                                            {isFrontFirst ? currentWord.translation : currentWord.original}
+                                        </h2>
+                                    </div>
+                                    <p className={styles.hint}>{t('common.clickToFlip')}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.statsUnderCard}>
+                            <div className={styles.progressColumn}>
+                                <div className={styles.progressBar}>
+                                    <div 
+                                        className={styles.progressFill} 
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                                <span className={styles.progressText}>
+                                    {currentIndex + 1} / {gameWords.length}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className={styles.controls}>
+                            <button 
+                                onClick={handlePrev} 
+                                disabled={currentIndex === 0}
+                                className={styles.navButton}
+                                title={t('common.back')}
+                            >
+                                <ChevronLeft size={32} />
+                            </button>
+
+                            <button 
+                                onClick={handleMarkLearned} 
+                                className={styles.learnedButton}
+                                title={t('common.learned')}
+                            >
+                                {t('common.learned')}
+                            </button>
+
+                            <button 
+                                onClick={handleNext} 
+                                disabled={currentIndex === gameWords.length - 1}
+                                className={styles.navButton}
+                                title={t('games.benedicto.nextWord')}
+                            >
+                                <ChevronRight size={32} />
+                            </button>
+                        </div>
+
+                        <button 
+                            onClick={handleRestart} 
+                            className={styles.restartButton}
+                            title={t('common.resetSession')}
+                        >
+                            <RotateCcw size={16} /> {t('common.restart')}
+                        </button>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

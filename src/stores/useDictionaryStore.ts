@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import {
     ref,
-    get,
+    get as dbGet,
     set as dbSet,
     push,
     remove,
@@ -9,6 +9,7 @@ import {
     increment,
 } from 'firebase/database';
 import { db } from '../firebase';
+import { ADMIN_EMAILS } from '../constants/admin';
 import type { Dictionary, Word } from '../types';
 
 /**
@@ -37,22 +38,33 @@ interface DictionaryState {
 
     // Shared dictionary operations
     fetchDefaultDictionary: () => Promise<void>;
-    fetchSharedWords: (userId?: string) => Promise<void>;
-    importDefaultDictionary: (jsonData: any) => Promise<void>;
+    exportSharedWords: (dictionaryId: string) => Promise<void>;
+    publishDictionary: (userId: string, dictionaryId: string) => Promise<void>;
+    unpublishDictionary: (userId: string, dictionaryId: string) => Promise<void>;
+    fetchSharedDictionaries: () => Promise<Dictionary[]>;
+    cleanText: (text: string) => string;
 }
 
-export const useDictionaryStore = create<DictionaryState>((set) => ({
+export const useDictionaryStore = create<DictionaryState>((set, get) => ({
     dictionaries: [],
     words: [],
     loading: false,
     error: null,
+ 
+    cleanText: (text: string) => {
+        if (!text) return '';
+        // 1. Remove brackets [...] and (...)
+        let cleaned = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
+        // 2. Take only first translation before ;
+        return cleaned.split(';')[0].trim().replace(/\s\s+/g, ' ');
+    },
 
     // ─── Dictionaries ────────────────────────────────────────────────────────────
 
     fetchDictionaries: async (userId: string) => {
         set(state => ({ ...state, loading: true, error: null }));
         try {
-            const snapshot = await get(ref(db, `users/${userId}/dictionaries`));
+            const snapshot = await dbGet(ref(db, `users/${userId}/dictionaries`));
             const dicts: Dictionary[] = [];
             if (snapshot.exists()) {
                 snapshot.forEach((child) => {
@@ -70,10 +82,48 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
                     }
                 });
             }
-            set(state => ({ ...state, dictionaries: dicts, loading: false, error: null }));
+            
+            // 2. Fetch Shared Dictionaries
+            const sharedDicts = await get().fetchSharedDictionaries();
+            
+            // 3. Merge and set
+            set(state => ({ 
+                ...state, 
+                dictionaries: [...dicts, ...sharedDicts], 
+                loading: false, 
+                error: null 
+            }));
         } catch (error: any) {
             console.error('fetchDictionaries error:', error);
             set(state => ({ ...state, error: error.message, loading: false, dictionaries: [] }));
+        }
+    },
+
+    fetchSharedDictionaries: async () => {
+        try {
+            const snapshot = await dbGet(ref(db, 'shared/dictionaries'));
+            const sharedDicts: Dictionary[] = [];
+            if (snapshot.exists()) {
+                snapshot.forEach((child) => {
+                    const data = child.val().info;
+                    if (data && data.name) {
+                        sharedDicts.push({
+                            id: child.key!,
+                            userId: data.publishedBy || 'admin',
+                            name: data.name,
+                            sourceLang: data.sourceLang,
+                            targetLang: data.targetLang,
+                            wordCount: data.wordCount || 0,
+                            createdAt: data.createdAt || Date.now(),
+                            isShared: true
+                        });
+                    }
+                });
+            }
+            return sharedDicts;
+        } catch (error) {
+            console.error('fetchSharedDictionaries error:', error);
+            return [];
         }
     },
 
@@ -126,7 +176,14 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
     fetchWords: async (userId, dictionaryId) => {
         set(state => ({ ...state, loading: true, error: null, words: [] }));
         try {
-            const snapshot = await get(ref(db, `users/${userId}/dictionaries/${dictionaryId}/words`));
+            const dict = get().dictionaries.find(d => d.id === dictionaryId);
+            
+            let path = `users/${userId}/dictionaries/${dictionaryId}/words`;
+            if (dict?.isShared) {
+                path = `shared/dictionaries/${dictionaryId}/words`;
+            }
+
+            const snapshot = await dbGet(ref(db, path));
             const words_list: Word[] = [];
             if (snapshot.exists()) {
                 snapshot.forEach((child) => {
@@ -134,8 +191,8 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
                     words_list.push({
                         id: child.key!,
                         dictionaryId,
-                        original: data.original,
-                        translation: data.translation,
+                        original: get().cleanText(data.original),
+                        translation: get().cleanText(data.translation),
                         box: data.box || 0,
                         nextReview: data.nextReview || Date.now(),
                         isLearned: data.isLearned || false,
@@ -152,7 +209,17 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
 
     addWord: async (userId, dictionaryId, original, translation) => {
         try {
-            const newWordRef = push(ref(db, `users/${userId}/dictionaries/${dictionaryId}/words`));
+            const dict = get().dictionaries.find(d => d.id === dictionaryId);
+            
+            let path = `users/${userId}/dictionaries/${dictionaryId}/words`;
+            let dictPath = `users/${userId}/dictionaries/${dictionaryId}`;
+            
+            if (dict?.isShared) {
+                path = `shared/dictionaries/${dictionaryId}/words`;
+                dictPath = `shared/dictionaries/${dictionaryId}/info`;
+            }
+
+            const newWordRef = push(ref(db, path));
             const data = {
                 original,
                 translation,
@@ -161,7 +228,7 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
                 createdAt: Date.now(),
             };
             await dbSet(newWordRef, data);
-            await update(ref(db, `users/${userId}/dictionaries/${dictionaryId}`), {
+            await update(ref(db, dictPath), {
                 wordCount: increment(1),
             });
             const newWord: Word = {
@@ -185,10 +252,14 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
 
     updateWord: async (userId, dictionaryId, wordId, data) => {
         try {
-            await update(
-                ref(db, `users/${userId}/dictionaries/${dictionaryId}/words/${wordId}`),
-                data
-            );
+            const dict = get().dictionaries.find(d => d.id === dictionaryId);
+            
+            let path = `users/${userId}/dictionaries/${dictionaryId}/words/${wordId}`;
+            if (dict?.isShared) {
+                path = `shared/dictionaries/${dictionaryId}/words/${wordId}`;
+            }
+
+            await update(ref(db, path), data);
             set(state => ({
                 ...state,
                 words: (state.words || []).map((w) => (w.id === wordId ? { ...w, ...data } : w)),
@@ -202,8 +273,18 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
 
     deleteWord: async (userId, dictionaryId, wordId) => {
         try {
-            await remove(ref(db, `users/${userId}/dictionaries/${dictionaryId}/words/${wordId}`));
-            await update(ref(db, `users/${userId}/dictionaries/${dictionaryId}`), {
+            const dict = get().dictionaries.find(d => d.id === dictionaryId);
+            
+            let path = `users/${userId}/dictionaries/${dictionaryId}/words/${wordId}`;
+            let dictPath = `users/${userId}/dictionaries/${dictionaryId}`;
+            
+            if (dict?.isShared) {
+                path = `shared/dictionaries/${dictionaryId}/words/${wordId}`;
+                dictPath = `shared/dictionaries/${dictionaryId}/info`;
+            }
+
+            await remove(ref(db, path));
+            await update(ref(db, dictPath), {
                 wordCount: increment(-1),
             });
             set(state => ({
@@ -225,7 +306,7 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
 
     fetchDefaultDictionary: async () => {
         try {
-            const snapshot = await get(ref(db, 'shared/dictionaries/dict2500/info'));
+            const snapshot = await dbGet(ref(db, 'shared/dictionaries/dict2500/info'));
             if (snapshot.exists()) {
                 // We keep it separate from the user's dictionaries array
                 // to avoid showing it in the main list.
@@ -241,14 +322,14 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
             // 1. Fetch user's learned shared words list first to filter them
             let learnedIds: Record<string, boolean> = {};
             if (userId) {
-                const learnedSnapshot = await get(ref(db, `users/${userId}/learnedSharedWords`));
+                const learnedSnapshot = await dbGet(ref(db, `users/${userId}/learnedSharedWords`));
                 if (learnedSnapshot.exists()) {
                     learnedIds = learnedSnapshot.val();
                 }
             }
 
             console.log('📡 Fetching shared words from shared/dictionaries/dict2500/words...');
-            const snapshot = await get(ref(db, 'shared/dictionaries/dict2500/words'));
+            const snapshot = await dbGet(ref(db, 'shared/dictionaries/dict2500/words'));
             const words_list: Word[] = [];
             
             if (snapshot.exists()) {
@@ -292,7 +373,7 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
 
     ensureLearnedDictionaryExists: async (userId: string) => {
         try {
-            const dictsSnapshot = await get(ref(db, `users/${userId}/dictionaries`));
+            const dictsSnapshot = await dbGet(ref(db, `users/${userId}/dictionaries`));
             let found = false;
             
             if (dictsSnapshot.exists()) {
@@ -325,7 +406,7 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
     markWordAsLearned: async (userId: string, word: Word) => {
         try {
             // 1. Ensure "Learned Words" dictionary exists or find it
-            const dictsSnapshot = await get(ref(db, `users/${userId}/dictionaries`));
+            const dictsSnapshot = await dbGet(ref(db, `users/${userId}/dictionaries`));
             let learnedDictId = '';
             
             if (dictsSnapshot.exists()) {
@@ -388,6 +469,98 @@ export const useDictionaryStore = create<DictionaryState>((set) => ({
         } catch (error: any) {
             console.error('markWordAsLearned error:', error);
             set(state => ({ ...state, error: error.message }));
+        }
+    },
+
+    publishDictionary: async (userId: string, dictionaryId: string) => {
+        set(state => ({ ...state, loading: true, error: null }));
+        try {
+            // 1. Get dictionary info
+            const dictRef = ref(db, `users/${userId}/dictionaries/${dictionaryId}`);
+            const dictSnapshot = await dbGet(dictRef);
+            if (!dictSnapshot.exists()) throw new Error('Словарь не найден');
+            
+            const dictData = dictSnapshot.val();
+            const wordsSnapshot = await dbGet(ref(db, `users/${userId}/dictionaries/${dictionaryId}/words`));
+            
+            // 2. Prepare for shared storage (use a descriptive ID if possible, or keep the old one)
+            const sharedPath = `shared/dictionaries/${dictionaryId}`;
+            
+            // 3. Set info and words to shared node
+            await dbSet(ref(db, `${sharedPath}/info`), {
+                name: dictData.name,
+                sourceLang: dictData.sourceLang,
+                targetLang: dictData.targetLang,
+                wordCount: dictData.wordCount || 0,
+                createdAt: Date.now(),
+                publishedBy: userId
+            });
+
+            if (wordsSnapshot.exists()) {
+                await dbSet(ref(db, `${sharedPath}/words`), wordsSnapshot.val());
+            }
+
+            // 4. Delete the original personal dictionary
+            await remove(dictRef);
+
+            // 5. Update local state
+            set(state => ({
+                ...state,
+                dictionaries: state.dictionaries.filter(d => d.id !== dictionaryId),
+                loading: false
+            }));
+            
+            console.log(`✅ Dictionary ${dictData.name} published and removed from personal.`);
+        } catch (error: any) {
+            console.error('publishDictionary error:', error);
+            set(state => ({ ...state, error: error.message, loading: false }));
+            throw error;
+        }
+    },
+
+    unpublishDictionary: async (userId: string, dictionaryId: string) => {
+        set(state => ({ ...state, loading: true, error: null }));
+        try {
+            // 1. Get shared info
+            const sharedRef = ref(db, `shared/dictionaries/${dictionaryId}`);
+            const sharedSnapshot = await dbGet(sharedRef);
+            if (!sharedSnapshot.exists()) throw new Error('Общий словарь не найден');
+            
+            const sharedData = sharedSnapshot.val();
+            const info = sharedData.info;
+            const words = sharedData.words;
+
+            // 2. Map back to personal
+            const personalRef = ref(db, `users/${userId}/dictionaries/${dictionaryId}`);
+            await dbSet(personalRef, {
+                name: info.name,
+                sourceLang: info.sourceLang,
+                targetLang: info.targetLang,
+                wordCount: info.wordCount || 0,
+                createdAt: info.createdAt || Date.now()
+            });
+
+            if (words) {
+                await dbSet(ref(db, `users/${userId}/dictionaries/${dictionaryId}/words`), words);
+            }
+
+            // 3. Remove from shared
+            await remove(sharedRef);
+
+            // 4. Update local state
+            set(state => ({
+                ...state,
+                dictionaries: state.dictionaries.map(d => 
+                    d.id === dictionaryId ? { ...d, isShared: false, userId } : d
+                ),
+                loading: false
+            }));
+            
+            console.log(`✅ Dictionary ${info.name} unpublished and moved to personal.`);
+        } catch (error: any) {
+            console.error('unpublishDictionary error:', error);
+            set(state => ({ ...state, error: error.message, loading: false }));
+            throw error;
         }
     }
 }));

@@ -106,6 +106,20 @@
     font-weight: 500;
 }
 
+.sharedBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+}
+
 .addButton {
     display: flex;
     align-items: center;

@@ -13,11 +13,13 @@ import {
 } from 'lucide-react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import styles from './Home.module.css';
 
 export default function Home() {
     const { currentUser } = useAuth();
     const { dictionaries, fetchDictionaries } = useDictionaryStore();
+    const { t } = useLanguage();
     const [lastActivity, setLastActivity] = useState<{ dictId: string, dictName: string, mode: string } | null>(null);
 
     useEffect(() => {
@@ -55,8 +57,8 @@ export default function Home() {
         : activeDictId ? `/dict/${activeDictId}` : '/dictionaries';
 
     const resumeLabel = lastActivity 
-        ? `Resume ${lastActivity.mode === 'nback' ? 'N-Back' : 'Flashcards'}`
-        : 'Resume Session';
+        ? (lastActivity.mode === 'nback' ? t('home.resumeNBack') : t('home.resumeFlashcards'))
+        : t('home.resumeSession');
 
     const StatCard = ({ icon: Icon, label, value, colorClass }: any) => (
         <div className={styles.statCard}>
@@ -75,12 +77,8 @@ export default function Home() {
             {/* Header / Welcome */}
             <header className={styles.header}>
                 <div className={styles.titleArea}>
-                    <h1 className={styles.mainTitle}>
-                        BRIGHT DAY, <span className={styles.sovereign}>SOVEREIGN</span>
-                    </h1>
-                    <p className={styles.subtitle}>
-                        The realm of knowledge is yours to conquer
-                    </p>
+                    <h1 className={styles.mainTitle} dangerouslySetInnerHTML={{ __html: t('home.title', { className: styles.sovereign }) }} />
+                    <p className={styles.subtitle}>{t('home.subtitle')}</p>
                 </div>
                 {currentUser && (
                     <div className={styles.userCard}>
@@ -88,7 +86,7 @@ export default function Home() {
                             {currentUser.email?.[0].toUpperCase()}
                         </div>
                         <div className={styles.userInfo}>
-                            <span className={styles.userLabel}>Active Servant</span>
+                            <span className={styles.userLabel}>{t('home.activeServant')}</span>
                             <span className={styles.userName}>{currentUser.email}</span>
                         </div>
                     </div>
@@ -99,19 +97,19 @@ export default function Home() {
             <div className={styles.statsGrid}>
                 <StatCard 
                     icon={Layers} 
-                    label="Dictionaries" 
+                    label={t('nav.dictionaries')} 
                     value={totalDictionaries} 
                     colorClass={styles.bgBlue} 
                 />
                 <StatCard 
                     icon={Book} 
-                    label="Total Words" 
+                    label={t('home.totalWords')} 
                     value={totalWords} 
                     colorClass={styles.bgYellow} 
                 />
                 <StatCard 
                     icon={Zap} 
-                    label="Elite Quest" 
+                    label={t('home.eliteQuest')} 
                     value="English 2500" 
                     colorClass={styles.bgGreen} 
                 />
@@ -128,14 +126,12 @@ export default function Home() {
                             </div>
                             
                             <div className={styles.resumeBadge}>
-                                <TrendingUp size={14} /> Continue Your Conquest
+                                <TrendingUp size={14} /> {t('home.continueConquest')}
                             </div>
                             <h2 className={styles.resumeTitle}>
                                 {activeDictName}
                             </h2>
-                            <p className={styles.resumeText}>
-                                Mastery over <strong>{activeWordCount} words</strong> is just one session away.
-                            </p>
+                            <p className={styles.resumeText} dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: activeWordCount }) }} />
                             
                             <Link 
                                 to={resumePath}
@@ -146,12 +142,12 @@ export default function Home() {
                         </div>
                     ) : (
                         <div className={styles.resumeCard} style={{ textAlign: 'center', background: 'rgba(30,30,50,0.2)' }}>
-                            <h2 className={styles.resumeTitle} style={{ fontSize: '2rem' }}>Throne Awaits</h2>
+                            <h2 className={styles.resumeTitle} style={{ fontSize: '2rem' }}>{t('home.throneAwaits')}</h2>
                             <p className={styles.resumeText} style={{ margin: '0 auto 2rem' }}>
-                                Create your first dictionary to begin your reign.
+                                {t('home.createFirstDict')}
                             </p>
                             <Link to="/dictionaries" className={styles.resumeButton}>
-                                Create Dictionary
+                                {t('home.createDict')}
                             </Link>
                         </div>
                     )}
@@ -164,8 +160,8 @@ export default function Home() {
                                     <BrainCircuit size={28} />
                                 </div>
                                 <div className="text-left">
-                                    <div className={styles.appName}>N-Back</div>
-                                    <div className={styles.appDesc}>Memory training</div>
+                                    <div className={styles.appName}>BENEDICTO</div>
+                                    <div className={styles.appDesc}>{t('home.memoryTraining')}</div>
                                 </div>
                             </div>
                             <ChevronRight size={20} color="#475569" />
@@ -177,8 +173,8 @@ export default function Home() {
                                     <Gamepad2 size={28} />
                                 </div>
                                 <div className="text-left">
-                                    <div className={styles.appName}>Cards</div>
-                                    <div className={styles.appDesc}>Vocabulary repetition</div>
+                                    <div className={styles.appName}>{t('games.flashcards.title')}</div>
+                                    <div className={styles.appDesc}>{t('home.vocabRepetition')}</div>
                                 </div>
                             </div>
                             <ChevronRight size={20} color="#475569" />
@@ -190,7 +186,7 @@ export default function Home() {
                 <div className={styles.sidebar}>
                     {/* Word of the Day Widget */}
                     <div className={`${styles.widget} ${styles.wordWidget}`}>
-                        <div className={styles.userLabel} style={{ marginBottom: '1rem' }}>Gem of the Day</div>
+                        <div className={styles.userLabel} style={{ marginBottom: '1rem' }}>{t('home.gemOfDay')}</div>
                         <div style={{ marginBottom: '1.5rem' }}>
                             <div className={styles.wordTitle}>Pristine</div>
                             <div className={styles.wordTranslation}>чистый, нетронутый</div>
@@ -203,14 +199,14 @@ export default function Home() {
                     {/* Progress Card */}
                     <div className={styles.widget}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                            <div className={styles.userLabel}>Weekly Goal</div>
+                            <div className={styles.userLabel}>{t('home.weeklyGoal')}</div>
                             <Trophy size={14} color="#fbbf24" />
                         </div>
                         <div style={{ height: '8px', background: '#1e293b', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}>
                             <div style={{ width: '65%', height: '100%', background: 'linear-gradient(to right, #3b82f6, #6366f1)', borderRadius: '4px' }} />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700 }}>
-                            <span style={{ color: '#475569' }}>PRO PROGRESS</span>
+                            <span style={{ color: '#475569' }}>{t('home.proProgress')}</span>
                             <span style={{ color: '#fff' }}>65%</span>
                         </div>
                     </div>

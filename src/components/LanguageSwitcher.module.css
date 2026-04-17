@@ -1,0 +1,48 @@
+.container {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  margin-right: 0.5rem;
+  backdrop-filter: blur(8px);
+}
+
+.button {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.05em;
+}
+
+.button:hover:not(.active) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.active {
+  background: linear-gradient(to bottom, #fde047, #d4af37);
+  color: #000 !important;
+  box-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
+}
+
+.divider {
+  width: 1px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 640px) {
+  .container {
+    margin: 0.75rem 0.75rem 1.5rem;
+    width: fit-content;
+  }
+}
