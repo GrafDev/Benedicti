@@ -18,6 +18,7 @@ export default function Profile() {
     const [teacherIdInput, setTeacherIdInput] = useState('');
     const [isAddingStudent, setIsAddingStudent] = useState(false);
     const [isAddingTeacher, setIsAddingTeacher] = useState(false);
+    const [teacherError, setTeacherError] = useState<string | null>(null);
 
     const { 
         userProfile, 
@@ -140,13 +141,20 @@ export default function Profile() {
 
         setIsAddingTeacher(true);
         setStatus(null);
+        setTeacherError(null);
         try {
             await addTeacher(currentUser.uid, teacherIdInput.trim());
             setTeacherIdInput('');
             setStatus({ type: 'success', message: t('common.success') });
             setTimeout(() => setStatus(null), 3000);
         } catch (error: any) {
-            setStatus({ type: 'error', message: error.message || t('common.error') });
+            // Check if it's a "not found" error for localized display
+            if (error.message?.includes('not found') || error.message?.includes('найден')) {
+                setTeacherError(t('common.error')); // Or a specific "not found" key if available
+                setTimeout(() => setTeacherError(null), 4000);
+            } else {
+                setStatus({ type: 'error', message: error.message || t('common.error') });
+            }
         } finally {
             setIsAddingTeacher(false);
         }
@@ -297,6 +305,13 @@ export default function Profile() {
                                     {t('profile.teachersTitle')}
                                 </label>
                                 
+                                {teacherError && (
+                                    <div className={styles.inlineError}>
+                                        <AlertCircle size={14} />
+                                        Учитель с таким BeneID не найден
+                                    </div>
+                                )}
+
                                 <form className={styles.miniForm} onSubmit={handleAddTeacher}>
                                     <input 
                                         type="text" 
