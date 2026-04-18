@@ -205,13 +205,15 @@
 
 /* Mobile Menu */
 .mobileMenu {
-    background-color: #0f172a;
+    background-color: #0a1120; /* Darker than main bg for contrast */
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 1rem;
+    border-bottom: 2px solid rgba(251, 191, 36, 0.4); /* Sovereign gold accent */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); /* Deep shadow for depth */
+    padding: 1.5rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    animation: slideDown 0.3s ease-out;
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes slideDown {

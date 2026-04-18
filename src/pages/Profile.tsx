@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
-import { Save, LogOut, ShieldCheck, CheckCircle, AlertCircle, Loader, Copy, UserPlus, Users, X, GraduationCap, BookOpen } from 'lucide-react';
+import { Save, LogOut, ShieldCheck, CheckCircle, AlertCircle, Copy, UserPlus, Users, X, GraduationCap, BookOpen } from 'lucide-react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
+import ConfirmationModal from '../components/ConfirmationModal';
 import styles from './Profile.module.css';
 
 export default function Profile() {
@@ -19,6 +20,21 @@ export default function Profile() {
     const [isAddingStudent, setIsAddingStudent] = useState(false);
     const [isAddingTeacher, setIsAddingTeacher] = useState(false);
     const [teacherError, setTeacherError] = useState<string | null>(null);
+    const [isTeacherLocal, setIsTeacherLocal] = useState(false);
+    
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        confirmText?: string;
+        isDestructive?: boolean;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
 
     const { 
         userProfile, 
@@ -44,8 +60,10 @@ export default function Profile() {
                 
                 if (!isMounted) return;
 
-                // Auto-generate if missing but name exists
                 const latestProfile = useDictionaryStore.getState().userProfile;
+                if (latestProfile) {
+                    setIsTeacherLocal(latestProfile.isTeacher || false);
+                }
                 if (latestProfile && !latestProfile.beneId && currentUser.displayName) {
                     await generateBeneId(currentUser.uid, currentUser.displayName);
                 }
@@ -75,23 +93,29 @@ export default function Profile() {
         }
     }, [userProfile?.students, userProfile?.teachers, resolveBeneIds]);
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!name.trim()) return;
+    const hasChanges = (name !== (currentUser?.displayName || '')) || 
+                       (isTeacherLocal !== (userProfile?.isTeacher || false));
+
+    const handleSave = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!name.trim() || !currentUser) return;
 
         setIsSaving(true);
         setStatus(null);
 
         try {
-            await updateProfileName(name.trim());
-            
-            // Generate or update BeneID based on new name
-            if (currentUser) {
+            // 1. Update name if changed
+            if (name.trim() !== (currentUser.displayName || '')) {
+                await updateProfileName(name.trim());
                 await generateBeneId(currentUser.uid, name.trim());
+            }
+            
+            // 2. Update teacher role if changed
+            if (isTeacherLocal !== (userProfile?.isTeacher || false)) {
+                await toggleTeacherRole(currentUser.uid, isTeacherLocal);
             }
 
             setStatus({ type: 'success', message: t('profile.saveSuccess') });
-            // Clear success message after 3 seconds
             setTimeout(() => setStatus(null), 3000);
         } catch (error) {
             setStatus({ type: 'error', message: t('profile.saveError') });
@@ -99,7 +123,18 @@ export default function Profile() {
             setIsSaving(false);
         }
     };
-
+    
+    const requestSignOut = () => {
+        setConfirmModal({
+            isOpen: true,
+            title: t('profile.signOutOfRealm'),
+            message: t('profile.signOutConfirm'),
+            onConfirm: handleSignOut,
+            confirmText: t('common.logout'),
+            isDestructive: true
+        });
+    };
+    
     const handleSignOut = async () => {
         try {
             await logout();
@@ -107,6 +142,30 @@ export default function Profile() {
         } catch (error) {
             console.error('Failed to logout', error);
         }
+    };
+
+    const requestRemoveStudent = (uid: string, studentUid: string) => {
+        const studentName = beneIdMap[studentUid] || studentUid;
+        setConfirmModal({
+            isOpen: true,
+            title: studentName,
+            message: t('profile.removeStudentConfirm'),
+            onConfirm: () => removeStudent(uid, studentUid),
+            confirmText: t('common.delete'),
+            isDestructive: true
+        });
+    };
+
+    const requestRemoveTeacher = (uid: string, teacherUid: string) => {
+        const teacherName = beneIdMap[teacherUid] || teacherUid;
+        setConfirmModal({
+            isOpen: true,
+            title: teacherName,
+            message: t('profile.removeTeacherConfirm'),
+            onConfirm: () => removeTeacher(uid, teacherUid),
+            confirmText: t('common.delete'),
+            isDestructive: true
+        });
     };
 
     const handleCopyId = () => {
@@ -160,14 +219,6 @@ export default function Profile() {
         }
     };
 
-    const handleToggleTeacher = async (checked: boolean) => {
-        if (!currentUser) return;
-        try {
-            await toggleTeacherRole(currentUser.uid, checked);
-        } catch (error) {
-            setStatus({ type: 'error', message: t('profile.saveError') });
-        }
-    };
 
     useEffect(() => {
         if (!currentUser) {
@@ -225,22 +276,8 @@ export default function Profile() {
                                 </div>
                             </div>
 
-                            <button 
-                                type="submit" 
-                                className={styles.saveButton}
-                                disabled={isSaving || name === (currentUser.displayName || '')}
-                            >
-                                <Save size={18} />
-                                {t('profile.save')}
-                            </button>
                         </form>
 
-                        <div className={styles.mobileSignOut}>
-                            <button onClick={handleSignOut} className={styles.signOutButton}>
-                                <LogOut size={18} />
-                                {t('profile.signOutOfRealm')}
-                            </button>
-                        </div>
                     </div>
 
                     {/* Right Column: Community & Lists */}
@@ -257,8 +294,8 @@ export default function Profile() {
                                 <label className={styles.switch}>
                                     <input 
                                         type="checkbox" 
-                                        checked={userProfile?.isTeacher || false} 
-                                        onChange={(e) => handleToggleTeacher(e.target.checked)}
+                                        checked={isTeacherLocal} 
+                                        onChange={(e) => setIsTeacherLocal(e.target.checked)}
                                     />
                                     <span className={styles.slider}></span>
                                 </label>
@@ -266,7 +303,7 @@ export default function Profile() {
                         </div>
 
                         <div className={styles.communityContainer}>
-                            {userProfile?.isTeacher && (
+                            {isTeacherLocal && (
                                 <div className={styles.listBlock}>
                                     <label className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <Users size={18} />
@@ -290,7 +327,7 @@ export default function Profile() {
                                         {userProfile?.students?.map(sid => (
                                             <div key={sid} className={styles.compactItem}>
                                                 <span>{beneIdMap[sid] || sid}</span>
-                                                <button onClick={() => removeStudent(currentUser.uid, sid)} className={styles.miniRemoveBtn}>
+                                                <button onClick={() => requestRemoveStudent(currentUser.uid, sid)} className={styles.miniRemoveBtn}>
                                                     <X size={14} />
                                                 </button>
                                             </div>
@@ -329,7 +366,7 @@ export default function Profile() {
                                     {userProfile?.teachers?.map(tid => (
                                         <div key={tid} className={styles.compactItem}>
                                             <span>{beneIdMap[tid] || tid}</span>
-                                            <button onClick={() => removeTeacher(currentUser.uid, tid)} className={styles.miniRemoveBtn}>
+                                            <button onClick={() => requestRemoveTeacher(currentUser.uid, tid)} className={styles.miniRemoveBtn}>
                                                 <X size={14} />
                                             </button>
                                         </div>
@@ -338,12 +375,6 @@ export default function Profile() {
                             </div>
                         </div>
 
-                        <div className={styles.desktopSignOut}>
-                            <button onClick={handleSignOut} className={styles.signOutButton}>
-                                <LogOut size={18} />
-                                {t('profile.signOutOfRealm')}
-                            </button>
-                        </div>
                     </div>
                 </div>
 
@@ -353,7 +384,36 @@ export default function Profile() {
                         {status.message}
                     </div>
                 )}
+
+                <div className={styles.bottomActions}>
+                    {hasChanges ? (
+                        <button 
+                            onClick={() => handleSave()} 
+                            className={styles.finalSaveButton}
+                            disabled={isSaving}
+                        >
+                            <Save size={18} />
+                            {isSaving ? t('common.saving') : t('profile.saveChanges')}
+                        </button>
+                    ) : (
+                        <button onClick={requestSignOut} className={styles.finalSignOutButton}>
+                            <LogOut size={18} />
+                            {t('profile.signOutOfRealm')}
+                        </button>
+                    )}
+                </div>
+
+                <ConfirmationModal 
+                    isOpen={confirmModal.isOpen}
+                    onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={confirmModal.onConfirm}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                    confirmText={confirmModal.confirmText || t('common.confirm')}
+                    cancelText={t('common.cancel')}
+                    isDestructive={confirmModal.isDestructive}
+                />
             </main>
-</div>
+        </div>
     );
 }

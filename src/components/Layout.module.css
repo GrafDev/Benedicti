@@ -1,0 +1,57 @@
+.appContainer {
+    height: 100dvh;
+    background-color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.mainContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 851px) {
+    .mainContent {
+        align-items: center;
+    }
+}
+
+/* Wide Page (Dictionaries, Games, etc.) */
+.widePage {
+    max-width: none !important;
+    padding: 0 !important;
+    width: 100%;
+}
+
+/* Default Centered Pages (Home, Profile) */
+.centeredPage {
+    max-width: 1200px;
+    padding: 1.5rem 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+@media (max-width: 850px) {
+    .centeredPage {
+        /* Minimal safe gap for mobile to maximize content space */
+        padding: 1rem 10px; 
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        align-items: stretch;
+    }
+}

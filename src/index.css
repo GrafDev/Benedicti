@@ -1,4 +1,5 @@
 :root {
+    box-sizing: border-box;
     font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
     line-height: 1.5;
     font-weight: 400;
@@ -13,11 +14,16 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+*, ::before, ::after {
+    box-sizing: inherit;
+}
+
 body {
     margin: 0;
     min-width: 320px;
     min-height: 100dvh;
     background-color: #0f172a;
+    overflow-x: hidden;
 }
 
 h1 {
@@ -40,7 +46,6 @@ button {
     from {
         transform: rotate(0deg);
     }
-
     to {
         transform: rotate(360deg);
     }

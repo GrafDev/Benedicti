@@ -1,32 +1,19 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
+import styles from './Layout.module.css';
 
 export default function Layout() {
     const location = useLocation();
-    const isGamePage = location.pathname.startsWith('/play/');
-
-    // Базовый стиль для всего приложения
-    const layoutStyle = {
-        minHeight: '100dvh',
-        backgroundColor: '#0f172a', // Тёмный фон
-        display: 'flex',
-        flexDirection: 'column' as const,
-        margin: 0,
-        padding: 0
-    };
-
-    const mainStyle = {
-        width: '100%',
-        maxWidth: isGamePage ? 'none' : '1200px',
-        margin: '0 auto',
-        padding: isGamePage ? '0' : '1.5rem 1rem',
-        boxSizing: 'border-box' as const
-    };
+    const isGameProcess = location.pathname.startsWith('/play/');
+    const isWidePage = isGameProcess || 
+                       location.pathname === '/dictionaries' || 
+                       location.pathname === '/games' ||
+                       location.pathname.startsWith('/dict/');
 
     return (
-        <div style={layoutStyle}>
-            {!isGamePage && <Header />}
-            <main style={mainStyle}>
+        <div className={styles.appContainer}>
+            {!isGameProcess && <Header />}
+            <main className={`${styles.mainContent} ${isWidePage ? styles.widePage : styles.centeredPage}`}>
                 <Outlet />
             </main>
         </div>

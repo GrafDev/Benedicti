@@ -1,13 +1,17 @@
 .pageContainer {
-    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 .header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 2rem;
-    padding-top: 1rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-shrink: 0;
 }
 
 .titleArea {
@@ -83,9 +87,10 @@
 
 .statsGrid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
 }
 
 .statCard {
@@ -130,9 +135,11 @@
 }
 
 .contentGrid {
+    flex: 1;
     display: grid;
     grid-template-columns: 1fr 340px;
     gap: 2rem;
+    min-height: 0;
 }
 
 .recentGamesGrid {
@@ -228,6 +235,85 @@
     flex-grow: 1;
 }
 
+.quickActions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+}
+
+.quickActionCard {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.quickActionCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.dictAction {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+.dictAction:hover {
+    border-color: rgba(251, 191, 36, 0.5);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(217, 119, 6, 0.1) 100%);
+}
+
+.gameAction {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.gameAction:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%);
+}
+
+.actionIcon {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.dictAction .actionIcon { color: #fbbf24; }
+.gameAction .actionIcon { color: #3b82f6; }
+
+.actionContent {
+    display: flex;
+    flex-direction: column;
+}
+
+.actionLabel {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.actionSub {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
 .resumeButton {
     display: inline-flex;
     align-items: center;
@@ -302,10 +388,21 @@
     color: #64748b;
 }
 
+.mainArea {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    min-height: 0;
+}
+
 .sidebar {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    min-height: 0;
 }
 
 .widget {
@@ -340,9 +437,77 @@
     }
 }
 
-@media (max-width: 768px) {
-    .mainTitle { font-size: 2.2rem; }
-    .statsGrid { grid-template-columns: 1fr; gap: 1rem; }
-    .recentGamesGrid { grid-template-columns: 1fr; }
-    .quickApps { grid-template-columns: 1fr; }
+@media (max-width: 850px) {
+    .pageContainer {
+        width: 100%;
+        padding: 0;
+    }
+    
+    .contentGrid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .quickActions {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .quickActionCard {
+        padding: 1.25rem;
+    }
+
+    .actionLabel {
+        font-size: 1.1rem;
+    }
+
+    .quickApps {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .appLink {
+        padding: 1rem;
+    }
+
+    .resumeCard {
+        padding: 1.5rem;
+    }
+
+    .resumeTitle {
+        font-size: 1.75rem;
+    }
+
+    .header {
+        margin-bottom: 1.5rem;
+    }
+
+    .mainTitle {
+        font-size: 1.75rem;
+    }
+
+    .dashboardSection { padding: 1.25rem; }
+    
+    .recentGamesGrid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .statsGrid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .statCard {
+        display: flex;
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+        gap: 0.75rem;
+    }
 }

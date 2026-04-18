@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Layers,
     Trophy,
     Book,
     TrendingUp,
-    Zap,
     Gamepad2,
     Sparkles,
     ChevronRight,
@@ -39,6 +37,28 @@ export default function Home() {
     const totalDictionaries = dictionaries.length;
     const totalWords = dictionaries.reduce((acc, dict) => acc + (dict.wordCount || 0), 0);
 
+    const getMostPopularDictionaryName = () => {
+        if (dictionaries.length === 0) return t('home.none');
+        if (!recentActivities.length) return dictionaries[0]?.name || t('home.none');
+        
+        const counts: Record<string, number> = {};
+        let popularDictId = recentActivities[0].dictId;
+        let maxCount = 0;
+
+        recentActivities.forEach(act => {
+            counts[act.dictId] = (counts[act.dictId] || 0) + 1;
+            if (counts[act.dictId] > maxCount) {
+                maxCount = counts[act.dictId];
+                popularDictId = act.dictId;
+            }
+        });
+
+        const popularDict = dictionaries.find(d => d.id === popularDictId);
+        return popularDict ? popularDict.name : dictionaries[0].name;
+    };
+
+    const popularDictName = getMostPopularDictionaryName();
+
     // Fallback logic if no activity
     const getGameTitle = (mode: string) => {
         switch (mode) {
@@ -67,7 +87,6 @@ export default function Home() {
 
     return (
         <div className={styles.pageContainer}>
-            {/* Header / Welcome */}
             <header className={styles.header}>
                 <div className={styles.titleArea}>
                     <h1 className={styles.mainTitle} dangerouslySetInnerHTML={{
@@ -81,26 +100,43 @@ export default function Home() {
                     <p className={styles.subtitle}>{t('home.subtitle')}</p>
                 </div>
             </header>
+            
+            <div className={styles.quickActions}>
+                <Link to="/dictionaries" className={`${styles.quickActionCard} ${styles.dictAction}`}>
+                    <div className={styles.actionIcon}>
+                        <Book size={28} />
+                    </div>
+                    <div className={styles.actionContent}>
+                        <span className={styles.actionLabel}>{t('nav.dictionaries')}</span>
+                        <span className={styles.actionSub}>
+                            {totalDictionaries > 0 ? t('home.dictCount', { count: totalDictionaries }) : t('home.createDict')}
+                        </span>
+                    </div>
+                </Link>
+                <Link to="/games" className={`${styles.quickActionCard} ${styles.gameAction}`}>
+                    <div className={styles.actionIcon}>
+                        <Gamepad2 size={28} />
+                    </div>
+                    <div className={styles.actionContent}>
+                        <span className={styles.actionLabel}>{t('nav.games')}</span>
+                        <span className={styles.actionSub}>{t('home.gameCount', { count: 3 })}</span>
+                    </div>
+                </Link>
+            </div>
 
             {/* Stats Grid */}
             <div className={styles.statsGrid}>
                 <StatCard
-                    icon={Layers}
-                    label={t('nav.dictionaries')}
-                    value={totalDictionaries}
-                    colorClass={styles.bgBlue}
-                />
-                <StatCard
                     icon={Book}
                     label={t('home.totalWords')}
                     value={totalWords}
-                    colorClass={styles.bgYellow}
+                    colorClass={styles.bgBlue}
                 />
                 <StatCard
-                    icon={Zap}
-                    label={t('home.eliteQuest')}
-                    value="English 2500"
-                    colorClass={styles.bgGreen}
+                    icon={Trophy}
+                    label={t('home.mostPopular')}
+                    value={popularDictName}
+                    colorClass={styles.bgYellow}
                 />
             </div>
 
