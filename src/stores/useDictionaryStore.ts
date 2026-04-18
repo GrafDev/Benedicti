@@ -7,7 +7,6 @@ import {
     remove,
     update,
     increment,
-    runTransaction,
 } from 'firebase/database';
 import { db } from '../firebase';
 import type { Dictionary, Word } from '../types';

@@ -7,6 +7,7 @@ export interface Dictionary {
     wordCount: number;
     createdAt: number;
     isShared?: boolean;
+    isTeacherDict?: boolean;
 }
 
 export interface Word {

@@ -179,200 +179,166 @@ export default function Profile() {
             </header>
 
             <main className={styles.profileCard}>
-                <div className={styles.sectionTitle}>
-                    <ShieldCheck size={18} />
-                    {t('profile.accountInfo')}
-                </div>
-
-                <form onSubmit={handleSave}>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('profile.nameLabel')}</label>
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                type="text"
-                                className={styles.input}
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder={t('profile.namePlaceholder')}
-                                maxLength={30}
-                            />
+                <div className={styles.dashboardGrid}>
+                    {/* Left Column: Account & Profile */}
+                    <div className={styles.dashboardSection}>
+                        <div className={styles.sectionTitle}>
+                            <ShieldCheck size={18} />
+                            {t('profile.accountInfo')}
                         </div>
-                    </div>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Email</label>
-                        <div className={styles.emailDisplay}>
-                            {currentUser.email}
-                        </div>
-                    </div>
+                        <form onSubmit={handleSave} className={styles.compactForm}>
+                            <div className={styles.formGrid}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>{t('profile.nameLabel')}</label>
+                                    <input
+                                        type="text"
+                                        className={styles.input}
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder={t('profile.namePlaceholder')}
+                                        maxLength={30}
+                                    />
+                                </div>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>{t('profile.userIdLabel')}</label>
-                        <div className={styles.idContainer} onClick={handleCopyId}>
-                            <code className={styles.idValue}>
-                                {userProfile?.beneId ? (
-                                    userProfile.beneId
-                                ) : (
-                                    <span className={styles.generatingText}>
-                                        <Loader size={12} className={styles.spin} /> 
-                                        {currentUser.displayName ? 'Loading BeneID...' : 'Set name to create ID'}
-                                    </span>
-                                )}
-                            </code>
-                            <Copy size={16} className={styles.copyIcon} />
-                        </div>
-                    </div>
-
-                    <button 
-                        type="submit" 
-                        className={styles.saveButton}
-                        disabled={isSaving || name === (currentUser.displayName || '')}
-                    >
-                        {isSaving ? (
-                            <Loader size={18} className="animate-spin" />
-                        ) : (
-                            <>
-                                <Save size={18} />
-                                {t('profile.save')}
-                            </>
-                        )}
-                    </button>
-                </form>
-
-                <div className={styles.teacherSection}>
-                    <div className={styles.teacherToggle}>
-                        <div className={styles.teacherInfo}>
-                            <div className={styles.teacherLabel}>
-                                <GraduationCap size={18} />
-                                {t('profile.teacherRole')}
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Email</label>
+                                    <div className={styles.emailDisplay}>{currentUser.email}</div>
+                                </div>
                             </div>
-                            <p className={styles.teacherDesc}>{t('profile.teacherDesc')}</p>
-                        </div>
-                        <label className={styles.switch}>
-                            <input 
-                                type="checkbox" 
-                                checked={userProfile?.isTeacher || false} 
-                                onChange={(e) => handleToggleTeacher(e.target.checked)}
-                            />
-                            <span className={styles.slider}></span>
-                        </label>
-                    </div>
 
-                    {userProfile?.isTeacher && (
-                        <div className={styles.studentsListContainer}>
-                            <h3 className={styles.sectionSubTitle}>
-                                <Users size={18} />
-                                {t('profile.studentsTitle')}
-                            </h3>
-                            
-                            <form className={styles.addStudentForm} onSubmit={handleAddStudent}>
-                                <input 
-                                    type="text" 
-                                    className={styles.smallInput}
-                                    value={studentIdInput}
-                                    onChange={(e) => setStudentIdInput(e.target.value)}
-                                    placeholder={t('profile.studentIdPlaceholder')}
-                                />
-                                <button 
-                                    type="submit" 
-                                    className={styles.addBtn}
-                                    disabled={isAddingStudent || !studentIdInput.trim()}
-                                >
-                                    <UserPlus size={16} />
-                                    {t('profile.addStudent')}
-                                </button>
-                            </form>
-
-                            <div className={styles.studentsList}>
-                                {userProfile?.students && userProfile.students.length > 0 ? (
-									userProfile.students.map(sid => (
-                                        <div key={sid} className={styles.studentItem}>
-                                            <span className={styles.studentId}>
-                                                {beneIdMap[sid] || sid}
-                                            </span>
-                                            <button 
-                                                onClick={() => removeStudent(currentUser.uid, sid)}
-                                                className={styles.removeBtn}
-                                                title={t('profile.studentRemoved')}
-                                            >
-                                                <X size={14} />
-                                            </button>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className={styles.emptyState}>{t('profile.noStudents')}</p>
-                                )}
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>{t('profile.userIdLabel')}</label>
+                                <div className={styles.idContainer} onClick={handleCopyId}>
+                                    <code className={styles.idValue}>
+                                        {userProfile?.beneId || '---'}
+                                    </code>
+                                    <Copy size={16} className={styles.copyIcon} />
+                                </div>
                             </div>
-                        </div>
-                    )}
 
-                    {/* Teachers Section - Available to everyone */}
-                    <div className={styles.studentsListContainer} style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                        <h3 className={styles.sectionSubTitle}>
-                            <BookOpen size={18} style={{ color: '#3b82f6' }} />
-                            {t('profile.teachersTitle')}
-                        </h3>
-                        
-                        <form className={styles.addStudentForm} onSubmit={handleAddTeacher}>
-                            <input 
-                                type="text" 
-                                className={styles.smallInput}
-                                value={teacherIdInput}
-                                onChange={(e) => setTeacherIdInput(e.target.value)}
-                                placeholder={t('profile.teacherIdPlaceholder')}
-                            />
                             <button 
                                 type="submit" 
-                                className={styles.addBtn}
-                                style={{ background: 'linear-gradient(to bottom, #3b82f6, #2563eb)', color: 'white', border: 'none' }}
-                                disabled={isAddingTeacher || !teacherIdInput.trim()}
+                                className={styles.saveButton}
+                                disabled={isSaving || name === (currentUser.displayName || '')}
                             >
-                                <UserPlus size={16} />
-                                {t('profile.addTeacher')}
+                                <Save size={18} />
+                                {t('profile.save')}
                             </button>
                         </form>
 
-                        <div className={styles.studentsList}>
-                            {userProfile?.teachers && userProfile.teachers.length > 0 ? (
-                                userProfile.teachers.map(tid => (
-                                    <div key={tid} className={styles.studentItem}>
-                                        <span className={styles.studentId}>
-                                            {beneIdMap[tid] || tid}
-                                        </span>
-                                        <button 
-                                            onClick={() => removeTeacher(currentUser.uid, tid)}
-                                            className={styles.removeBtn}
-                                            title={t('profile.teacherRemoved')}
-                                        >
-                                            <X size={14} />
-                                        </button>
+                        <div className={styles.mobileSignOut}>
+                            <button onClick={handleSignOut} className={styles.signOutButton}>
+                                <LogOut size={18} />
+                                {t('profile.signOutOfRealm')}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Community & Lists */}
+                    <div className={styles.dashboardSection}>
+                        <div className={styles.teacherToggleSection} style={{ marginBottom: '1rem' }}>
+                            <div className={styles.teacherToggle}>
+                                <div className={styles.teacherInfo}>
+                                    <div className={styles.teacherLabel}>
+                                        <GraduationCap size={18} />
+                                        {t('profile.teacherRole')}
                                     </div>
-                                ))
-                            ) : (
-                                <p className={styles.emptyState}>{t('profile.noTeachers')}</p>
+                                    <p className={styles.teacherDesc}>{t('profile.teacherDesc')}</p>
+                                </div>
+                                <label className={styles.switch}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={userProfile?.isTeacher || false} 
+                                        onChange={(e) => handleToggleTeacher(e.target.checked)}
+                                    />
+                                    <span className={styles.slider}></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className={styles.communityContainer}>
+                            {userProfile?.isTeacher && (
+                                <div className={styles.listBlock}>
+                                    <label className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Users size={18} />
+                                        {t('profile.studentsTitle')}
+                                    </label>
+                                    
+                                    <form className={styles.miniForm} onSubmit={handleAddStudent}>
+                                        <input 
+                                            type="text" 
+                                            className={styles.miniInput}
+                                            value={studentIdInput}
+                                            onChange={(e) => setStudentIdInput(e.target.value)}
+                                            placeholder="BeneID..."
+                                        />
+                                        <button type="submit" className={styles.miniAddBtn} disabled={isAddingStudent || !studentIdInput.trim()}>
+                                            <UserPlus size={16} />
+                                        </button>
+                                    </form>
+
+                                    <div className={styles.compactList}>
+                                        {userProfile?.students?.map(sid => (
+                                            <div key={sid} className={styles.compactItem}>
+                                                <span>{beneIdMap[sid] || sid}</span>
+                                                <button onClick={() => removeStudent(currentUser.uid, sid)} className={styles.miniRemoveBtn}>
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
+
+                            <div className={styles.listBlock}>
+                                <label className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <BookOpen size={18} style={{ color: '#3b82f6' }} />
+                                    {t('profile.teachersTitle')}
+                                </label>
+                                
+                                <form className={styles.miniForm} onSubmit={handleAddTeacher}>
+                                    <input 
+                                        type="text" 
+                                        className={styles.miniInput}
+                                        value={teacherIdInput}
+                                        onChange={(e) => setTeacherIdInput(e.target.value)}
+                                        placeholder="BeneID..."
+                                    />
+                                    <button type="submit" className={styles.miniAddBtn} style={{ background: '#3b82f6' }} disabled={isAddingTeacher || !teacherIdInput.trim()}>
+                                        <UserPlus size={16} />
+                                    </button>
+                                </form>
+
+                                <div className={styles.compactList}>
+                                    {userProfile?.teachers?.map(tid => (
+                                        <div key={tid} className={styles.compactItem}>
+                                            <span>{beneIdMap[tid] || tid}</span>
+                                            <button onClick={() => removeTeacher(currentUser.uid, tid)} className={styles.miniRemoveBtn}>
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.desktopSignOut}>
+                            <button onClick={handleSignOut} className={styles.signOutButton}>
+                                <LogOut size={18} />
+                                {t('profile.signOutOfRealm')}
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 {status && (
                     <div className={`${styles.statusMessage} ${styles[status.type]}`}>
-                        {status.type === 'success' ? (
-                            <CheckCircle size={16} />
-                        ) : (
-                            <AlertCircle size={16} />
-                        )}
+                        {status.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
                         {status.message}
                     </div>
                 )}
-
-                <div className={styles.signOutSection}>
-                    <button onClick={handleSignOut} className={styles.signOutButton}>
-                        <LogOut size={18} />
-                        {t('profile.signOutOfRealm')}
-                    </button>
-                </div>
             </main>
-        </div>
+</div>
     );
 }

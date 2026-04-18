@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User as UserIcon, LogOut, Download } from 'lucide-react';
+import { Menu, X, User as UserIcon, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -11,7 +11,7 @@ import styles from './Header.module.css';
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const { currentUser, logout } = useAuth();
+    const { currentUser } = useAuth();
     const { t } = useLanguage();
     const location = useLocation();
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
