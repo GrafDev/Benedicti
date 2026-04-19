@@ -52,14 +52,14 @@ export default function MatchPairs() {
     const [allWordsPool, setAllWordsPool] = useState<Word[]>([]);
     const [leftColumn, setLeftColumn] = useState<(MatchItem | null)[]>([]);
     const [rightColumn, setRightColumn] = useState<(MatchItem | null)[]>([]);
-    
+
     const [selectedLeftId, setSelectedLeftId] = useState<string | null>(null);
     const [selectedRightId, setSelectedRightId] = useState<string | null>(null);
     const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set());
     const [correctIds, setCorrectIds] = useState<Set<string>>(new Set());
     const [wrongIds, setWrongIds] = useState<Set<string>>(new Set());
     const [transitioningIds, setTransitioningIds] = useState<Set<string>>(new Set());
-    
+
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
         return saved !== null ? JSON.parse(saved) : false;
@@ -67,15 +67,15 @@ export default function MatchPairs() {
 
     const [score, setScore] = useState(0);
     const [totalPairs, setTotalPairs] = useState(0);
-    
+
     const nextWordIndex = useRef(0);
-    
+
     const [phase, setPhase] = useState<Phase>('SETUP');
     const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
     const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
     const [isMobileSetupOpen, setIsMobileSetupOpen] = useState(false);
-    
+
     const [timer, setTimer] = useState(0);
     const [errors, setErrors] = useState(0);
     const timerRef = useRef<number | null>(null);
@@ -129,7 +129,7 @@ export default function MatchPairs() {
         // Shuffle and take only 15 words for the session
         const shuffled = [...storeWords].sort(() => Math.random() - 0.5);
         const poolForSession = shuffled.slice(0, 15);
-        
+
         setAllWordsPool(poolForSession);
         setTotalPairs(poolForSession.length);
         setScore(0);
@@ -140,9 +140,9 @@ export default function MatchPairs() {
         setCorrectIds(new Set());
         setTransitioningIds(new Set());
         setWrongIds(new Set());
-        
+
         setSelectedRank(rank);
-        
+
         // Pick initial batch based on rank
         const initialBatch = poolForSession.slice(0, rank.count);
         nextWordIndex.current = rank.count;
@@ -151,7 +151,7 @@ export default function MatchPairs() {
             .sort(() => Math.random() - 0.5);
         const right = initialBatch.map(w => ({ id: w.id, text: w.translation, isOriginal: false }))
             .sort(() => Math.random() - 0.5);
-            
+
         setLeftColumn(left);
         setRightColumn(right);
         setPhase('PLAY');
@@ -168,7 +168,7 @@ export default function MatchPairs() {
         if (phase === 'PLAY' && !isAllDone) {
             // Ensure we have a start time if we just moved to PLAY
             if (!startTimeRef.current) startTimeRef.current = Date.now();
-            
+
             timerRef.current = window.setInterval(() => {
                 if (startTimeRef.current) {
                     const elapsed = Date.now() - startTimeRef.current;
@@ -187,8 +187,8 @@ export default function MatchPairs() {
     const formatTime = (ms: number) => {
         const mins = Math.floor(ms / 60000);
         const secs = Math.floor((ms % 60000) / 1000);
-        const centis = Math.floor((ms % 1000) / 10);
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`;
+        const tenths = Math.floor((ms % 1000) / 100);
+        return `${mins}:${secs.toString().padStart(2, '0')}.${tenths}`;
     };
 
     const handleChoice = useCallback((id: string, isOriginal: boolean) => {
@@ -198,25 +198,25 @@ export default function MatchPairs() {
             setSelectedLeftId(id);
             const word = allWordsPool.find(w => w.id === id);
             const dict = dictionaries.find(d => d.id === dictId);
-            
+
             // Озвучиваем только если это первый выбор ИЛИ если выбор верный
             const isMatch = selectedRightId === id;
             if (word && (!selectedRightId || isMatch)) {
                 speechService.speak(word.original, dict?.sourceLang || 'en');
             }
-            
+
             if (selectedRightId) checkMatch(id, selectedRightId);
         } else {
             setSelectedRightId(id);
             const word = allWordsPool.find(w => w.id === id);
             const dict = dictionaries.find(d => d.id === dictId);
-            
+
             // Озвучиваем только если это первый выбор ИЛИ если выбор верный
             const isMatch = selectedLeftId === id;
             if (word && (!selectedLeftId || isMatch)) {
                 speechService.speak(word.translation, dict?.targetLang || 'ru');
             }
-            
+
             if (selectedLeftId) checkMatch(selectedLeftId, id);
         }
     }, [selectedLeftId, selectedRightId, matchedIds, correctIds, isEliteMode, allWordsPool, dictionaries, dictId]);
@@ -239,7 +239,7 @@ export default function MatchPairs() {
                 });
                 // Phase 2: Show empty button for a bit to animate replacement
                 setTransitioningIds(prev => new Set([...prev, leftId]));
-                
+
                 setTimeout(() => {
                     replaceWord(leftId);
                     setTransitioningIds(prev => {
@@ -278,15 +278,15 @@ export default function MatchPairs() {
         const nextWord = allWordsPool[nextWordIndex.current];
         nextWordIndex.current += 1;
 
-        setLeftColumn(prev => prev.map(item => 
-            item?.id === oldId 
-            ? (nextWord ? { id: nextWord.id, text: nextWord.original, isOriginal: true } : null) 
-            : item
+        setLeftColumn(prev => prev.map(item =>
+            item?.id === oldId
+                ? (nextWord ? { id: nextWord.id, text: nextWord.original, isOriginal: true } : null)
+                : item
         ));
-        setRightColumn(prev => prev.map(item => 
-            item?.id === oldId 
-            ? (nextWord ? { id: nextWord.id, text: nextWord.translation, isOriginal: false } : null) 
-            : item
+        setRightColumn(prev => prev.map(item =>
+            item?.id === oldId
+                ? (nextWord ? { id: nextWord.id, text: nextWord.translation, isOriginal: false } : null)
+                : item
         ));
     };
 
@@ -301,7 +301,7 @@ export default function MatchPairs() {
                             <ArrowLeft size={24} />
                         </button>
                         <h1 className={styles.royalTitle}>{t('games.pairwords.title')}</h1>
-                        <button 
+                        <button
                             className={`${styles.mobileSetupToggle} ${isMobileSetupOpen ? styles.open : ''}`}
                             onClick={() => setIsMobileSetupOpen(!isMobileSetupOpen)}
                         >
@@ -311,55 +311,57 @@ export default function MatchPairs() {
 
                     <div className={`${styles.setupControls} ${isMobileSetupOpen ? styles.open : ''}`}>
                         <div className={styles.dictSelector}>
-                    <button 
-                        className={styles.selectorHeader}
-                        onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
-                    >
-                        <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
-                        <span className={styles.activeDictName}>
-                            {(dictId === 'default' || !dictId) ? t('common.defaultDict') : dictionaries.find(d => d.id === dictId)?.name || '...'}
-                        </span>
-                        <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
-                    </button>
-                    
-                    {isDictSelectorOpen && (
-                        <div className={styles.dictOptions}>
-                            <button 
-                                className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
-                                onClick={() => handleDictionaryChange('default')}
+                            <button
+                                className={styles.selectorHeader}
+                                onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
                             >
-                                {t('common.defaultDict')}
+                                <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
+                                <span className={styles.activeDictName}>
+                                    {(!currentUser || dictId === 'default' || !dictId) 
+                                        ? 'Дефолтный словарь' 
+                                        : (dictionaries.find(d => d.id === dictId)?.name || '...')}
+                                </span>
+                                <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                             </button>
-                            {dictionaries
-                                .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
-                                .map(d => (
-                                <button 
-                                    key={d.id}
-                                    className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
-                                    onClick={() => handleDictionaryChange(d.id)}
-                                >
-                                    {d.name}
-                                </button>
-                            ))}
+
+                            {isDictSelectorOpen && (
+                                <div className={styles.dictOptions}>
+                                    <button
+                                        className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
+                                        onClick={() => handleDictionaryChange('default')}
+                                    >
+                                        {t('common.defaultDict')}
+                                    </button>
+                                    {dictionaries
+                                        .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
+                                        .map(d => (
+                                            <button
+                                                key={d.id}
+                                                className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
+                                                onClick={() => handleDictionaryChange(d.id)}
+                                            >
+                                                {d.name}
+                                            </button>
+                                        ))}
+                                </div>
+                            )}
                         </div>
-                    )}
-                    </div>
-                    
-                    <div className={styles.difficultyContainer}>
-                        <label className={styles.toggleLabel}>
-                            <input 
-                                type="checkbox" 
-                                checked={isEliteMode}
-                                onChange={(e) => setIsEliteMode(e.target.checked)}
-                                className={styles.hiddenCheckbox}
-                            />
-                            <div className={`${styles.customToggle} ${isEliteMode ? styles.active : ''}`}>
-                                <div className={styles.toggleThumb} />
-                            </div>
-                            <span className={styles.toggleText}>
-                                {isEliteMode ? t('games.pairwords.eliteMode') : t('games.pairwords.normalMode')}
-                            </span>
-                        </label>
+
+                        <div className={styles.difficultyContainer}>
+                            <label className={styles.toggleLabel}>
+                                <input
+                                    type="checkbox"
+                                    checked={isEliteMode}
+                                    onChange={(e) => setIsEliteMode(e.target.checked)}
+                                    className={styles.hiddenCheckbox}
+                                />
+                                <div className={`${styles.customToggle} ${isEliteMode ? styles.active : ''}`}>
+                                    <div className={styles.toggleThumb} />
+                                </div>
+                                <span className={styles.toggleText}>
+                                    {isEliteMode ? t('games.pairwords.eliteMode') : t('games.pairwords.normalMode')}
+                                </span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -369,8 +371,8 @@ export default function MatchPairs() {
                 {RANKS.map((rank) => {
                     const isLocked = storeWords.length < rank.count;
                     return (
-                        <button 
-                            key={rank.id} 
+                        <button
+                            key={rank.id}
                             className={`${styles.rankCard} ${isLocked ? styles.locked : ''}`}
                             onClick={() => !isLocked && startLevel(rank)}
                             disabled={loading}
@@ -388,7 +390,7 @@ export default function MatchPairs() {
                     );
                 })}
             </div>
-            
+
             {storeWords.length === 0 && !loading && (
                 <div className={styles.noWordsWarning}>
                     {t('games.pairwords.noWords')}
@@ -497,33 +499,35 @@ export default function MatchPairs() {
                                 </div>
                             </>
                         ) : (
-                            <div className={styles.results}>
-                                <div className={styles.successIcon}>
-                                    <Sparkles size={64} />
+                            <div className={styles.resultsOverlay}>
+                                <div className={styles.results}>
+                                    <div className={styles.successIcon}>
+                                        <Sparkles size={64} />
+                                    </div>
+                                    <h2>🎉 {t('common.greatJob')}</h2>
+                                    <p>{t('games.pairwords.conqueredRank', { rank: selectedRank?.name || '' })}</p>
+
+                                    <div className={styles.finalStatsGrid}>
+                                        <div className={styles.finalStatCard}>
+                                            <div className={styles.finalStatLabel}>{t('common.score')}</div>
+                                            <div className={styles.finalStatValue}>{score}</div>
+                                        </div>
+                                        <div className={styles.finalStatCard}>
+                                            <div className={styles.finalStatLabel}>{t('common.time')}</div>
+                                            <div className={styles.finalStatValue}>{formatTime(timer)}</div>
+                                        </div>
+                                        <div className={styles.finalStatCard}>
+                                            <div className={styles.finalStatLabel}>{t('common.errors')}</div>
+                                            <div className={styles.finalStatValue} style={{ color: errors > 0 ? '#ef4444' : 'inherit' }}>{errors}</div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setPhase('SETUP')} className={styles.restartButton}>
+                                        <RefreshCw size={20} /> {t('common.playAgain')}
+                                    </button>
+                                    <button onClick={() => navigate('/games')} className={styles.menuButton}>
+                                        {t('common.menu')}
+                                    </button>
                                 </div>
-                                <h2>🎉 {t('common.greatJob')}</h2>
-                                <p>{t('games.pairwords.conqueredRank', { rank: selectedRank?.name || '' })}</p>
-                                
-                                <div className={styles.finalStatsGrid}>
-                                    <div className={styles.finalStatCard}>
-                                        <div className={styles.finalStatLabel}>{t('common.score')}</div>
-                                        <div className={styles.finalStatValue}>{score}</div>
-                                    </div>
-                                    <div className={styles.finalStatCard}>
-                                        <div className={styles.finalStatLabel}>{t('common.time')}</div>
-                                        <div className={styles.finalStatValue}>{formatTime(timer)}</div>
-                                    </div>
-                                    <div className={styles.finalStatCard}>
-                                        <div className={styles.finalStatLabel}>{t('common.errors')}</div>
-                                        <div className={styles.finalStatValue} style={{ color: errors > 0 ? '#ef4444' : 'inherit' }}>{errors}</div>
-                                    </div>
-                                </div>
-                                <button onClick={() => setPhase('SETUP')} className={styles.restartButton}>
-                                    <RefreshCw size={20} /> {t('common.playAgain')}
-                                </button>
-                                <button onClick={() => navigate('/games')} className={styles.menuButton}>
-                                    {t('common.menu')}
-                                </button>
                             </div>
                         )}
                     </div>

@@ -50,8 +50,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         // Handle redirect result for mobile logins
-        getRedirectResult(auth).catch((error) => {
+        getRedirectResult(auth).then((result) => {
+            if (result?.user) {
+                console.log('Successfully logged in via redirect:', result.user.email);
+                setCurrentUser(result.user);
+            }
+        }).catch((error) => {
             console.error('Error handling redirect result', error);
+            // On iOS/Safari standalone, this sometimes fails due to non-persistent session
+            if (error.code === 'auth/internal-error') {
+                console.warn('Possible PWA session loss detected. Ensure authDomain is correct.');
+            }
         });
 
         return () => {
@@ -60,19 +69,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, []);
 
-    // Detect "mobile context" based on width or device type
-    const isMobileContext = () => {
-        const isNarrow = window.innerWidth <= 768;
-        const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        return isNarrow || isMobileDevice;
+    const isStandaloneContext = () => {
+        return (window.matchMedia('(display-mode: standalone)').matches) || (window.navigator as any).standalone;
     };
 
     const signInWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            if (isMobileContext()) {
+            // Use redirect ONLY for PWA standalone mode
+            if (isStandaloneContext()) {
                 await signInWithRedirect(auth, provider);
             } else {
+                // Popups work fine in mobile Chrome/Safari browsers
                 await signInWithPopup(auth, provider);
             }
         } catch (error) {
@@ -84,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signInWithApple = async () => {
         const provider = new OAuthProvider('apple.com');
         try {
-            if (isMobileContext()) {
+            if (isStandaloneContext()) {
                 await signInWithRedirect(auth, provider);
             } else {
                 await signInWithPopup(auth, provider);

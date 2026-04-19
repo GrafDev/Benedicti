@@ -77,10 +77,10 @@ export default function Flashcards() {
         if (storeWords.length > 0 && gameWords.length === 0) {
             // Filter out learned words from the study session
             const availableWords = storeWords.filter(w => !w.isLearned);
-            
+
             const shuffled = [...availableWords]
                 .sort(() => Math.random() - 0.5)
-                .slice(0, 15); 
+                .slice(0, 15);
             setGameWords(shuffled);
             setInitialCount(shuffled.length);
             setCurrentIndex(0);
@@ -140,16 +140,16 @@ export default function Flashcards() {
 
     const handleMarkLearned = async () => {
         if (!currentUser) return;
-        
+
         const currentWord = gameWords[currentIndex];
-        
+
         // 1. Call store to mark in DB
         await markWordAsLearned(currentUser.uid, currentWord);
-        
+
         // 2. Locally remove it from gameWords immediately for smooth UI
         const nextWords = gameWords.filter((_, idx) => idx !== currentIndex);
         setGameWords(nextWords);
-        
+
         if (currentIndex >= nextWords.length && nextWords.length > 0) {
             setCurrentIndex(nextWords.length - 1);
         }
@@ -161,8 +161,8 @@ export default function Flashcards() {
     return (
         <div className={styles.container}>
             {isInitialLoading && (
-                <button 
-                    className={styles.floatingBackButton} 
+                <button
+                    className={styles.floatingBackButton}
                     onClick={() => navigate('/games')}
                     title={t('common.back')}
                 >
@@ -178,7 +178,7 @@ export default function Flashcards() {
                                 <ArrowLeft size={24} />
                             </button>
                             <h1 className={styles.royalTitle}>{t('games.flashcards.title')}</h1>
-                            <button 
+                            <button
                                 className={`${styles.mobileSetupToggle} ${isMobileSetupOpen ? styles.open : ''}`}
                                 onClick={() => setIsMobileSetupOpen(!isMobileSetupOpen)}
                             >
@@ -188,43 +188,45 @@ export default function Flashcards() {
 
                         <div className={`${styles.setupControls} ${isMobileSetupOpen ? styles.open : ''}`}>
                             <div className={styles.dictSelector}>
-                        <button 
-                            className={styles.selectorHeader}
-                            onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
-                        >
-                            <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
-                            <span className={styles.activeDictName}>
-                                {(dictId === 'default' || !dictId) ? t('common.defaultDict') : dictionaries.find(d => d.id === dictId)?.name || '...'}
-                            </span>
-                            <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
-                        </button>
-                        
-                        {isDictSelectorOpen && (
-                            <div className={styles.dictOptions}>
-                                <button 
-                                    className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
-                                    onClick={() => handleDictionaryChange('default')}
+                                <button
+                                    className={styles.selectorHeader}
+                                    onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
                                 >
-                                    {t('common.defaultDict')}
+                                    <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
+                                    <span className={styles.activeDictName}>
+                                        {(!currentUser || dictId === 'default' || !dictId) 
+                                            ? 'Дефолтный словарь' 
+                                            : (dictionaries.find(d => d.id === dictId)?.name || '...')}
+                                    </span>
+                                    <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                                 </button>
-                                {dictionaries
-                                    .filter(d => d.id !== 'default' && !d.name.includes('Дефолтный словарь'))
-                                    .map(d => (
-                                        <button 
-                                            key={d.id}
-                                            className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
-                                            onClick={() => handleDictionaryChange(d.id)}
+
+                                {isDictSelectorOpen && (
+                                    <div className={styles.dictOptions}>
+                                        <button
+                                            className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
+                                            onClick={() => handleDictionaryChange('default')}
                                         >
-                                            {d.name}
+                                            {t('common.defaultDict')}
                                         </button>
-                                    ))
-                                }
+                                        {dictionaries
+                                            .filter(d => d.id !== 'default' && !d.name.includes('Дефолтный словарь'))
+                                            .map(d => (
+                                                <button
+                                                    key={d.id}
+                                                    className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
+                                                    onClick={() => handleDictionaryChange(d.id)}
+                                                >
+                                                    {d.name}
+                                                </button>
+                                            ))
+                                        }
+                                    </div>
+                                )}
                             </div>
-                        )}
                         </div>
                     </div>
                 </div>
-            </div>
             )}
 
             {isInitialLoading || !hasAttemptedLoad ? (
@@ -243,13 +245,13 @@ export default function Flashcards() {
             ) : (() => {
                 const currentWord = gameWords[currentIndex];
                 if (!currentWord) return <div className={styles.empty}>{t('common.noWords')}</div>;
-                
+
                 const dictionary = dictionaries.find(d => d.id === dictId);
                 const progress = initialCount > 0 ? ((initialCount - gameWords.length + currentIndex) / initialCount) * 100 : 0;
 
                 return (
                     <div className={styles.gameArea}>
-                        <div 
+                        <div
                             className={`${styles.cardContainer} ${isFlipped ? styles.flipped : ''}`}
                             onClick={handleFlip}
                         >
@@ -257,7 +259,7 @@ export default function Flashcards() {
                                 {/* Front */}
                                 <div className={styles.cardFront}>
                                     <div className={styles.wordWrapper}>
-                                        <button 
+                                        <button
                                             className={styles.speakButton}
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -266,10 +268,9 @@ export default function Flashcards() {
                                         >
                                             <Volume2 size={24} />
                                         </button>
-                                        <h2 className={`${styles.wordText} ${
-                                            ((isFrontFirst ? currentWord?.original : currentWord?.translation) || "").length > 16 ? styles.extraLongWord : 
-                                            ((isFrontFirst ? currentWord?.original : currentWord?.translation) || "").length > 12 ? styles.longWord : ''
-                                        }`}>
+                                        <h2 className={`${styles.wordText} ${((isFrontFirst ? currentWord?.original : currentWord?.translation) || "").length > 16 ? styles.extraLongWord :
+                                                ((isFrontFirst ? currentWord?.original : currentWord?.translation) || "").length > 12 ? styles.longWord : ''
+                                            }`}>
                                             {isFrontFirst ? currentWord?.original : currentWord?.translation}
                                         </h2>
                                     </div>
@@ -278,7 +279,7 @@ export default function Flashcards() {
                                 {/* Back */}
                                 <div className={styles.cardBack}>
                                     <div className={styles.wordWrapper}>
-                                        <button 
+                                        <button
                                             className={styles.speakButton}
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -287,10 +288,9 @@ export default function Flashcards() {
                                         >
                                             <Volume2 size={24} />
                                         </button>
-                                        <h2 className={`${styles.wordText} ${
-                                            ((isFrontFirst ? currentWord?.translation : currentWord?.original) || "").length > 16 ? styles.extraLongWord : 
-                                            ((isFrontFirst ? currentWord?.translation : currentWord?.original) || "").length > 12 ? styles.longWord : ''
-                                        }`}>
+                                        <h2 className={`${styles.wordText} ${((isFrontFirst ? currentWord?.translation : currentWord?.original) || "").length > 16 ? styles.extraLongWord :
+                                                ((isFrontFirst ? currentWord?.translation : currentWord?.original) || "").length > 12 ? styles.longWord : ''
+                                            }`}>
                                             {isFrontFirst ? currentWord?.translation : currentWord?.original}
                                         </h2>
                                     </div>
@@ -302,8 +302,8 @@ export default function Flashcards() {
                         <div className={styles.statsUnderCard}>
                             <div className={styles.progressColumn}>
                                 <div className={styles.progressBar}>
-                                    <div 
-                                        className={styles.progressFill} 
+                                    <div
+                                        className={styles.progressFill}
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
@@ -314,8 +314,8 @@ export default function Flashcards() {
                         </div>
 
                         <div className={styles.controls}>
-                            <button 
-                                onClick={handlePrev} 
+                            <button
+                                onClick={handlePrev}
                                 disabled={currentIndex === 0}
                                 className={styles.navButton}
                                 title={t('common.back')}
@@ -323,8 +323,8 @@ export default function Flashcards() {
                                 <ChevronLeft size={32} />
                             </button>
 
-                            <button 
-                                onClick={handleMarkLearned} 
+                            <button
+                                onClick={handleMarkLearned}
                                 className={styles.learnedButton}
                                 title={t('common.learned')}
                                 disabled={!currentUser}
@@ -332,8 +332,8 @@ export default function Flashcards() {
                                 {t('common.learned')}
                             </button>
 
-                            <button 
-                                onClick={handleNext} 
+                            <button
+                                onClick={handleNext}
                                 disabled={currentIndex === gameWords.length - 1}
                                 className={styles.navButton}
                                 title={t('games.nbackword.nextWord')}

@@ -88,6 +88,27 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
     // ─── Dictionaries ────────────────────────────────────────────────────────────
 
     fetchDictionaries: async (userId?: string) => {
+        const virtualDefault: Dictionary = {
+            id: 'default',
+            userId: 'admin',
+            name: 'Дефолтный словарь',
+            sourceLang: 'en',
+            targetLang: 'ru',
+            wordCount: 250,
+            createdAt: Date.now(),
+            isShared: true
+        };
+
+        if (!userId) {
+            set(state => ({
+                ...state,
+                dictionaries: [virtualDefault],
+                loading: false,
+                error: null
+            }));
+            return;
+        }
+
         set(state => ({ ...state, loading: true, error: null }));
         try {
             let dicts: Dictionary[] = [];
@@ -272,8 +293,8 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
     // ─── Words ───────────────────────────────────────────────────────────────────
 
     fetchWords: async (userId: string | undefined, dictionaryId: string) => {
-        // Instant response for embedded dictionary
-        if (dictionaryId === 'default' || dictionaryId === 'dict2500') {
+        // Instant response for embedded dictionary OR for guests
+        if (dictionaryId === 'default' || dictionaryId === 'dict2500' || !userId) {
             set(state => ({ ...state, words: defaultWords, loading: false, error: null }));
             return;
         }

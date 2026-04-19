@@ -3,11 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>BeneDict</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Prevent zooming with wheel (Ctrl+Scroll)
+      document.addEventListener('wheel', (e) => {
+        if (e.ctrlKey || e.metaKey) e.preventDefault();
+      }, { passive: false });
+
+      // Prevent zooming with keyboard (Ctrl+/-)
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=')) {
+          e.preventDefault();
+        }
+      });
+    </script>
   </body>
 </html>

@@ -118,30 +118,30 @@ export default function NBack() {
         const playSequence = async () => {
             if ((phase === 'MEMORIZE' || phase === 'PLAY') && wordQueue.length > 0) {
                 const currentDict = dictionaries.find(d => d.id === dictId);
-                const word = (phase === 'MEMORIZE' 
-                    ? wordQueue[currentIndexInQueue] 
+                const word = (phase === 'MEMORIZE'
+                    ? wordQueue[currentIndexInQueue]
                     : wordQueue[wordQueue.length - 1]) as any;
-                
+
                 if (word && isActive) {
                     const text = word[word.displaySide];
-                    const lang = word.displaySide === 'original' 
-                        ? (currentDict?.sourceLang || 'en') 
+                    const lang = word.displaySide === 'original'
+                        ? (currentDict?.sourceLang || 'en')
                         : (currentDict?.targetLang || 'ru');
-                    
+
                     // 1. Initial wait for word to appear visually
                     await new Promise(r => setTimeout(r, 600));
                     if (!isActive) return;
 
                     // 2. Speak main word and WAIT for it to finish
                     await speechService.speak(text, lang);
-                    
+
                     // 3. If not elite mode, speak the hint (translation)
                     if (!isEliteMode && isActive) {
                         const hintText = word[word.displaySide === 'original' ? 'translation' : 'original'];
-                        const hintLang = word.displaySide === 'original' 
-                            ? (currentDict?.targetLang || 'ru') 
+                        const hintLang = word.displaySide === 'original'
+                            ? (currentDict?.targetLang || 'ru')
                             : (currentDict?.sourceLang || 'en');
-                        
+
                         // Brief natural pause between words
                         await new Promise(r => setTimeout(r, 400));
                         if (!isActive) return;
@@ -164,8 +164,8 @@ export default function NBack() {
         e.stopPropagation();
         const currentDict = dictionaries.find(d => d.id === dictId);
         const text = word[word.displaySide];
-        const lang = word.displaySide === 'original' 
-            ? (currentDict?.sourceLang || 'en') 
+        const lang = word.displaySide === 'original'
+            ? (currentDict?.sourceLang || 'en')
             : (currentDict?.targetLang || 'ru');
         speechService.speak(text, lang);
     };
@@ -184,7 +184,7 @@ export default function NBack() {
             .filter(w => w.id !== correctWord.id)
             .sort(() => Math.random() - 0.5)
             .slice(0, count - 1);
-        
+
         return [...distractors, correctWord].sort(() => Math.random() - 0.5);
     }, []);
 
@@ -195,7 +195,7 @@ export default function NBack() {
             try {
                 const learnedSnapshot = await get(ref(db, `users/${currentUser?.uid}/learnedSharedWords`));
                 const learnedIds = learnedSnapshot.exists() ? learnedSnapshot.val() : {};
-                
+
                 const sharedSnapshot = await get(ref(db, 'shared/dictionaries/dict2500/words'));
                 if (sharedSnapshot.exists()) {
                     const clean = (text: string) => {
@@ -203,7 +203,7 @@ export default function NBack() {
                         let cleaned = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
                         return cleaned.split(';')[0].trim();
                     };
-                    
+
                     const sharedPool: Word[] = [];
                     sharedSnapshot.forEach(child => {
                         if (!learnedIds[child.key!]) {
@@ -219,7 +219,7 @@ export default function NBack() {
                             });
                         }
                     });
-                    
+
                     const needed = SESSION_SIZE - pool.length;
                     const additions = sharedPool.sort(() => Math.random() - 0.5).slice(0, needed);
                     pool = [...pool, ...additions];
@@ -265,13 +265,13 @@ export default function NBack() {
             setPhase('PLAY');
             const sessionWords = (window as any)._sessionWords as any[];
             const firstGameWord = sessionWords[selectedRank.n];
-            
+
             const newQueue = [...wordQueue, firstGameWord];
             setWordQueue(newQueue);
-            
+
             const targetWord = newQueue[0];
             setCurrentOptions(generateOptions(targetWord, selectedRank.optionsCount, sessionWords));
-            
+
             gameStartTimeRef.current = Date.now();
             startTimer();
         }
@@ -300,17 +300,17 @@ export default function NBack() {
             const currentDict = dictionaries.find(d => d.id === dictId);
             const answerSide = targetWord.displaySide === 'original' ? 'translation' : 'original';
             speechService.speak(chosenWord[answerSide], answerSide === 'original' ? (currentDict?.sourceLang || 'en') : (currentDict?.targetLang || 'ru'));
-            
+
             if (currentTotalProcessed >= SESSION_SIZE) {
                 if (timerRef.current) window.clearInterval(timerRef.current);
                 setPhase('GAMEOVER');
                 return;
             }
-            
+
             const nextWord = sessionWords[currentTotalProcessed];
             const newQueue = [...wordQueue.slice(1), nextWord];
             setWordQueue(newQueue);
-            
+
             const newTarget = newQueue[0] as any;
             setCurrentOptions(generateOptions(newTarget, selectedRank.optionsCount, sessionWords));
         } else {
@@ -352,20 +352,22 @@ export default function NBack() {
 
                                 <div className={styles.setupControls}>
                                     <div className={styles.dictSelector}>
-                                        <div 
+                                        <div
                                             className={styles.selectorHeader}
                                             onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
                                         >
                                             <span className={styles.selectorLabel}>{t('common.dictionary')}:</span>
                                             <span className={styles.activeDictName}>
-                                                {(dictId === 'default' || !dictId) ? t('common.defaultDict') : dictionaries.find(d => d.id === dictId)?.name || '...'}
+                                                {(!currentUser || dictId === 'default' || !dictId) 
+                                                    ? 'Дефолтный словарь' 
+                                                    : (dictionaries.find(d => d.id === dictId)?.name || '...')}
                                             </span>
                                             <ChevronDown size={14} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                                         </div>
-                                        
+
                                         {isDictSelectorOpen && (
                                             <div className={styles.dictOptions}>
-                                                <button 
+                                                <button
                                                     className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
                                                     onClick={() => handleDictionaryChange('default')}
                                                 >
@@ -374,22 +376,22 @@ export default function NBack() {
                                                 {dictionaries
                                                     .filter(d => d.id !== 'default' && !d.name.includes('Дефолтный словарь'))
                                                     .map(d => (
-                                                    <button 
-                                                        key={d.id}
-                                                        className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
-                                                        onClick={() => handleDictionaryChange(d.id)}
-                                                    >
-                                                        {d.name}
-                                                    </button>
-                                                ))}
+                                                        <button
+                                                            key={d.id}
+                                                            className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
+                                                            onClick={() => handleDictionaryChange(d.id)}
+                                                        >
+                                                            {d.name}
+                                                        </button>
+                                                    ))}
                                             </div>
                                         )}
                                     </div>
 
                                     <div className={styles.difficultyContainer}>
                                         <label className={styles.toggleLabel}>
-                                            <input 
-                                                type="checkbox" 
+                                            <input
+                                                type="checkbox"
                                                 checked={isEliteMode}
                                                 onChange={(e) => setIsEliteMode(e.target.checked)}
                                                 className={styles.hiddenCheckbox}
@@ -424,12 +426,12 @@ export default function NBack() {
                     ) : (
                         <div className={styles.gameArea}>
                             <header className={styles.header}>
-                                <button 
-                                    className={styles.backButton} 
+                                <button
+                                    className={styles.backButton}
                                     onClick={() => {
                                         if (timerRef.current) window.clearInterval(timerRef.current);
                                         setPhase('SETUP');
-                                    }} 
+                                    }}
                                     title={t('common.back')}
                                 >
                                     <ArrowLeft size={24} />
@@ -455,8 +457,8 @@ export default function NBack() {
                                                 <div className={styles.wordWrapper}>
                                                     <div className={styles.wordWithSpeaker}>
                                                         <div className={styles.mainWord}>{mainText}</div>
-                                                        <button 
-                                                            className={styles.playButton} 
+                                                        <button
+                                                            className={styles.playButton}
                                                             onClick={(e) => handleManualSpeak(e, word)}
                                                         >
                                                             <Volume2 size={24} />
@@ -508,8 +510,8 @@ export default function NBack() {
                                                         <div className={styles.wordWrapper}>
                                                             <div className={styles.wordWithSpeaker}>
                                                                 <div className={styles.mainWord}>{mainText}</div>
-                                                                <button 
-                                                                    className={styles.playButton} 
+                                                                <button
+                                                                    className={styles.playButton}
                                                                     onClick={(e) => handleManualSpeak(e, word)}
                                                                 >
                                                                     <Volume2 size={24} />
@@ -533,7 +535,7 @@ export default function NBack() {
                                                 const targetWord = wordQueue[0] as any;
                                                 const answerSide = targetWord.displaySide === 'original' ? 'translation' : 'original';
                                                 return (
-                                                    <button 
+                                                    <button
                                                         key={option.id}
                                                         className={`${styles.optionButton} ${errorWordId === option.id ? styles.error : ''}`}
                                                         onClick={() => handleChoice(option)}
@@ -556,7 +558,7 @@ export default function NBack() {
                                         </div>
                                         <div className={styles.finalRank}>{selectedRank.name}</div>
                                     </div>
-                                    
+
                                     <div className={styles.resultsGrid}>
                                         <div className={styles.resultItem}>
                                             <span>{t('games.nbackword.pureTime')}</span>

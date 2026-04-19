@@ -24,6 +24,14 @@ body {
     min-height: 100dvh;
     background-color: #0f172a;
     overflow-x: hidden;
+    /* Disable zooming */
+    touch-action: pan-x pan-y;
+}
+
+img {
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none; /* Prevents long-press Kontextmenü on some mobile browsers */
 }
 
 h1 {

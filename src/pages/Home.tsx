@@ -3,11 +3,8 @@ import { Link } from 'react-router-dom';
 import {
     Trophy,
     Book,
-    TrendingUp,
     Gamepad2,
-    Sparkles,
-    ChevronRight,
-    BrainCircuit
+    Sparkles
 } from 'lucide-react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,17 +56,7 @@ export default function Home() {
     // Fallback logic if no activity
 
 
-    const getGameTitle = (mode: string) => {
-        switch (mode) {
-            case 'nback':
-            case 'nbackword': return t('games.nbackword.title');
-            case 'flashcards': return t('games.flashcards.title');
-            case 'match-pairs': return t('games.pairwords.title');
-            default: return 'GAME';
-        }
-    };
 
-    const getResumePath = (act: RecentActivity) => `/play/${act.mode}/${act.dictId}`;
 
     const StatCard = ({ icon: Icon, label, value, colorClass }: any) => (
         <div className={styles.statCard}>
@@ -139,84 +126,37 @@ export default function Home() {
             </div>
 
             <div className={styles.contentGrid}>
-                {/* Main Dashboard Area */}
-                <div className={styles.mainArea}>
-                    {/* Show games even if no dictionaries (using fallback) */}
-                    <div className={styles.recentGamesGrid}>
-                        {[
-                            { mode: 'flashcards', dictId: dictionaries[0]?.id || 'default', dictName: dictionaries[0]?.name || t('common.defaultDict'), timestamp: Date.now() },
-                            { mode: 'nbackword', dictId: dictionaries[0]?.id || 'default', dictName: dictionaries[0]?.name || t('common.defaultDict'), timestamp: Date.now() }
-                        ].map((act, index) => {
-                            const dict = dictionaries.find(d => d.id === act.dictId) || { id: 'dict2500', wordCount: 2500 };
-                            const wordCount = dict?.wordCount || 0;
-
-                            // Determine theme based on game mode
-                            let themeClass = styles.defaultTheme;
-                            let ModeIcon = TrendingUp;
-
-                            if (act.mode === 'nback' || act.mode === 'nbackword') {
-                                themeClass = styles.nbackTheme;
-                                ModeIcon = BrainCircuit;
-                            } else if (act.mode === 'flashcards') {
-                                themeClass = styles.flashcardsTheme;
-                                ModeIcon = Gamepad2;
-                            }
-
-                            return (
-                                <div key={`${act.dictId}-${act.mode}-${index}`} className={`${styles.resumeCard} ${themeClass}`}>
-                                    <div className={styles.sparkleDecor}>
-                                        <Sparkles size={160} />
-                                    </div>
-
-                                    <div className={styles.resumeBadge}>
-                                        <ModeIcon size={14} /> {act.dictName}
-                                    </div>
-                                    <h2 className={styles.resumeTitle}>
-                                        {getGameTitle(act.mode)}
-                                    </h2>
-                                    <p className={styles.resumeText}
-                                        dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: wordCount }) }} />
-
-                                    <Link
-                                        to={getResumePath(act as any)}
-                                        className={styles.resumeButton}
-                                    >
-                                        {t('common.playNow')} <ChevronRight size={18} />
-                                    </Link>
-                                </div>
-                            );
-                        })}
+                {/* Gem of the Day Card */}
+                <div className={`${styles.promoCard} ${styles.gemCard}`}>
+                    <div className={styles.promoLabel}>{t('home.gemOfDay')}</div>
+                    <div className={styles.gemContent}>
+                        <h2 className={styles.gemWord}>Pristine</h2>
+                        <div className={styles.gemTranslation}>чистый, нетронутый</div>
                     </div>
-
-                    {/* Sidebar section */}
+                    <p className={styles.gemExample}>
+                        "A sovereign's mind must remain pristine for the coming conquest."
+                    </p>
+                    <div className={styles.gemDecoration}>
+                        <Sparkles size={120} />
+                    </div>
                 </div>
 
-                {/* Sidebar area */}
-                <div className={styles.sidebar}>
-                    {/* Word of the Day Widget */}
-                    <div className={`${styles.widget} ${styles.wordWidget}`}>
-                        <div className={styles.userLabel} style={{ marginBottom: '1rem' }}>{t('home.gemOfDay')}</div>
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <div className={styles.wordTitle}>Pristine</div>
-                            <div className={styles.wordTranslation}>чистый, нетронутый</div>
-                        </div>
-                        <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: '1.5' }}>
-                            "A sovereign's mind must remain pristine for the coming conquest."
-                        </p>
+                {/* Weekly Goal Card */}
+                <div className={`${styles.promoCard} ${styles.goalCard}`}>
+                    <div className={styles.goalHeader}>
+                        <div className={styles.promoLabel}>{t('home.weeklyGoal')}</div>
+                        <Trophy size={18} className={styles.goalTrophy} />
                     </div>
-
-                    {/* Progress Card */}
-                    <div className={styles.widget}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                            <div className={styles.userLabel}>{t('home.weeklyGoal')}</div>
-                            <Trophy size={14} color="#fbbf24" />
+                    
+                    <div className={styles.goalContent}>
+                        <div className={styles.progressContainer}>
+                            <div className={styles.progressBar}>
+                                <div className={styles.progressFill} style={{ width: '65%' }} />
+                            </div>
                         </div>
-                        <div style={{ height: '8px', background: '#1e293b', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}>
-                            <div style={{ width: '65%', height: '100%', background: 'linear-gradient(to right, #3b82f6, #6366f1)', borderRadius: '4px' }} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700 }}>
-                            <span style={{ color: '#475569' }}>{t('home.proProgress')}</span>
-                            <span style={{ color: '#fff' }}>65%</span>
+                        <div className={styles.goalStats}>
+                            <span className={styles.goalMetricLabel}>{t('home.proProgress')}</span>
+                            <span className={styles.goalMetricValue}>65%</span>
                         </div>
                     </div>
                 </div>
