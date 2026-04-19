@@ -34,47 +34,62 @@ export default function Games() {
 
             <div className={styles.grid}>
                 {/* Flashcards */}
-                <div className={styles.gameCard}>
+                <div 
+                    className={styles.gameCard} 
+                    onClick={() => handlePlay('flashcards')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePlay('flashcards')}
+                >
                     <div className={`${styles.iconContainer} ${styles.bgBlue}`}>
                         <Layers size={40} />
                     </div>
                     <h2 className={styles.gameTitle}>{t('games.flashcards.title')}</h2>
                     <p className={styles.gameDescription}>{t('games.flashcards.description')}</p>
-                    <button 
-                        onClick={() => handlePlay('flashcards')}
-                        className={styles.playButton}
-                    >
+                    <button className={styles.playButton} tabIndex={-1}>
                         <Play size={18} /> {t('common.playNow')}
                     </button>
                 </div>
 
                 {/* N-back Word */}
-                <div className={styles.gameCard}>
+                <div 
+                    className={styles.gameCard} 
+                    onClick={() => handlePlay('nback')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePlay('nback')}
+                >
                     <div className={`${styles.iconContainer}`} style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#92400e' }}>
                         <Crown size={40} />
                     </div>
                     <h2 className={styles.gameTitle}>{t('games.nbackword.title')}</h2>
                     <p className={styles.gameDescription}>{t('games.nbackword.description')}</p>
                     <button 
-                        onClick={() => handlePlay('nback')}
                         className={styles.playButton}
                         style={{ background: 'linear-gradient(to right, #b45309, #d97706)' }}
+                        tabIndex={-1}
                     >
                         <Play size={18} /> {t('common.playNow')}
                     </button>
                 </div>
                 
                 {/* Match Pairs */}
-                <div className={styles.gameCard}>
+                <div 
+                    className={styles.gameCard} 
+                    onClick={() => handlePlay('match-pairs')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePlay('match-pairs')}
+                >
                     <div className={`${styles.iconContainer}`} style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)', color: '#5b21b6' }}>
                         <Grid size={40} />
                     </div>
                     <h2 className={styles.gameTitle}>{t('games.pairwords.title')}</h2>
                     <p className={styles.gameDescription}>{t('games.pairwords.description')}</p>
                     <button 
-                        onClick={() => handlePlay('match-pairs')}
                         className={styles.playButton}
                         style={{ background: 'linear-gradient(to right, #7c3aed, #6d28d9)' }}
+                        tabIndex={-1}
                     >
                         <Play size={18} /> {t('common.playNow')}
                     </button>
