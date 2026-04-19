@@ -19,6 +19,7 @@ export default function DictionaryDetail() {
     const words = useDictionaryStore(state => state.words);
     const loading = useDictionaryStore(state => state.loading);
     const fetchWords = useDictionaryStore(state => state.fetchWords);
+    const fetchDictionaries = useDictionaryStore(state => state.fetchDictionaries);
     const addWord = useDictionaryStore(state => state.addWord);
     const updateWord = useDictionaryStore(state => state.updateWord);
     const deleteWord = useDictionaryStore(state => state.deleteWord);
@@ -44,9 +45,17 @@ export default function DictionaryDetail() {
 
     useEffect(() => {
         if (currentUser && dictionaryId) {
-            fetchWords(currentUser.uid, dictionaryId);
+            // Hard reload safeguard: if dictionaries aren't locally hydrated yet,
+            // we MUST fetch them first so we know if this dict isShared (changes Firebase path).
+            if (!dictionaries || dictionaries.length === 0) {
+                fetchDictionaries(currentUser.uid).then(() => {
+                    fetchWords(currentUser.uid, dictionaryId);
+                });
+            } else {
+                fetchWords(currentUser.uid, dictionaryId);
+            }
         }
-    }, [currentUser, dictionaryId, fetchWords]);
+    }, [currentUser, dictionaryId, fetchWords, fetchDictionaries]);
 
     // ─── Handlers ──────────────────────────────────────────────────────────────
 
