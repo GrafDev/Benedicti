@@ -7,8 +7,7 @@ import {
     Gamepad2,
     Sparkles,
     ChevronRight,
-    BrainCircuit,
-    Sword
+    BrainCircuit
 } from 'lucide-react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,9 +23,7 @@ export default function Home() {
     const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
 
     useEffect(() => {
-        if (currentUser) {
-            fetchDictionaries(currentUser.uid);
-        }
+        fetchDictionaries(currentUser?.uid);
     }, [currentUser, fetchDictionaries]);
 
     useEffect(() => {
@@ -60,6 +57,8 @@ export default function Home() {
     const popularDictName = getMostPopularDictionaryName();
 
     // Fallback logic if no activity
+
+
     const getGameTitle = (mode: string) => {
         switch (mode) {
             case 'nback':
@@ -69,7 +68,6 @@ export default function Home() {
             default: return 'GAME';
         }
     };
-
 
     const getResumePath = (act: RecentActivity) => `/play/${act.mode}/${act.dictId}`;
 
@@ -143,68 +141,52 @@ export default function Home() {
             <div className={styles.contentGrid}>
                 {/* Main Dashboard Area */}
                 <div className={styles.mainArea}>
-                    {/* State-aware Games Area */}
-                    {dictionaries.length > 0 ? (
-                        <div className={styles.recentGamesGrid}>
-                            {(recentActivities.length > 0 ? recentActivities.slice(0, 2) : [
-                                { mode: 'flashcards', dictId: dictionaries[0].id, dictName: dictionaries[0].name, timestamp: Date.now() },
-                                { mode: 'nbackword', dictId: dictionaries[0].id, dictName: dictionaries[0].name, timestamp: Date.now() }
-                            ]).map((act, index) => {
-                                const dict = dictionaries.find(d => d.id === act.dictId) || dictionaries[0];
-                                const wordCount = dict?.wordCount || 0;
+                    {/* Show games even if no dictionaries (using fallback) */}
+                    <div className={styles.recentGamesGrid}>
+                        {[
+                            { mode: 'flashcards', dictId: dictionaries[0]?.id || 'default', dictName: dictionaries[0]?.name || t('common.defaultDict'), timestamp: Date.now() },
+                            { mode: 'nbackword', dictId: dictionaries[0]?.id || 'default', dictName: dictionaries[0]?.name || t('common.defaultDict'), timestamp: Date.now() }
+                        ].map((act, index) => {
+                            const dict = dictionaries.find(d => d.id === act.dictId) || { id: 'dict2500', wordCount: 2500 };
+                            const wordCount = dict?.wordCount || 0;
 
-                                // Determine theme based on game mode
-                                let themeClass = styles.defaultTheme;
-                                let ModeIcon = TrendingUp;
+                            // Determine theme based on game mode
+                            let themeClass = styles.defaultTheme;
+                            let ModeIcon = TrendingUp;
 
-                                if (act.mode === 'nback' || act.mode === 'nbackword') {
-                                    themeClass = styles.nbackTheme;
-                                    ModeIcon = BrainCircuit;
-                                } else if (act.mode === 'flashcards') {
-                                    themeClass = styles.flashcardsTheme;
-                                    ModeIcon = Gamepad2;
-                                } else if (act.mode === 'match-pairs') {
-                                    themeClass = styles.matchTheme;
-                                    ModeIcon = Sword;
-                                }
+                            if (act.mode === 'nback' || act.mode === 'nbackword') {
+                                themeClass = styles.nbackTheme;
+                                ModeIcon = BrainCircuit;
+                            } else if (act.mode === 'flashcards') {
+                                themeClass = styles.flashcardsTheme;
+                                ModeIcon = Gamepad2;
+                            }
 
-                                return (
-                                    <div key={`${act.dictId}-${act.mode}-${index}`} className={`${styles.resumeCard} ${themeClass}`}>
-                                        <div className={styles.sparkleDecor}>
-                                            <Sparkles size={160} />
-                                        </div>
-
-                                        <div className={styles.resumeBadge}>
-                                            <ModeIcon size={14} /> {act.dictName}
-                                        </div>
-                                        <h2 className={styles.resumeTitle}>
-                                            {getGameTitle(act.mode)}
-                                        </h2>
-                                        <p className={styles.resumeText}
-                                            dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: wordCount }) }} />
-
-                                        <Link
-                                            to={getResumePath(act)}
-                                            className={styles.resumeButton}
-                                        >
-                                            {t('common.playNow')} <ChevronRight size={18} />
-                                        </Link>
+                            return (
+                                <div key={`${act.dictId}-${act.mode}-${index}`} className={`${styles.resumeCard} ${themeClass}`}>
+                                    <div className={styles.sparkleDecor}>
+                                        <Sparkles size={160} />
                                     </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        /* Case: Brand new user, no dictionaries */
-                        <div className={styles.resumeCard} style={{ textAlign: 'center', background: 'rgba(30,30,50,0.2)' }}>
-                            <h2 className={styles.resumeTitle} style={{ fontSize: '2rem' }}>{t('home.throneAwaits')}</h2>
-                            <p className={styles.resumeText} style={{ margin: '0 auto 2rem' }}>
-                                {t('home.createFirstDict')}
-                            </p>
-                            <Link to="/dictionaries" className={styles.resumeButton}>
-                                {t('home.createDict')} <ChevronRight size={18} />
-                            </Link>
-                        </div>
-                    )}
+
+                                    <div className={styles.resumeBadge}>
+                                        <ModeIcon size={14} /> {act.dictName}
+                                    </div>
+                                    <h2 className={styles.resumeTitle}>
+                                        {getGameTitle(act.mode)}
+                                    </h2>
+                                    <p className={styles.resumeText}
+                                        dangerouslySetInnerHTML={{ __html: t('home.masteryWords', { count: wordCount }) }} />
+
+                                    <Link
+                                        to={getResumePath(act as any)}
+                                        className={styles.resumeButton}
+                                    >
+                                        {t('common.playNow')} <ChevronRight size={18} />
+                                    </Link>
+                                </div>
+                            );
+                        })}
+                    </div>
 
                     {/* Sidebar section */}
                 </div>

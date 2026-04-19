@@ -157,61 +157,61 @@ export default function Header() {
                         <div className={styles.mobileMenuOverlay} onClick={() => setIsMenuOpen(false)}></div>
                         <div className={styles.mobileMenu} ref={menuRef}>
                             <div>
-                            {navLinks.map((link) => (
-                                <Link
-                                    key={link.path}
-                                    to={link.path}
-                                    onClick={() => setIsMenuOpen(false)}
-                                    className={`${styles.mobileNavLink} ${isActive(link.path) ? styles.mobileNavActive : ''}`}
-                                >
-                                    {link.name}
-                                </Link>
-                            ))}
-                            <div className={styles.mobileAuth}>
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <LanguageSwitcher />
-                                </div>
-
-                                {showInstallButton && (
-                                    <button
-                                        onClick={() => { handleInstallClick(); setIsMenuOpen(false); }}
-                                        className={styles.mobileInstallButton}
-                                        style={{ marginBottom: '0.75rem' }}
-                                    >
-                                        <Download size={18} /> Install App
-                                    </button>
-                                )}
-
-                                {currentUser ? (
-                                    <Link 
-                                        to="/profile" 
+                                {navLinks.map((link) => (
+                                    <Link
+                                        key={link.path}
+                                        to={link.path}
                                         onClick={() => setIsMenuOpen(false)}
-                                        className={styles.mobileUserLink}
+                                        className={`${styles.mobileNavLink} ${isActive(link.path) ? styles.mobileNavActive : ''}`}
                                     >
-                                        <span className={styles.userEmail}>
-                                            {currentUser.displayName || currentUser.email?.split('@')[0]}
-                                        </span>
-                                        <UserIcon size={20} />
+                                        {link.name}
                                     </Link>
-                                ) : (
-                                    <button
-                                        onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
-                                        className={styles.mobileSignInButton}
-                                    >
-                                        Sign In
-                                    </button>
-                                )}
+                                ))}
+                                <div className={styles.mobileAuth}>
+                                    <div style={{ marginBottom: '1rem' }}>
+                                        <LanguageSwitcher />
+                                    </div>
+
+                                    {showInstallButton && (
+                                        <button
+                                            onClick={() => { handleInstallClick(); setIsMenuOpen(false); }}
+                                            className={styles.mobileInstallButton}
+                                            style={{ marginBottom: '0.75rem' }}
+                                        >
+                                            <Download size={18} /> Install App
+                                        </button>
+                                    )}
+
+                                    {currentUser ? (
+                                        <Link
+                                            to="/profile"
+                                            onClick={() => setIsMenuOpen(false)}
+                                            className={styles.mobileUserLink}
+                                        >
+                                            <span className={styles.userEmail}>
+                                                {currentUser.displayName || currentUser.email?.split('@')[0]}
+                                            </span>
+                                            <UserIcon size={20} />
+                                        </Link>
+                                    ) : (
+                                        <button
+                                            onClick={() => { setIsAuthModalOpen(true); setIsMenuOpen(false); }}
+                                            className={styles.mobileSignInButton}
+                                        >
+                                            Sign In
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </>
-            )}
-        </header>
+                    </>
+                )}
+            </header>
 
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-            <InstallInstructions 
-                isOpen={isInstructionsOpen} 
-                onClose={() => setIsInstructionsOpen(false)} 
+            <InstallInstructions
+                isOpen={isInstructionsOpen}
+                onClose={() => setIsInstructionsOpen(false)}
                 isMac={isSafari && !isIOS}
             />
         </>

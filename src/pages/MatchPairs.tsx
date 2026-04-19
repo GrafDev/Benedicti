@@ -73,7 +73,13 @@ export default function MatchPairs() {
     const [phase, setPhase] = useState<Phase>('SETUP');
     const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
+    const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
     const [isMobileSetupOpen, setIsMobileSetupOpen] = useState(false);
+    
+    const [timer, setTimer] = useState(0);
+    const [errors, setErrors] = useState(0);
+    const timerRef = useRef<number | null>(null);
+    const startTimeRef = useRef<number | null>(null);
 
     // Track activity
     useEffect(() => {
@@ -91,18 +97,18 @@ export default function MatchPairs() {
 
     // Initial Load
     useEffect(() => {
-        if (currentUser) {
-            fetchDictionaries(currentUser.uid);
-        }
+        fetchDictionaries(currentUser?.uid);
     }, [currentUser, fetchDictionaries]);
 
     useEffect(() => {
         const loadWords = async () => {
-            if (dictId === 'default') {
-                await fetchSharedWords(currentUser?.uid);
-            } else if (currentUser && dictId) {
-                await fetchWords(currentUser.uid, dictId);
+            setHasAttemptedLoad(false);
+            if (dictId === 'default' || !dictId) {
+                await fetchWords(currentUser?.uid, 'default');
+            } else if (dictId) {
+                await fetchWords(currentUser?.uid, dictId);
             }
+            setHasAttemptedLoad(true);
         };
         loadWords();
     }, [dictId, currentUser, fetchWords, fetchSharedWords]);
@@ -127,6 +133,9 @@ export default function MatchPairs() {
         setAllWordsPool(poolForSession);
         setTotalPairs(poolForSession.length);
         setScore(0);
+        setErrors(0);
+        setTimer(0);
+        startTimeRef.current = Date.now();
         setMatchedIds(new Set());
         setCorrectIds(new Set());
         setTransitioningIds(new Set());
@@ -151,6 +160,36 @@ export default function MatchPairs() {
     useEffect(() => {
         localStorage.setItem('benedicti_match_elite', JSON.stringify(isEliteMode));
     }, [isEliteMode]);
+
+    const isAllDone = matchedIds.size === allWordsPool.length && allWordsPool.length > 0;
+
+    // Timer logic
+    useEffect(() => {
+        if (phase === 'PLAY' && !isAllDone) {
+            // Ensure we have a start time if we just moved to PLAY
+            if (!startTimeRef.current) startTimeRef.current = Date.now();
+            
+            timerRef.current = window.setInterval(() => {
+                if (startTimeRef.current) {
+                    const elapsed = Date.now() - startTimeRef.current;
+                    setTimer(elapsed);
+                }
+            }, 50); // Update every 50ms for smoothness without overhead
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (phase === 'SETUP') startTimeRef.current = null;
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [phase, isAllDone]);
+
+    const formatTime = (ms: number) => {
+        const mins = Math.floor(ms / 60000);
+        const secs = Math.floor((ms % 60000) / 1000);
+        const centis = Math.floor((ms % 1000) / 10);
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}`;
+    };
 
     const handleChoice = useCallback((id: string, isOriginal: boolean) => {
         if (matchedIds.has(id) || correctIds.has(id)) return;
@@ -198,7 +237,7 @@ export default function MatchPairs() {
                     next.delete(leftId);
                     return next;
                 });
-                // Phase 2: Show empty button for a bit
+                // Phase 2: Show empty button for a bit to animate replacement
                 setTransitioningIds(prev => new Set([...prev, leftId]));
                 
                 setTimeout(() => {
@@ -208,11 +247,12 @@ export default function MatchPairs() {
                         next.delete(leftId);
                         return next;
                     });
-                }, 800);
-            }, 1000);
+                }, 500);
+            }, 600);
         } else {
             // Wrong
             soundService.playErrorSound();
+            setErrors(prev => prev + 1);
             setWrongIds(new Set([leftId, rightId]));
             setTimeout(() => {
                 setWrongIds(new Set());
@@ -277,7 +317,7 @@ export default function MatchPairs() {
                     >
                         <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
                         <span className={styles.activeDictName}>
-                            {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || '...'}
+                            {(dictId === 'default' || !dictId) ? t('common.defaultDict') : dictionaries.find(d => d.id === dictId)?.name || '...'}
                         </span>
                         <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                     </button>
@@ -288,7 +328,7 @@ export default function MatchPairs() {
                                 className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
                                 onClick={() => handleDictionaryChange('default')}
                             >
-                                English 2500
+                                {t('common.defaultDict')}
                             </button>
                             {dictionaries
                                 .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
@@ -357,7 +397,7 @@ export default function MatchPairs() {
         </>
     );
 
-    const isAllDone = matchedIds.size === allWordsPool.length && allWordsPool.length > 0;
+
 
     return (
         <div className={styles.container}>
@@ -367,96 +407,127 @@ export default function MatchPairs() {
                 </button>
             )}
 
-            {isInitialLoading ? (
+            {isInitialLoading || !hasAttemptedLoad ? (
                 <div className={styles.loading}>{t('common.loading')}</div>
+            ) : phase === 'SETUP' ? (
+                renderSetup()
+            ) : allWordsPool.length === 0 ? (
+                <div className={styles.empty}>
+                    <h2>🎉 {t('common.allLearned')}</h2>
+                    <p>{t('games.flashcards.sessionComplete')}</p>
+                    <button onClick={() => setPhase('SETUP')} className={styles.retryButton}>
+                        {t('common.restart')}
+                    </button>
+                    <button onClick={() => navigate('/games')} className={styles.backButton}>
+                        {t('common.back')}
+                    </button>
+                </div>
             ) : (
-                phase === 'SETUP' ? (
-                    renderSetup()
-                ) : (
-                    <>
-                        <header className={styles.header}>
-                            <button onClick={() => setPhase('SETUP')} className={styles.backButton} title={t('common.back')}>
-                                <ArrowLeft size={24} />
-                            </button>
-                            <div className={styles.stats}>
-                                <div className={styles.statItem}>
-                                    <span className={styles.statLabel}>{t('games.pairwords.score')}</span>
-                                    <span className={styles.statValue}>{score} / {totalPairs}</span>
-                                </div>
+                <>
+                    <header className={styles.header}>
+                        <button onClick={() => setPhase('SETUP')} className={styles.backButton} title={t('common.back')}>
+                            <ArrowLeft size={24} />
+                        </button>
+                        <div className={styles.stats}>
+                            <div className={styles.statItem}>
+                                <span className={styles.statLabel}>{t('games.pairwords.score')}</span>
+                                <span className={styles.statValue}>{score} / {totalPairs}</span>
                             </div>
-                            <div className={styles.currentRankLabel}>
-                                {selectedRank?.icon && <selectedRank.icon size={18} />}
-                                <span>{selectedRank?.name}</span>
+                            <div className={styles.statItem}>
+                                <span className={styles.statLabel}>{t('common.time')}</span>
+                                <span className={styles.statValue}>{formatTime(timer)}</span>
                             </div>
-                        </header>
-
-                        <div className={styles.gameArea}>
-                            {!isAllDone ? (
-                                <>
-                                    <div className={styles.gameControls}>
-                                        <div className={styles.progressBar}>
-                                            <div className={styles.progressFill} style={{ width: `${(matchedIds.size / totalPairs) * 100}%` }} />
-                                        </div>
-                                    </div>
-
-                                    <div className={styles.columns}>
-                                        <div className={styles.column}>
-                                            {leftColumn.map((item, idx) => (
-                                                item ? (
-                                                    <button
-                                                        key={`left-${item.id}`}
-                                                        className={`${styles.card} 
-                                                            ${selectedLeftId === item.id ? styles.selected : ''} 
-                                                            ${correctIds.has(item.id) ? styles.correct : ''} 
-                                                            ${wrongIds.has(item.id) && selectedLeftId === item.id ? styles.wrong : ''}`}
-                                                        onClick={() => handleChoice(item.id, true)}
-                                                        disabled={transitioningIds.has(item.id)}
-                                                    >
-                                                        {!transitioningIds.has(item.id) && (
-                                                            isEliteMode ? <Volume2 size={24} /> : item.text
-                                                        )}
-                                                    </button>
-                                                ) : <div key={`left-empty-${idx}`} className={styles.emptySlot} />
-                                            ))}
-                                        </div>
-                                        <div className={styles.column}>
-                                            {rightColumn.map((item, idx) => (
-                                                item ? (
-                                                    <button
-                                                        key={`right-${item.id}`}
-                                                        className={`${styles.card} 
-                                                            ${selectedRightId === item.id ? styles.selected : ''} 
-                                                            ${correctIds.has(item.id) ? styles.correct : ''} 
-                                                            ${wrongIds.has(item.id) && selectedRightId === item.id ? styles.wrong : ''}`}
-                                                        onClick={() => handleChoice(item.id, false)}
-                                                        disabled={transitioningIds.has(item.id)}
-                                                    >
-                                                        {!transitioningIds.has(item.id) && item.text}
-                                                    </button>
-                                                ) : <div key={`right-empty-${idx}`} className={styles.emptySlot} />
-                                            ))}
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className={styles.results}>
-                                    <div className={styles.successIcon}>
-                                        <Sparkles size={64} />
-                                    </div>
-                                    <h2>🎉 {t('common.greatJob')}</h2>
-                                    <p>{t('games.pairwords.conqueredRank', { rank: selectedRank?.name || '' })}</p>
-                                    <div className={styles.finalScore}>{t('games.pairwords.score')}: {score}</div>
-                                    <button onClick={() => setPhase('SETUP')} className={styles.restartButton}>
-                                        <RefreshCw size={20} /> {t('common.playAgain')}
-                                    </button>
-                                    <button onClick={() => navigate('/games')} className={styles.menuButton}>
-                                        {t('common.menu')}
-                                    </button>
-                                </div>
-                            )}
+                            <div className={styles.statItem}>
+                                <span className={styles.statLabel}>{t('common.errors')}</span>
+                                <span className={styles.statValue} style={{ color: errors > 0 ? '#ef4444' : 'inherit' }}>{errors}</span>
+                            </div>
                         </div>
-                    </>
-                )
+                        <div className={styles.currentRankLabel}>
+                            {selectedRank?.icon && <selectedRank.icon size={18} />}
+                            <span>{selectedRank?.name}</span>
+                        </div>
+                    </header>
+
+                    <div className={styles.gameArea}>
+                        {!isAllDone ? (
+                            <>
+                                <div className={styles.gameControls}>
+                                    <div className={styles.progressBar}>
+                                        <div className={styles.progressFill} style={{ width: `${(matchedIds.size / totalPairs) * 100}%` }} />
+                                    </div>
+                                </div>
+
+                                <div className={styles.columns}>
+                                    <div className={styles.column}>
+                                        {leftColumn.map((item, idx) => (
+                                            item ? (
+                                                <button
+                                                    key={`left-${item.id}`}
+                                                    className={`${styles.card} 
+                                                        ${selectedLeftId === item.id ? styles.selected : ''} 
+                                                        ${correctIds.has(item.id) ? styles.correct : ''} 
+                                                        ${wrongIds.has(item.id) && selectedLeftId === item.id ? styles.wrong : ''}`}
+                                                    onClick={() => handleChoice(item.id, true)}
+                                                    disabled={transitioningIds.has(item.id)}
+                                                >
+                                                    {!transitioningIds.has(item.id) && (
+                                                        isEliteMode ? <Volume2 size={24} /> : item.text
+                                                    )}
+                                                </button>
+                                            ) : <div key={`left-empty-${idx}`} className={styles.emptySlot} />
+                                        ))}
+                                    </div>
+                                    <div className={styles.column}>
+                                        {rightColumn.map((item, idx) => (
+                                            item ? (
+                                                <button
+                                                    key={`right-${item.id}`}
+                                                    className={`${styles.card} 
+                                                        ${selectedRightId === item.id ? styles.selected : ''} 
+                                                        ${correctIds.has(item.id) ? styles.correct : ''} 
+                                                        ${wrongIds.has(item.id) && selectedRightId === item.id ? styles.wrong : ''}`}
+                                                    onClick={() => handleChoice(item.id, false)}
+                                                    disabled={transitioningIds.has(item.id)}
+                                                >
+                                                    {!transitioningIds.has(item.id) && item.text}
+                                                </button>
+                                            ) : <div key={`right-empty-${idx}`} className={styles.emptySlot} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className={styles.results}>
+                                <div className={styles.successIcon}>
+                                    <Sparkles size={64} />
+                                </div>
+                                <h2>🎉 {t('common.greatJob')}</h2>
+                                <p>{t('games.pairwords.conqueredRank', { rank: selectedRank?.name || '' })}</p>
+                                
+                                <div className={styles.finalStatsGrid}>
+                                    <div className={styles.finalStatCard}>
+                                        <div className={styles.finalStatLabel}>{t('common.score')}</div>
+                                        <div className={styles.finalStatValue}>{score}</div>
+                                    </div>
+                                    <div className={styles.finalStatCard}>
+                                        <div className={styles.finalStatLabel}>{t('common.time')}</div>
+                                        <div className={styles.finalStatValue}>{formatTime(timer)}</div>
+                                    </div>
+                                    <div className={styles.finalStatCard}>
+                                        <div className={styles.finalStatLabel}>{t('common.errors')}</div>
+                                        <div className={styles.finalStatValue} style={{ color: errors > 0 ? '#ef4444' : 'inherit' }}>{errors}</div>
+                                    </div>
+                                </div>
+                                <button onClick={() => setPhase('SETUP')} className={styles.restartButton}>
+                                    <RefreshCw size={20} /> {t('common.playAgain')}
+                                </button>
+                                <button onClick={() => navigate('/games')} className={styles.menuButton}>
+                                    {t('common.menu')}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </>
             )}
         </div>
     );

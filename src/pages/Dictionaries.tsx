@@ -14,7 +14,7 @@ import styles from './Dictionaries.module.css';
 export default function Dictionaries() {
     const { currentUser } = useAuth();
     const { t } = useLanguage();
-    
+
     // Using individual selectors for better stability in Zustand 5
     const dictionaries = useDictionaryStore(state => state.dictionaries);
     const loading = useDictionaryStore(state => state.loading);
@@ -32,7 +32,7 @@ export default function Dictionaries() {
 
     const prevRef = useRef<HTMLDivElement>(null);
     const nextRef = useRef<HTMLDivElement>(null);
-    const [swiper, setSwiper] = useState<any>(null);
+    const [, setSwiper] = useState<any>(null);
 
     useEffect(() => {
         if (currentUser && typeof fetchDictionaries === 'function') {
@@ -170,61 +170,61 @@ export default function Dictionaries() {
                             }
                         }}
                     >
-                    {(dictionaries || []).map((dict) => (
-                        <SwiperSlide key={dict.id} className={styles.swiperSlide}>
-                            <Link to={`/dict/${dict.id}`} className={styles.cardLink} style={{ display: 'block', textDecoration: 'none', height: '100%', width: '100%' }}>
-                                <div className={styles.card} style={{ background: 'rgba(30, 41, 59, 0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '1.5rem', padding: '2rem', height: '100%', minHeight: '220px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-                                    <div className={styles.cardHeader}>
-                                        <div className={styles.iconWrapper}>
-                                            <Book size={24} />
-                                        </div>
-                                        <span className={`
+                        {(dictionaries || []).map((dict) => (
+                            <SwiperSlide key={dict.id} className={styles.swiperSlide}>
+                                <Link to={`/dict/${dict.id}`} className={styles.cardLink} style={{ display: 'block', textDecoration: 'none', height: '100%', width: '100%' }}>
+                                    <div className={styles.card} style={{ background: 'rgba(30, 41, 59, 0.5)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '1.5rem', padding: '2rem', height: '100%', minHeight: '220px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+                                        <div className={styles.cardHeader}>
+                                            <div className={styles.iconWrapper}>
+                                                <Book size={24} />
+                                            </div>
+                                            <span className={`
                                             ${styles.langBadge} 
                                             ${dict.isShared ? styles.sharedBadge : ''} 
                                             ${dict.isTeacherDict ? styles.teacherBadge : ''}
                                         `}>
-                                            {dict.isTeacherDict 
-                                                ? t('common.fromTeacher', { name: beneIdMap[dict.userId] || dict.userId }) 
-                                                : (dict.isShared 
-                                                    ? t('common.common') 
-                                                    : (dict.sourceLang.toUpperCase() + ' → ' + dict.targetLang.toUpperCase()))}
-                                        </span>
-                                    </div>
-                                    <h3 className={styles.cardTitle}>{dict.name}</h3>
-                                    <p className={styles.cardSubtitle}>{t('common.wordsCount', { count: dict.wordCount })}</p>
-                                    
-                                    {currentUser?.email && ADMIN_EMAILS.includes(currentUser.email) && !dict.isShared && (
-                                        <button 
-                                            className={styles.publishButton}
-                                            onClick={(e) => handlePublish(e, dict.id, dict.name)}
-                                            title={t('common.publish')}
-                                        >
-                                            <Globe size={18} /> {t('common.publish')}
-                                        </button>
-                                    )}
+                                                {dict.isTeacherDict
+                                                    ? t('common.fromTeacher', { name: beneIdMap[dict.userId] || dict.userId })
+                                                    : (dict.isShared
+                                                        ? t('common.common')
+                                                        : (dict.sourceLang.toUpperCase() + ' → ' + dict.targetLang.toUpperCase()))}
+                                            </span>
+                                        </div>
+                                        <h3 className={styles.cardTitle}>{dict.name}</h3>
+                                        <p className={styles.cardSubtitle}>{t('common.wordsCount', { count: dict.wordCount })}</p>
 
-                                    {currentUser?.email && ADMIN_EMAILS.includes(currentUser.email) && dict.isShared && (
-                                        <button 
-                                            className={`${styles.publishButton} ${styles.unpublishButton}`}
-                                            onClick={(e) => handleUnpublish(e, dict.id, dict.name)}
-                                            title={t('common.unpublish')}
-                                        >
-                                            <RotateCcw size={18} /> {t('common.unpublish')}
-                                        </button>
-                                    )}
-                                </div>
-                            </Link>
-                        </SwiperSlide>
-                    ))}
-                </Swiper>
-                
-                {/* Custom Navigation Buttons */}
-                <div ref={prevRef} className={`${styles.navBtn} ${styles.prevBtn}`}>
-                    <ChevronLeft size={30} />
-                </div>
-                <div ref={nextRef} className={`${styles.navBtn} ${styles.nextBtn}`}>
-                    <ChevronRight size={30} />
-                </div>
+                                        {currentUser?.email && ADMIN_EMAILS.includes(currentUser.email) && !dict.isShared && (
+                                            <button
+                                                className={styles.publishButton}
+                                                onClick={(e) => handlePublish(e, dict.id, dict.name)}
+                                                title={t('common.publish')}
+                                            >
+                                                <Globe size={18} /> {t('common.publish')}
+                                            </button>
+                                        )}
+
+                                        {currentUser?.email && ADMIN_EMAILS.includes(currentUser.email) && dict.isShared && (
+                                            <button
+                                                className={`${styles.publishButton} ${styles.unpublishButton}`}
+                                                onClick={(e) => handleUnpublish(e, dict.id, dict.name)}
+                                                title={t('common.unpublish')}
+                                            >
+                                                <RotateCcw size={18} /> {t('common.unpublish')}
+                                            </button>
+                                        )}
+                                    </div>
+                                </Link>
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+
+                    {/* Custom Navigation Buttons */}
+                    <div ref={prevRef} className={`${styles.navBtn} ${styles.prevBtn}`}>
+                        <ChevronLeft size={30} />
+                    </div>
+                    <div ref={nextRef} className={`${styles.navBtn} ${styles.nextBtn}`}>
+                        <ChevronRight size={30} />
+                    </div>
                 </div>
 
                 {(!dictionaries || dictionaries.length === 0) && (

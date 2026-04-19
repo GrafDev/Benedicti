@@ -60,7 +60,7 @@
     background: #0f172a;
     transform: translateY(-50%) scale(1.1);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 1),
-                0 0 30px rgba(251, 191, 36, 0.1);
+        0 0 30px rgba(251, 191, 36, 0.1);
 }
 
 .prevBtn {

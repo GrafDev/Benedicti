@@ -5,10 +5,10 @@ import styles from './Layout.module.css';
 export default function Layout() {
     const location = useLocation();
     const isGameProcess = location.pathname.startsWith('/play/');
-    const isWidePage = isGameProcess || 
-                       location.pathname === '/dictionaries' || 
-                       location.pathname === '/games' ||
-                       location.pathname.startsWith('/dict/');
+    const isWidePage = isGameProcess ||
+        location.pathname === '/dictionaries' ||
+        location.pathname === '/games' ||
+        location.pathname.startsWith('/dict/');
 
     return (
         <div className={styles.appContainer}>

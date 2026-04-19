@@ -15,19 +15,17 @@ export default function Games() {
     const { t } = useLanguage();
     const navigate = useNavigate();
     const fetchDictionaries = useDictionaryStore(state => state.fetchDictionaries);
-    
+
     const [selectedDictId] = useState<string>(() => {
         return localStorage.getItem('lastUsedDictId') || 'default';
     });
 
     const prevRef = useRef<HTMLDivElement>(null);
     const nextRef = useRef<HTMLDivElement>(null);
-    const [swiper, setSwiper] = useState<any>(null);
+    const [, setSwiper] = useState<any>(null);
 
     useEffect(() => {
-        if (currentUser) {
-            fetchDictionaries(currentUser.uid);
-        }
+        fetchDictionaries(currentUser?.uid);
     }, [currentUser, fetchDictionaries]);
 
     const handlePlay = (gameMode: string) => {
@@ -67,7 +65,7 @@ export default function Games() {
     return (
         <div className={styles.pageContainer}>
             <h1 className={styles.title}>{t('nav.games')}</h1>
-            
+
             <div className={styles.grid}>
                 <div className="swiper-container-wrapper">
                     <Swiper
@@ -108,32 +106,32 @@ export default function Games() {
                             }
                         }}
                     >
-                    {games.map((game) => (
-                        <SwiperSlide key={game.id} className={styles.swiperSlide}>
-                            <div 
-                                className={styles.gameCard} 
-                                onClick={() => handlePlay(game.id)}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => e.key === 'Enter' && handlePlay(game.id)}
-                            >
-                                <div className={game.iconClass} style={game.iconStyle}>
-                                    {game.icon}
-                                </div>
-                                <h2 className={styles.gameTitle}>{game.title}</h2>
-                                <p className={styles.gameDescription}>{game.description}</p>
-                                <button 
-                                    className={styles.playButton}
-                                    style={game.btnStyle}
-                                    tabIndex={-1}
+                        {games.map((game) => (
+                            <SwiperSlide key={game.id} className={styles.swiperSlide}>
+                                <div
+                                    className={styles.gameCard}
+                                    onClick={() => handlePlay(game.id)}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => e.key === 'Enter' && handlePlay(game.id)}
                                 >
-                                    <Play size={18} /> {t('common.playNow')}
-                                </button>
-                            </div>
-                        </SwiperSlide>
-                    ))}
+                                    <div className={game.iconClass} style={game.iconStyle}>
+                                        {game.icon}
+                                    </div>
+                                    <h2 className={styles.gameTitle}>{game.title}</h2>
+                                    <p className={styles.gameDescription}>{game.description}</p>
+                                    <button
+                                        className={styles.playButton}
+                                        style={game.btnStyle}
+                                        tabIndex={-1}
+                                    >
+                                        <Play size={18} /> {t('common.playNow')}
+                                    </button>
+                                </div>
+                            </SwiperSlide>
+                        ))}
                     </Swiper>
-                    
+
                     {/* Custom Navigation Buttons */}
                     <div ref={prevRef} className={`${styles.navBtn} ${styles.prevBtn}`}>
                         <ChevronLeft size={30} />

@@ -349,6 +349,46 @@
     width: 100%;
 }
 
+.finalStatsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    width: 100%;
+    margin: 2rem 0;
+}
+
+.finalStatCard {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.finalStatLabel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #94a3b8;
+    font-weight: 700;
+}
+
+.finalStatValue {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+    .finalStatsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .rankCard:hover:not(.locked) {
     background: rgba(212, 175, 55, 0.15);
     border-color: #d4af37;
@@ -577,7 +617,11 @@
 .emptySlot {
     flex: 1;
     min-height: 0;
-    opacity: 0;
+    max-height: 80px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    box-sizing: border-box;
 }
 
 /* RESULTS */

@@ -85,7 +85,9 @@ class SpeechService {
             };
 
             utterance.onerror = (event) => {
-                console.error('Speech synthesis error:', event);
+                if (event.error !== 'canceled' && event.error !== 'interrupted') {
+                    console.error('Speech synthesis error:', event);
+                }
                 resolve(); // Resolve anyway to avoid hanging promise chains
             };
 
