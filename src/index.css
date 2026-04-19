@@ -54,3 +54,32 @@ button {
 .animate-spin {
     animation: spin 1s linear infinite;
 }
+
+/* Swiper Customizations */
+.swiper-container-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden; /* Safety clip for the 'visible' swiper inside */
+}
+
+.swiper-pagination-bullet {
+    background: rgba(255, 255, 255, 0.4) !important;
+}
+
+.swiper-pagination-bullet-active {
+    background: white !important;
+}
+
+.swiper-button-disabled {
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+/* Hide navigation containers on mobile devices based on aspect ratio */
+@media (max-aspect-ratio: 2/3) {
+    :global(.swiper-button-next),
+    :global(.swiper-button-prev) {
+        display: none !important;
+    }
+}

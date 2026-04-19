@@ -49,11 +49,11 @@
     display: none;
 }
 
-/* Show desktop nav only in landscape and above 850px */
-@media (min-width: 850px) and (orientation: landscape) {
+/* Show desktop nav only in landscape and above 600px */
+@media (min-width: 600px) and (orientation: landscape) {
     .desktopNav {
         display: flex;
-        gap: 1.25rem;
+        gap: 1rem;
     }
 }
 
@@ -84,11 +84,11 @@
     display: none;
 }
 
-@media (min-width: 850px) and (orientation: landscape) {
+@media (min-width: 600px) and (orientation: landscape) {
     .authButtons {
         display: flex;
         align-items: center;
-        gap: 1.25rem;
+        gap: 1rem;
     }
 }
 
@@ -197,7 +197,7 @@
     transform: scale(0.95);
 }
 
-@media (min-width: 850px) and (orientation: landscape) {
+@media (min-width: 600px) and (orientation: landscape) {
     .mobileMenuButton {
         display: none;
     }

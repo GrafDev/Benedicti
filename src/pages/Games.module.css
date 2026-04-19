@@ -1,11 +1,19 @@
 .pageContainer {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
+    width: 100%;
+    margin: 0;
+    padding: 2rem 0;
     color: #f8fafc;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .title {
+    width: 100%;
+    max-width: 1200px;
+    padding: 0 2rem;
+    box-sizing: border-box;
     font-size: clamp(2rem, 5vw, 3rem);
     font-weight: 900;
     margin-bottom: 2.5rem;
@@ -14,15 +22,73 @@
     -webkit-text-fill-color: transparent;
     text-transform: uppercase;
     letter-spacing: 0.1em;
+    text-align: left;
 }
 
-
 .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem; /* Tighter gaps */
+    width: 100vw;
+    max-width: 100%;
+    min-width: 0;
+    display: block;
+}
+
+.swiper {
     width: 100%;
-    align-items: stretch; /* Force same height */
+    padding: 20px 5dvw 60px !important;
+    overflow: visible !important;
+}
+
+.navBtn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.navBtn:hover {
+    background: #0f172a;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 1),
+                0 0 30px rgba(251, 191, 36, 0.1);
+}
+
+.prevBtn {
+    left: 30px;
+}
+
+.nextBtn {
+    right: 30px;
+}
+
+/* Hide on mobile devices based on aspect ratio */
+@media (max-aspect-ratio: 2/3) {
+    .navBtn {
+        display: none;
+    }
+}
+
+/* Swiper navigation classes to handle disabled state */
+:global(.swiper-button-disabled) {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+.swiperSlide {
+    height: auto !important;
+    display: flex;
+    align-items: stretch;
 }
 
 .gameCard {
@@ -53,16 +119,6 @@
 
 .gameCard:active {
     transform: translateY(-2px) scale(0.98);
-}
-
-.gameCard:hover .iconContainer {
-    transform: scale(1.1);
-    filter: brightness(1.2);
-}
-
-.gameCard:hover .playButton {
-    background: linear-gradient(to bottom, #4f46e5, #4338ca);
-    box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
 }
 
 .iconContainer {
@@ -115,21 +171,7 @@
 }
 
 @media (max-width: 1100px) {
-    .grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.25rem;
-    }
     .gameCard {
         padding: 1.5rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .pageContainer {
-        padding: 1rem 1rem 5rem;
-    }
-    .grid {
-        grid-template-columns: 1fr;
-        gap: 1.25rem;
     }
 }

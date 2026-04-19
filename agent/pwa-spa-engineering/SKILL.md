@@ -54,3 +54,6 @@ Critical for "Add to Home Screen" (A2HS).
 *   **Touch Targets**: Minimum 44x44px for all buttons.
 *   **Feedback**: Visual feedback on every tap (ripple or scale).
 *   **Transitions**: Use `framer-motion` or CSS transitions for page slides.
+
+## Responsive Design Rules
+*   **CRITICAL MOBILE BREAKPOINT**: NEVER use `max-width` (e.g. `max-width: 768px`) to define a mobile screen. Always use aspect ratio to determine narrow screens. Use `@media (max-aspect-ratio: 2/3)` or `@media (max-aspect-ratio: 3/4)` to target mobile devices strictly. This prevents vertical tablets or scaled desktop windows from breaking assumptions about phone UI.

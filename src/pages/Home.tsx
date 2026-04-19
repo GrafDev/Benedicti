@@ -143,11 +143,14 @@ export default function Home() {
             <div className={styles.contentGrid}>
                 {/* Main Dashboard Area */}
                 <div className={styles.mainArea}>
-                    {/* Recent Games Area */}
-                    {recentActivities.length > 0 ? (
-                        <div className={recentActivities.length >= 2 ? styles.recentGamesGrid : ''}>
-                            {recentActivities.slice(0, 2).map((act, index) => {
-                                const dict = dictionaries.find(d => d.id === act.dictId);
+                    {/* State-aware Games Area */}
+                    {dictionaries.length > 0 ? (
+                        <div className={styles.recentGamesGrid}>
+                            {(recentActivities.length > 0 ? recentActivities.slice(0, 2) : [
+                                { mode: 'flashcards', dictId: dictionaries[0].id, dictName: dictionaries[0].name, timestamp: Date.now() },
+                                { mode: 'nbackword', dictId: dictionaries[0].id, dictName: dictionaries[0].name, timestamp: Date.now() }
+                            ]).map((act, index) => {
+                                const dict = dictionaries.find(d => d.id === act.dictId) || dictionaries[0];
                                 const wordCount = dict?.wordCount || 0;
 
                                 // Determine theme based on game mode
@@ -191,13 +194,14 @@ export default function Home() {
                             })}
                         </div>
                     ) : (
+                        /* Case: Brand new user, no dictionaries */
                         <div className={styles.resumeCard} style={{ textAlign: 'center', background: 'rgba(30,30,50,0.2)' }}>
                             <h2 className={styles.resumeTitle} style={{ fontSize: '2rem' }}>{t('home.throneAwaits')}</h2>
                             <p className={styles.resumeText} style={{ margin: '0 auto 2rem' }}>
                                 {t('home.createFirstDict')}
                             </p>
                             <Link to="/dictionaries" className={styles.resumeButton}>
-                                {t('home.createDict')}
+                                {t('home.createDict')} <ChevronRight size={18} />
                             </Link>
                         </div>
                     )}

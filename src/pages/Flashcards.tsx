@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
-import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, Volume2, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowLeft, Volume2, ChevronDown } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import { saveRecentActivity } from '../utils/activity';
 import type { Word } from '../types';
