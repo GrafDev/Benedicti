@@ -325,7 +325,7 @@ export default function NBack() {
 
     return (
         <div className={styles.container}>
-            {(phase === 'SETUP' || phase === 'GAMEOVER' || phase === 'MEMORIZE' || phase === 'PLAY' || isInitialLoading) && (
+            {isInitialLoading && (
                 <button 
                     className={styles.floatingBackButton} 
                     onClick={() => {
@@ -343,65 +343,77 @@ export default function NBack() {
             ) : (
                 <>
                     <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''} ${phase !== 'SETUP' ? styles.compactSetup : ''}`}>
-                        <h1 className={styles.royalTitle}>{t('games.nbackword.title')}</h1>
-                        
-                        <div className={styles.dictSelector}>
-                            <button 
-                                className={styles.selectorHeader}
-                                onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
-                            >
-                                <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
-                                <span className={styles.activeDictName}>
-                                    {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
-                                </span>
-                                <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
-                            </button>
+                        <div className={styles.setupToolbar}>
+                            <div className={styles.toolbarTitleRow}>
+                                <button 
+                                    className={styles.backButtonInline} 
+                                    onClick={() => {
+                                        if (timerRef.current) window.clearInterval(timerRef.current);
+                                        navigate('/games');
+                                    }} 
+                                    title={t('common.back')}
+                                >
+                                    <ArrowLeft size={24} />
+                                </button>
+                                <h1 className={styles.royalTitle}>{t('games.nbackword.title')}</h1>
+                            </div>
                             
-                            {isDictSelectorOpen && (
-                                <div className={styles.dictOptions}>
-                                    <button 
-                                        className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
-                                        onClick={() => handleDictionaryChange('default')}
-                                    >
-                                        English 2500
-                                    </button>
-                                    {dictionaries
-                                        .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
-                                        .map(d => (
+                            <div className={styles.dictSelector}>
+                                <button 
+                                    className={styles.selectorHeader}
+                                    onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
+                                >
+                                    <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
+                                    <span className={styles.activeDictName}>
+                                        {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || '...'}
+                                    </span>
+                                    <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
+                                </button>
+                                
+                                {isDictSelectorOpen && (
+                                    <div className={styles.dictOptions}>
                                         <button 
-                                            key={d.id}
-                                            className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
-                                            onClick={() => handleDictionaryChange(d.id)}
+                                            className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
+                                            onClick={() => handleDictionaryChange('default')}
                                         >
-                                            {d.name}
+                                            English 2500
                                         </button>
-                                    ))}
-                                </div>
-                            )}
+                                        {dictionaries
+                                            .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
+                                            .map(d => (
+                                            <button 
+                                                key={d.id}
+                                                className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
+                                                onClick={() => handleDictionaryChange(d.id)}
+                                            >
+                                                {d.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={styles.difficultyContainer}>
+                                <label className={styles.toggleLabel}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isEliteMode}
+                                        onChange={(e) => setIsEliteMode(e.target.checked)}
+                                        className={styles.hiddenCheckbox}
+                                    />
+                                    <div className={`${styles.customToggle} ${isEliteMode ? styles.active : ''}`}>
+                                        <div className={styles.toggleThumb} />
+                                    </div>
+                                    <span className={styles.toggleText}>
+                                        {isEliteMode ? t('games.nbackword.eliteMode') : t('games.nbackword.normalMode')}
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
                     {phase === 'SETUP' && (
                         <div className={styles.setupInner}>
-
-                    <p>{t('common.chooseMight')}</p>
-                    
-                    <div className={styles.difficultyContainer}>
-                        <label className={styles.toggleLabel}>
-                            <input 
-                                type="checkbox" 
-                                checked={isEliteMode}
-                                onChange={(e) => setIsEliteMode(e.target.checked)}
-                                className={styles.hiddenCheckbox}
-                            />
-                            <div className={`${styles.customToggle} ${isEliteMode ? styles.active : ''}`}>
-                                <div className={styles.toggleThumb} />
-                            </div>
-                            <span className={styles.toggleText}>
-                                {isEliteMode ? t('games.nbackword.eliteMode') : t('games.nbackword.normalMode')}
-                            </span>
-                        </label>
-                    </div>
 
                     <div className={styles.rankGrid}>
                         {RANKS.map(rank => (

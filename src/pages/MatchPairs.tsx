@@ -73,6 +73,7 @@ export default function MatchPairs() {
     const [phase, setPhase] = useState<Phase>('SETUP');
     const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
+    const [isMobileSetupOpen, setIsMobileSetupOpen] = useState(false);
 
     // Track activity
     useEffect(() => {
@@ -254,16 +255,29 @@ export default function MatchPairs() {
     const renderSetup = () => (
         <>
             <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''} ${phase !== 'SETUP' ? styles.compactSetup : ''}`}>
-                <h1 className={styles.royalTitle}>{t('games.pairwords.title')}</h1>
+                <div className={styles.setupToolbar}>
+                    <div className={styles.toolbarTitleRow}>
+                        <button onClick={() => navigate('/games')} className={styles.backButtonInline} title={t('common.back')}>
+                            <ArrowLeft size={24} />
+                        </button>
+                        <h1 className={styles.royalTitle}>{t('games.pairwords.title')}</h1>
+                        <button 
+                            className={`${styles.mobileSetupToggle} ${isMobileSetupOpen ? styles.open : ''}`}
+                            onClick={() => setIsMobileSetupOpen(!isMobileSetupOpen)}
+                        >
+                            <ChevronDown size={24} />
+                        </button>
+                    </div>
 
-                <div className={styles.dictSelector}>
+                    <div className={`${styles.setupControls} ${isMobileSetupOpen ? styles.open : ''}`}>
+                        <div className={styles.dictSelector}>
                     <button 
                         className={styles.selectorHeader}
                         onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
                     >
                         <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
                         <span className={styles.activeDictName}>
-                            {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
+                            {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || '...'}
                         </span>
                         <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                     </button>
@@ -289,26 +303,26 @@ export default function MatchPairs() {
                             ))}
                         </div>
                     )}
-                </div>
-            </div>
-
-            <p style={{ margin: '1.5rem 0', color: '#94a3b8' }}>{t('common.chooseMight')}</p>
-            
-            <div className={styles.difficultyContainer}>
-                <label className={styles.toggleLabel}>
-                    <input 
-                        type="checkbox" 
-                        checked={isEliteMode}
-                        onChange={(e) => setIsEliteMode(e.target.checked)}
-                        className={styles.hiddenCheckbox}
-                    />
-                    <div className={`${styles.customToggle} ${isEliteMode ? styles.active : ''}`}>
-                        <div className={styles.toggleThumb} />
                     </div>
-                    <span className={styles.toggleText}>
-                        {isEliteMode ? t('games.pairwords.eliteMode') : t('games.pairwords.normalMode')}
-                    </span>
-                </label>
+                    
+                    <div className={styles.difficultyContainer}>
+                        <label className={styles.toggleLabel}>
+                            <input 
+                                type="checkbox" 
+                                checked={isEliteMode}
+                                onChange={(e) => setIsEliteMode(e.target.checked)}
+                                className={styles.hiddenCheckbox}
+                            />
+                            <div className={`${styles.customToggle} ${isEliteMode ? styles.active : ''}`}>
+                                <div className={styles.toggleThumb} />
+                            </div>
+                            <span className={styles.toggleText}>
+                                {isEliteMode ? t('games.pairwords.eliteMode') : t('games.pairwords.normalMode')}
+                            </span>
+                        </label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className={styles.rankGrid}>
@@ -347,7 +361,7 @@ export default function MatchPairs() {
 
     return (
         <div className={styles.container}>
-            {(phase === 'SETUP' || isInitialLoading) && (
+            {isInitialLoading && (
                 <button onClick={() => navigate('/games')} className={styles.floatingBackButton} title={t('common.back')}>
                     <ArrowLeft size={24} />
                 </button>

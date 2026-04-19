@@ -75,6 +75,8 @@ export const ru = {
       penalties: 'Штрафы:',
       repeatFeat: 'Повторить Подвиг',
       returnToHall: 'Вернуться в Зал',
+      eliteMode: 'Элитный режим (На слух)',
+      normalMode: 'Обычный режим (Текст)',
     },
     pairwords: {
       title: 'MATCH PAIRS',

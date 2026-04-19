@@ -77,6 +77,8 @@ export const en: Translations = {
       penalties: 'Penalties:',
       repeatFeat: 'Repeat Feat',
       returnToHall: 'Return to Hall',
+      eliteMode: 'Elite Mode (By Ear)',
+      normalMode: 'Normal Mode (Text)',
     },
     pairwords: {
       title: 'MATCH PAIRS',

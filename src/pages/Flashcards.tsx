@@ -29,6 +29,7 @@ export default function Flashcards() {
     const [isFlipped, setIsFlipped] = useState(false);
     const [isFrontFirst] = useState(true);
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
+    const [isMobileSetupOpen, setIsMobileSetupOpen] = useState(false);
 
     // Initial Load
     useEffect(() => {
@@ -157,26 +158,41 @@ export default function Flashcards() {
 
     return (
         <div className={styles.container}>
-            <button 
-                className={styles.floatingBackButton} 
-                onClick={() => navigate('/games')}
-                title={t('common.back')}
-            >
-                <ArrowLeft size={24} />
-            </button>
+            {isInitialLoading && (
+                <button 
+                    className={styles.floatingBackButton} 
+                    onClick={() => navigate('/games')}
+                    title={t('common.back')}
+                >
+                    <ArrowLeft size={24} />
+                </button>
+            )}
 
             {!isInitialLoading && (
                 <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''} ${gameWords.length > 0 ? styles.compactSetup : ''}`}>
-                    <h1 className={styles.royalTitle}>{t('games.flashcards.title')}</h1>
+                    <div className={styles.setupToolbar}>
+                        <div className={styles.toolbarTitleRow}>
+                            <button onClick={() => navigate('/games')} className={styles.backButtonInline} title={t('common.back')}>
+                                <ArrowLeft size={24} />
+                            </button>
+                            <h1 className={styles.royalTitle}>{t('games.flashcards.title')}</h1>
+                            <button 
+                                className={`${styles.mobileSetupToggle} ${isMobileSetupOpen ? styles.open : ''}`}
+                                onClick={() => setIsMobileSetupOpen(!isMobileSetupOpen)}
+                            >
+                                <ChevronDown size={24} />
+                            </button>
+                        </div>
 
-                    <div className={styles.dictSelector}>
+                        <div className={`${styles.setupControls} ${isMobileSetupOpen ? styles.open : ''}`}>
+                            <div className={styles.dictSelector}>
                         <button 
                             className={styles.selectorHeader}
                             onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
                         >
                             <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
                             <span className={styles.activeDictName}>
-                                {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || t('common.dictionary')}
+                                {dictId === 'default' ? 'English 2500' : dictionaries.find(d => d.id === dictId)?.name || '...'}
                             </span>
                             <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                         </button>
@@ -203,8 +219,10 @@ export default function Flashcards() {
                                 }
                             </div>
                         )}
+                        </div>
                     </div>
                 </div>
+            </div>
             )}
 
             {isInitialLoading ? (
@@ -318,14 +336,6 @@ export default function Flashcards() {
                                 <ChevronRight size={32} />
                             </button>
                         </div>
-
-                        <button 
-                            onClick={handleRestart} 
-                            className={styles.restartButton}
-                            title={t('common.resetSession')}
-                        >
-                            <RotateCcw size={16} /> {t('common.restart')}
-                        </button>
                     </div>
                 );
             })()}
