@@ -1,8 +1,18 @@
 .pageContainer {
-    padding: 2rem;
-    max-width: 1200px;
+    padding: 2rem 5dvw;
+    width: 100%;
+    max-width: 1600px;
     margin: 0 auto;
     color: #f8fafc;
+    box-sizing: border-box;
+}
+
+@media (max-aspect-ratio: 2/3) {
+    .pageContainer {
+        width: 100%;
+        max-width: none;
+        padding: 1rem 1.5rem;
+    }
 }
 
 .header {
@@ -179,7 +189,8 @@
     opacity: 0.5;
 }
 
-@media (max-width: 850px), (orientation: portrait) {
+/* Narrow implies phone aspect ratios (height significantly > width). Tablets (3:4) are excluded. */
+@media (max-aspect-ratio: 2/3) {
     .pageContainer {
         /* 2.5dvw padding on each side forces inner content to be exactly 95dvw */
         padding: 1.5rem 2.5dvw 5rem 2.5dvw !important;

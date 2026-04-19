@@ -121,40 +121,44 @@ export default function DictionaryDetail() {
     return (
         <div className={styles.pageContainer}>
             {/* Header */}
-            <div className={styles.header}>
-                <div className={styles.titleWrapper}>
-                    <Link to="/dictionaries" className={styles.backArrow} title={t('common.back')}>
-                        <ArrowLeft size={28} />
-                    </Link>
-                    <div className={styles.titleGroup}>
-                        <h1 className={styles.title}>
-                            {dictionary?.name ?? t('common.dictionary')}
-                        </h1>
-                        <div className={styles.meta}>
-                            {dictionary && (
-                                <span className={styles.langBadge}>
-                                    {dictionary.sourceLang.toUpperCase()} → {dictionary.targetLang.toUpperCase()}
-                                </span>
-                            )}
-                            <span className={styles.wordCount}>
-                                {t('common.wordsCount', { count: (words || []).length })}
+            <div className={styles.headerContainer}>
+                <Link to="/dictionaries" className={styles.backArrow} title={t('common.back')}>
+                    <ArrowLeft size={28} />
+                </Link>
+                <div className={styles.titleGroup}>
+                    <h1 className={styles.title}>
+                        {dictionary?.name ?? t('common.dictionary')}
+                    </h1>
+                    <div className={styles.meta}>
+                        {dictionary && (
+                            <span className={styles.langBadge}>
+                                {dictionary.sourceLang.toUpperCase()} → {dictionary.targetLang.toUpperCase()}
                             </span>
-                            {dictionary?.isShared && (
-                                <span className={styles.sharedBadge}>
-                                    <Globe size={12} /> {t('common.common')}
-                                </span>
-                            )}
-                        </div>
+                        )}
+                        <span className={styles.wordCount}>
+                            {t('common.wordsCount', { count: (words || []).length })}
+                        </span>
+                        {dictionary?.isShared && (
+                            <span className={styles.sharedBadge}>
+                                <Globe size={12} /> {t('common.common')}
+                            </span>
+                        )}
                     </div>
                 </div>
-                <div className={styles.headerActions}>
-                    <button
-                        onClick={handleDeleteDictionary}
-                        className={`${styles.iconButton} ${styles.danger}`}
-                        title={t('common.delete')}
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                
+                <div className={styles.deleteAction}>
+                    {canEdit && (
+                        <button
+                            onClick={handleDeleteDictionary}
+                            className={`${styles.iconButton} ${styles.danger}`}
+                            title={t('common.delete')}
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    )}
+                </div>
+
+                <div className={styles.addAction}>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
                         className={styles.addButton}
@@ -225,22 +229,23 @@ export default function DictionaryDetail() {
                             ) : (
                                 // ── Read mode ─────────────────────────────────────────────────
                                 <>
-                                    <div className={styles.wordTexts}>
-                                        <div className={styles.originalWrapper}>
-                                            <button 
-                                                className={styles.speakButton}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    speechService.speak(word.original, dictionary?.sourceLang || 'en');
-                                                }}
-                                                title={t('dictionaryDetail.listen')}
-                                            >
-                                                <Volume2 size={16} />
-                                            </button>
+                                    {/* Read mode */}
+                                    <div className={styles.wordCardMain}>
+                                        <button 
+                                            className={styles.speakButton}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                speechService.speak(word.original, dictionary?.sourceLang || 'en');
+                                            }}
+                                            title={t('dictionaryDetail.listen')}
+                                        >
+                                            <Volume2 size={16} />
+                                        </button>
+                                        <div className={styles.wordTexts}>
                                             <span className={styles.original}>{word.original}</span>
+                                            <span className={styles.arrow}>-</span>
+                                            <span className={styles.translation}>{word.translation}</span>
                                         </div>
-                                        <span className={styles.arrow}>-</span>
-                                        <span className={styles.translation}>{word.translation}</span>
                                     </div>
                                     {canEdit && (
                                         <div className={styles.wordActions} onClick={e => e.stopPropagation()}>

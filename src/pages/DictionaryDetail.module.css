@@ -1,24 +1,22 @@
 .pageContainer {
-    padding: 1rem 2rem 2rem 2rem;
-    max-width: 1000px;
+    width: 100%; 
+    max-width: 1600px;
+    padding: 1rem 5dvw 2rem 5dvw; /* Huge monitors will cap at 1600, iPads will enjoy 90% real width natively */
     margin: 0 auto;
     color: #f8fafc;
+    box-sizing: border-box;
 }
 
 /* ─── Header ─────────────────────────────────────────────── */
 
-.header {
-    display: flex;
-    justify-content: space-between;
+.headerContainer {
+    display: grid;
+    grid-template-areas: "back title delete add";
+    grid-template-columns: auto 1fr auto auto;
     align-items: center;
-    margin-bottom: 2.5rem;
     gap: 1.5rem;
-}
-
-.originalWrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+    width: 100%;
 }
 
 .speakButton {
@@ -31,6 +29,7 @@
     cursor: pointer;
     padding: 0;
     transition: all 0.2s;
+    flex-shrink: 0; /* Crucial: prevent speaker from shrinking */
 }
 
 .speakButton:hover {
@@ -38,13 +37,9 @@
     transform: scale(1.1);
 }
 
-.titleWrapper {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-}
-
 .backArrow {
+    grid-area: back;
+
     display: flex;
     align-items: center;
     justify-content: center;
@@ -62,16 +57,13 @@
     transform: translateX(-3px);
 }
 
-.headerActions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
 .titleGroup {
+    grid-area: title;
+
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    min-width: 0; /* CRITICAL: Allows the 1fr grid cell to shrink below content size and trigger word-wrap */
 }
 
 .title {
@@ -81,11 +73,14 @@
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .meta {
     display: flex;
     align-items: center;
+    flex-wrap: wrap; /* Prevent badges from pushing grid out */
     gap: 0.75rem;
 }
 
@@ -120,6 +115,20 @@
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
 }
 
+.addAction {
+    grid-area: add;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.deleteAction {
+    grid-area: delete;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .addButton {
     display: flex;
     align-items: center;
@@ -133,10 +142,11 @@
     font-weight: 800;
     cursor: pointer;
     transition: all 0.3s;
-    white-space: nowrap;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+    width: 100%;
+    justify-content: center;
 }
 
 .addButton:hover {
@@ -148,9 +158,30 @@
 /* ─── Word List ───────────────────────────────────────────── */
 
 .wordList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    display: block; /* Native vertical stack, completely bypasses flex-width bugs */
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure spacing between cards since we dropped flex column gap */
+.wordList > * {
+    margin-bottom: 0.75rem;
+}
+.wordList > *:last-child {
+    margin-bottom: 0;
+}
+
+@media (min-aspect-ratio: 2/3) {
+    .wordList {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .wordList > * {
+        margin-bottom: 0; /* Let grid gap handle spacing */
+    }
 }
 
 .wordWithSpeaker {
@@ -178,15 +209,24 @@
 }
 
 .wordCard {
-    display: flex;
-    align-items: center;
+    display: block; /* Native horizontal fill */
     background: rgba(30, 41, 59, 0.3);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 1rem;
     padding: 1rem 1.5rem;
-    gap: 1.5rem;
     transition: all 0.2s;
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* Prevent internals from pushing boundaries */
+}
+
+.wordCardMain {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
 }
 
 .wordCard:hover {
@@ -196,30 +236,44 @@
 }
 
 .wordTexts {
-    flex: 1;
+    flex: 1; /* Naturally fill the exact space without pushing boundaries */
     display: flex;
     align-items: center;
     gap: 0.5rem;
     min-width: 0;
+    box-sizing: border-box;
 }
 
 .original {
+    display: block; 
     font-weight: 800;
     font-size: 1.1rem;
     color: #fff;
-    white-space: nowrap;
+    word-break: break-word;
+    overflow-wrap: anywhere; /* Hard break long words */
+    min-width: 0;
+    flex: 1; /* Match translation exact size */
 }
 
 .arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 1.5rem;
     color: rgba(148, 163, 184, 0.3);
     font-size: 1.25rem;
     flex-shrink: 0;
 }
 
 .translation {
+    display: block;
     font-size: 1rem;
     font-weight: 500;
     color: #94a3b8;
+    word-break: break-word;
+    overflow-wrap: anywhere; /* Hard break long words */
+    min-width: 0;
+    flex: 1; /* Match original exactly */
 }
 
 .wordActions {
@@ -482,23 +536,23 @@
     align-items: center;
     height: 20rem;
 }
-@media (max-width: 850px) {
+@media (max-aspect-ratio: 2/3) {
     .pageContainer {
+        width: 100%; /* Important clamp back to 100% on narrow screens */
+        max-width: none;
         /* 2.5dvw padding on each side forces inner content to be exactly 95dvw */
         padding: 1rem 2.5dvw 5rem 2.5dvw;
         box-sizing: border-box;
         overflow-x: hidden;
     }
 
-    .header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 1.25rem;
+    .headerContainer {
+        grid-template-areas: 
+            "back title delete"
+            "add add add";
+        grid-template-columns: auto 1fr auto;
+        gap: 1.25rem 0.75rem;
         margin-bottom: 1.5rem;
-    }
-
-    .titleWrapper {
-        gap: 0.75rem;
     }
 
     .title {
@@ -510,36 +564,24 @@
         justify-content: center;
     }
 
-    .headerActions {
-        display: flex;
-        flex-direction: row; /* Put Delete and Add back on same line */
-        gap: 0.75rem;
-        width: 100%;
-    }
-
-    .addButton {
-        flex: 1; /* Stretch Add button across remaining space */
-        justify-content: center;
-        padding: 1rem;
-    }
-
-    .speakButton {
-        width: 100%;
-        padding: 0.75rem;
-        background: rgba(255, 255, 255, 0.05); /* Make it distinct when full width */
-        border-radius: 1rem;
-    }
-
     .wordList {
         gap: 0.5rem;
+        width: 100% !important;
+    }
+
+    .wordList > * {
+        margin-bottom: 0.5rem; /* Tighter gap on mobile */
     }
 
     .wordCard {
-        flex-wrap: wrap;
+        width: 100% !important;
         padding: 0.6rem 1rem;
-        gap: 0.5rem;
         cursor: pointer;
         transition: background-color 0.3s, border-color 0.3s, transform 0.2s;
+    }
+
+    .wordCardMain {
+        gap: 0.5rem;
     }
 
     .wordCard:active {
@@ -548,6 +590,7 @@
 
     .wordTexts {
         gap: 1rem;
+        flex: 1 1 auto;
     }
 
     .original {
