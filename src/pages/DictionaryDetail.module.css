@@ -482,9 +482,12 @@
     align-items: center;
     height: 20rem;
 }
-@media (max-width: 640px) {
+@media (max-width: 850px) {
     .pageContainer {
-        padding: 1rem 1rem 5rem 1rem;
+        /* 2.5dvw padding on each side forces inner content to be exactly 95dvw */
+        padding: 1rem 2.5dvw 5rem 2.5dvw;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 
     .header {
@@ -509,14 +512,22 @@
 
     .headerActions {
         display: flex;
-        flex-direction: row-reverse;
+        flex-direction: row; /* Put Delete and Add back on same line */
         gap: 0.75rem;
+        width: 100%;
     }
 
     .addButton {
-        flex: 1;
+        flex: 1; /* Stretch Add button across remaining space */
         justify-content: center;
-        padding: 0.85rem;
+        padding: 1rem;
+    }
+
+    .speakButton {
+        width: 100%;
+        padding: 0.75rem;
+        background: rgba(255, 255, 255, 0.05); /* Make it distinct when full width */
+        border-radius: 1rem;
     }
 
     .wordList {

@@ -181,7 +181,10 @@
 
 @media (max-width: 850px), (orientation: portrait) {
     .pageContainer {
-        padding: 1.5rem 1rem 5rem !important;
+        /* 2.5dvw padding on each side forces inner content to be exactly 95dvw */
+        padding: 1.5rem 2.5dvw 5rem 2.5dvw !important;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 
     .header {
@@ -204,6 +207,11 @@
 
     .cardLink {
         width: 100% !important;
+    }
+
+    .createButton, .publishButton, .unpublishButton {
+        width: 100%;
+        justify-content: center;
     }
 
     .card {

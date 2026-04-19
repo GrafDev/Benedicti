@@ -153,8 +153,10 @@ export default function Header() {
 
                 {/* Mobile Menu */}
                 {isMenuOpen && (
-                    <div className={styles.mobileMenu} ref={menuRef}>
-                        <div>
+                    <>
+                        <div className={styles.mobileMenuOverlay} onClick={() => setIsMenuOpen(false)}></div>
+                        <div className={styles.mobileMenu} ref={menuRef}>
+                            <div>
                             {navLinks.map((link) => (
                                 <Link
                                     key={link.path}
@@ -202,8 +204,9 @@ export default function Header() {
                             </div>
                         </div>
                     </div>
-                )}
-            </header>
+                </>
+            )}
+        </header>
 
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
             <InstallInstructions 

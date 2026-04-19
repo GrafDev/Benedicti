@@ -203,43 +203,72 @@
     }
 }
 
-/* Mobile Menu */
-.mobileMenu {
-    background-color: #0a1120; /* Darker than main bg for contrast */
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    border-bottom: 2px solid rgba(251, 191, 36, 0.4); /* Sovereign gold accent */
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); /* Deep shadow for depth */
-    padding: 1.5rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Mobile Menu Overlay */
+.mobileMenuOverlay {
+    position: fixed;
+    top: 4.5rem;
+    left: 0;
+    width: 100vw;
+    height: calc(100dvh - 4.5rem);
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    animation: fadeInMenu 0.2s ease-out;
 }
 
-@keyframes slideDown {
-    from { transform: translateY(-10px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+@keyframes fadeInMenu {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Mobile Menu */
+.mobileMenu {
+    position: absolute;
+    top: 5rem;
+    left: 5%;
+    width: 90%;
+    z-index: 101;
+    background: linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 1.5rem;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 0 20px rgba(251, 191, 36, 0.15); 
+    padding: 1.5rem 1.25rem 2rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: popInMenu 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+}
+
+@keyframes popInMenu {
+    from { transform: scale(0.95) translateY(-10px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 .mobileNavLink {
     display: block;
-    padding: 0.75rem 1rem;
-    border-radius: 0.75rem;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #94a3b8;
+    padding: 1rem 1.5rem; /* Larger touch targets */
+    border-radius: 1rem;
+    font-size: 1.15rem; /* Bigger text */
+    font-weight: 800; /* Bolder */
+    letter-spacing: 0.1em;
+    color: #e2e8f0;
     text-decoration: none;
     text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.02); /* Slight default background */
+    border: 1px solid transparent;
 }
 
 .mobileNavLink:hover {
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
     color: #fff;
+    transform: scale(1.02);
 }
 
 .mobileNavActive {
-    background-color: rgba(251, 191, 36, 0.1);
+    background-color: rgba(251, 191, 36, 0.15);
     color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.3);
 }
 
 .mobileAuth {
