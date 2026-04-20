@@ -1,4 +1,5 @@
 import { X, Share, PlusSquare } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import styles from './InstallInstructions.module.css';
 
 interface InstallInstructionsProps {
@@ -10,7 +11,7 @@ interface InstallInstructionsProps {
 export default function InstallInstructions({ isOpen, onClose, isMac }: InstallInstructionsProps) {
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
                 <button className={styles.closeButton} onClick={onClose} aria-label="Close">
@@ -65,6 +66,7 @@ export default function InstallInstructions({ isOpen, onClose, isMac }: InstallI
                     Enjoy the sovereign experience from your home screen.
                 </div>
             </div>
-        </div>
+        </div>,
+        document.getElementById('portal-root')!
     );
 }

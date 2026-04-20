@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { X, Mail } from 'lucide-react';
 import styles from './AuthModal.module.css';
@@ -62,7 +63,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
     };
 
-    return (
+    return createPortal(
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 <button
@@ -87,7 +88,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         onClick={handleGoogleSignIn}
                         className={styles.socialButton}
                     >
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" className={styles.googleIcon} alt="Google" />
+                        <img src="/google.svg" className={styles.googleIcon} alt="Google" />
                         Continue with Google
                     </button>
                 </div>
@@ -148,6 +149,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </button>
                 </p>
             </div>
-        </div>
+        </div>,
+        document.getElementById('portal-root')!
     );
 }

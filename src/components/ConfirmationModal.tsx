@@ -1,4 +1,5 @@
 import { X, AlertTriangle } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import styles from './ConfirmationModal.module.css';
 
 interface ConfirmationModalProps {
@@ -24,7 +25,7 @@ export default function ConfirmationModal({
 }: ConfirmationModalProps) {
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <button
@@ -61,6 +62,7 @@ export default function ConfirmationModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.getElementById('portal-root')!
     );
 }

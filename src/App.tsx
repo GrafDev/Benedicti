@@ -30,6 +30,8 @@ function App() {
             <Route path="/play/match-pairs/:dictId" element={<MatchPairs />} />
             <Route path="/play/:mode/:dictId" element={<div><h1>Other Game Mode</h1></div>} />
             <Route path="/profile" element={<Profile />} />
+            {/* Handle Firebase internal paths (auth callbacks, etc.) */}
+            <Route path="/__/*" element={null} />
           </Route>
         </Routes>
         <SoundToggle />
