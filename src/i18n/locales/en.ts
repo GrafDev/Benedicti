@@ -184,5 +184,36 @@ export const en: Translations = {
     duke: { name: 'Duke', desc: 'The King\'s shadow' },
     king: { name: 'King', desc: 'Master of words' },
     emperor: { name: 'Emperor', desc: 'Arbiter of fates' }
+  },
+  auth: {
+    forgotPassword: 'Forgot Password?',
+    resetPassword: 'Reset Password',
+    backToLogin: 'Back to Login',
+    resetEmailSent: 'Password reset link sent to your email!',
+    sendResetLink: 'Send Reset Link',
+    resetPasswordTitle: 'Recover Realm Access',
+    welcomeBack: 'Welcome Back',
+    createAccount: 'Create Account',
+    continueWithGoogle: 'Continue with Google',
+    orContinueWithEmail: 'Or continue with email',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    signIn: 'Sign In',
+    signUp: 'Sign Up',
+    noAccount: "Don't have an account?",
+    hasAccount: 'Already have an account?',
+    toggleSignUp: 'Sign up',
+    toggleLogIn: 'Log in'
+  },
+  passwordReset: {
+    title: 'Secure Your Access',
+    subtitle: 'Enter a strong new password to protect your realm',
+    newPassword: 'New Password',
+    confirmPassword: 'Confirm New Password',
+    submit: 'Secure the Realm',
+    success: 'Your password has been successfully updated! You can now sign in.',
+    invalidCode: 'This link is invalid or has expired. Please request a new one.',
+    passwordsMatch: 'Passwords must match',
+    loading: 'Verifying with the chronicles...'
   }
 };

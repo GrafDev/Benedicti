@@ -182,6 +182,37 @@ export const ru = {
     duke: { name: 'Герцог', desc: 'Тень короля' },
     king: { name: 'Король', desc: 'Властелин слов' },
     emperor: { name: 'Император', desc: 'Вершитель судеб' }
+  },
+  auth: {
+    forgotPassword: 'Забыли пароль?',
+    resetPassword: 'Сбросить пароль',
+    backToLogin: 'Вернуться к входу',
+    resetEmailSent: 'Ссылка для сброса пароля отправлена на вашу почту!',
+    sendResetLink: 'Отправить ссылку',
+    resetPasswordTitle: 'Восстановление доступа',
+    welcomeBack: 'С возвращением',
+    createAccount: 'Создать аккаунт',
+    continueWithGoogle: 'Войти через Google',
+    orContinueWithEmail: 'Или через email',
+    emailLabel: 'Email',
+    passwordLabel: 'Пароль',
+    signIn: 'Войти',
+    signUp: 'Регистрация',
+    noAccount: 'Нет аккаунта?',
+    hasAccount: 'Уже есть аккаунт?',
+    toggleSignUp: 'Создать',
+    toggleLogIn: 'Войти'
+  },
+  passwordReset: {
+    title: 'Защита доступа',
+    subtitle: 'Введите новый надежный пароль для защиты ваших владений',
+    newPassword: 'Новый пароль',
+    confirmPassword: 'Подтвердите пароль',
+    submit: 'Обезопасить владения',
+    success: 'Ваш пароль успешно обновлен! Теперь вы можете войти.',
+    invalidCode: 'Эта ссылка недействительна или срок её действия истёк. Пожалуйста, запросите новую.',
+    passwordsMatch: 'Пароли должны совпадать',
+    loading: 'Сверка с летописями...'
   }
 };
 

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { X, Mail } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
+import { X, Mail, ArrowLeft } from 'lucide-react';
 import styles from './AuthModal.module.css';
 
 interface AuthModalProps {
@@ -11,10 +12,13 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const [isLogin, setIsLogin] = useState(true);
+    const [isResetPassword, setIsResetPassword] = useState(false);
+    const [resetSent, setResetSent] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const { signInWithGoogle, loginWithEmail, signupWithEmail } = useAuth();
+    const { signInWithGoogle, loginWithEmail, signupWithEmail, resetPassword } = useAuth();
+    const { t } = useLanguage();
 
     if (!isOpen) return null;
 
@@ -43,12 +47,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         e.preventDefault();
         setError('');
         try {
-            if (isLogin) {
+            if (isResetPassword) {
+                await resetPassword(email);
+                setResetSent(true);
+            } else if (isLogin) {
                 await loginWithEmail(email, password);
+                onClose();
             } else {
                 await signupWithEmail(email, password);
+                onClose();
             }
-            onClose();
         } catch (err: any) {
             setError(getErrorMessage(err));
         }
@@ -74,7 +82,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </button>
 
                 <h2 className={styles.title}>
-                    {isLogin ? 'Welcome Back' : 'Create Account'}
+                    {isResetPassword ? t('auth.resetPasswordTitle') : (isLogin ? t('auth.welcomeBack') : t('auth.createAccount'))}
                 </h2>
 
                 {error && (
@@ -83,71 +91,113 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </div>
                 )}
 
-                <div className={styles.socialButtons}>
-                    <button
-                        onClick={handleGoogleSignIn}
-                        className={styles.socialButton}
-                    >
-                        <img src="/google.svg" className={styles.googleIcon} alt="Google" />
-                        Continue with Google
-                    </button>
-                </div>
-
-                <div className={styles.divider}>
-                    <div className={styles.dividerLineContainer}>
-                        <div className={styles.dividerLine}></div>
+                {resetSent ? (
+                    <div className={styles.successMessage}>
+                        <p>{t('auth.resetEmailSent')}</p>
+                        <button
+                            onClick={() => {
+                                setIsResetPassword(false);
+                                setResetSent(false);
+                            }}
+                            className={styles.submitButton}
+                            style={{ marginTop: '1.5rem' }}
+                        >
+                            {t('auth.backToLogin')}
+                        </button>
                     </div>
-                    <div className={styles.dividerTextContainer}>
-                        <span className={styles.dividerText}>Or continue with email</span>
-                    </div>
-                </div>
-
-                <form onSubmit={handleSubmit} className={styles.form}>
-                    <div className={styles.inputGroup}>
-                        <label className={styles.label}>Email</label>
-                        <div className={styles.inputWrapper}>
-                            <Mail className={styles.inputIcon} size={20} />
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className={styles.input}
-                                placeholder="you@example.com"
-                            />
+                ) : (
+                    <>
+                        <div className={styles.socialButtons}>
+                            <button
+                                onClick={handleGoogleSignIn}
+                                className={styles.socialButton}
+                            >
+                                <img src="/google.svg" className={styles.googleIcon} alt="Google" />
+                                {t('auth.continueWithGoogle')}
+                            </button>
                         </div>
-                    </div>
 
-                    <div className={styles.inputGroup}>
-                        <label className={styles.label}>Password</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className={`${styles.input} ${styles.passwordInput} `}
-                            placeholder="••••••••"
-                            minLength={6}
-                        />
-                    </div>
+                        <div className={styles.divider}>
+                            <div className={styles.dividerLineContainer}>
+                                <div className={styles.dividerLine}></div>
+                            </div>
+                            <div className={styles.dividerTextContainer}>
+                                <span className={styles.dividerText}>{t('auth.orContinueWithEmail')}</span>
+                            </div>
+                        </div>
 
-                    <button
-                        type="submit"
-                        className={styles.submitButton}
-                    >
-                        {isLogin ? 'Sign In' : 'Sign Up'}
-                    </button>
-                </form>
+                        <form onSubmit={handleSubmit} className={styles.form}>
+                            <div className={styles.inputGroup}>
+                                <label className={styles.label}>{t('auth.emailLabel')}</label>
+                                <div className={styles.inputWrapper}>
+                                    <Mail className={styles.inputIcon} size={20} />
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className={styles.input}
+                                        placeholder="you@example.com"
+                                    />
+                                </div>
+                            </div>
 
-                <p className={styles.footer}>
-                    {isLogin ? "Don't have an account? " : "Already have an account? "}
-                    <button
-                        onClick={() => setIsLogin(!isLogin)}
-                        className={styles.toggleButton}
-                    >
-                        {isLogin ? 'Sign up' : 'Log in'}
-                    </button>
-                </p>
+                            {!isResetPassword && (
+                                <div className={styles.inputGroup}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <label className={styles.label}>{t('auth.passwordLabel')}</label>
+                                        {isLogin && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsResetPassword(true)}
+                                                className={styles.forgotPasswordLink}
+                                            >
+                                                {t('auth.forgotPassword')}
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input
+                                        type="password"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className={`${styles.input} ${styles.passwordInput} `}
+                                        placeholder="••••••••"
+                                        minLength={6}
+                                    />
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                className={styles.submitButton}
+                            >
+                                {isResetPassword ? t('auth.sendResetLink') : (isLogin ? t('auth.signIn') : t('auth.signUp'))}
+                            </button>
+                            
+                            {isResetPassword && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsResetPassword(false)}
+                                    className={styles.backLink}
+                                >
+                                    <ArrowLeft size={16} />
+                                    {t('auth.backToLogin')}
+                                </button>
+                            )}
+                        </form>
+
+                        <p className={styles.footer}>
+                            {isLogin ? t('auth.noAccount') : t('auth.hasAccount')}
+                            <button
+                                onClick={() => setIsLogin(!isLogin)}
+                                className={styles.toggleButton}
+                            >
+                                {isLogin ? t('auth.toggleSignUp') : t('auth.toggleLogIn')}
+                            </button>
+                        </p>
+                    </>
+                )}
             </div>
         </div>,
         document.getElementById('portal-root')!

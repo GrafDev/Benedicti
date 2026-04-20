@@ -9,7 +9,10 @@ import {
     signOut,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
-    updateProfile
+    updateProfile,
+    sendPasswordResetEmail,
+    verifyPasswordResetCode,
+    confirmPasswordReset
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -22,6 +25,9 @@ interface AuthContextType {
     loginWithEmail: (email: string, password: string) => Promise<void>;
     signupWithEmail: (email: string, password: string) => Promise<void>;
     updateProfileName: (name: string) => Promise<void>;
+    resetPassword: (email: string) => Promise<void>;
+    verifyResetCode: (code: string) => Promise<string>;
+    confirmReset: (code: string, newPass: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -133,6 +139,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const resetPassword = async (email: string) => {
+        try {
+            // Get language from localStorage or context directly
+            const currentLang = localStorage.getItem('app_lang') || 'en';
+            auth.languageCode = currentLang;
+            await sendPasswordResetEmail(auth, email);
+        } catch (error) {
+            console.error('Error sending password reset email', error);
+            throw error;
+        }
+    };
+
+    const verifyResetCode = (code: string) => verifyPasswordResetCode(auth, code);
+    
+    const confirmReset = (code: string, newPass: string) => confirmPasswordReset(auth, code, newPass);
+
     const logout = () => signOut(auth);
 
     const value = {
@@ -143,6 +165,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithEmail,
         signupWithEmail,
         updateProfileName,
+        resetPassword,
+        verifyResetCode,
+        confirmReset,
         logout
     };
 
