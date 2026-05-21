@@ -13,7 +13,7 @@ export default function Flashcards() {
     const { dictId } = useParams<{ dictId: string }>();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
 
     const fetchWords = useDictionaryStore(state => state.fetchWords);
     const fetchSharedWords = useDictionaryStore(state => state.fetchSharedWords);
@@ -23,7 +23,6 @@ export default function Flashcards() {
     const loading = useDictionaryStore(state => state.loading);
 
     const [gameWords, setGameWords] = useState<Word[]>([]);
-    const [initialCount, setInitialCount] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [isFrontFirst] = useState(true);
@@ -81,7 +80,6 @@ export default function Flashcards() {
                 .sort(() => Math.random() - 0.5)
                 .slice(0, 15);
             setGameWords(shuffled);
-            setInitialCount(shuffled.length);
             setCurrentIndex(0);
             setIsFlipped(false);
             setHasAttemptedLoad(true);
@@ -119,6 +117,29 @@ export default function Flashcards() {
         setGameWords(reshuffled);
         setCurrentIndex(0);
         setIsFlipped(false);
+    };
+
+    const handleRepeatSame = () => {
+        setCurrentIndex(0);
+        setIsFlipped(false);
+    };
+
+    const handleNextBatch = () => {
+        const availableWords = storeWords.filter(w => !w.isLearned);
+        const currentGameWordIds = new Set(gameWords.map(w => w.id));
+        let nextPool = availableWords.filter(w => !currentGameWordIds.has(w.id));
+        
+        if (nextPool.length < 15) {
+            const backfill = availableWords.filter(w => currentGameWordIds.has(w.id));
+            nextPool = [...nextPool, ...backfill.sort(() => Math.random() - 0.5)];
+        }
+        
+        const shuffled = nextPool.slice(0, 15);
+        if (shuffled.length > 0) {
+            setGameWords(shuffled);
+            setCurrentIndex(0);
+            setIsFlipped(false);
+        }
     };
 
     // Keyboard support
@@ -230,7 +251,7 @@ export default function Flashcards() {
                 if (!currentWord) return <div className={styles.empty}>{t('common.noWords')}</div>;
 
                 const dictionary = dictionaries.find(d => d.id === dictId);
-                const progress = initialCount > 0 ? ((initialCount - gameWords.length + currentIndex) / initialCount) * 100 : 0;
+                const progress = gameWords.length > 0 ? ((currentIndex + 1) / gameWords.length) * 100 : 0;
 
                 return (
                     <div className={styles.gameArea}>
@@ -306,15 +327,24 @@ export default function Flashcards() {
                                 <ChevronLeft size={32} />
                             </button>
 
-
-                            <button
-                                onClick={handleNext}
-                                disabled={currentIndex === gameWords.length - 1}
-                                className={styles.navButton}
-                                title={t('games.nbackword.nextWord')}
-                            >
-                                <ChevronRight size={32} />
-                            </button>
+                            {currentIndex === gameWords.length - 1 ? (
+                                <div className={styles.endActions}>
+                                    <button onClick={handleRepeatSame} className={styles.againButton}>
+                                        {language === 'ru' ? 'Заново' : 'Again'}
+                                    </button>
+                                    <button onClick={handleNextBatch} className={styles.nextBatchButton}>
+                                        {language === 'ru' ? 'Дальше' : 'Next'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleNext}
+                                    className={styles.navButton}
+                                    title={t('games.nbackword.nextWord')}
+                                >
+                                    <ChevronRight size={32} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 );
