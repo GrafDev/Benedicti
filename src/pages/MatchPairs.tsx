@@ -9,6 +9,8 @@ import { soundService } from '../utils/soundUtils';
 import { saveRecentActivity } from '../utils/activity';
 import type { Word } from '../types';
 import styles from './MatchPairs.module.css';
+import { ref, get as dbGet, set as dbSet } from 'firebase/database';
+import { db } from '../firebase';
 
 interface MatchItem {
     id: string;
@@ -30,7 +32,7 @@ export default function MatchPairs() {
     const { dictId } = useParams<{ dictId: string }>();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
-    const { t } = useLanguage();
+    const { language, t } = useLanguage();
 
     const RANKS = useMemo<Rank[]>(() => [
         { id: 'citizen', name: t('ranks.citizen.name'), count: 4, icon: User, description: `4 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.citizen.desc')}` },
@@ -45,6 +47,7 @@ export default function MatchPairs() {
     const fetchWords = useDictionaryStore(state => state.fetchWords);
     const fetchSharedWords = useDictionaryStore(state => state.fetchSharedWords);
     const fetchDictionaries = useDictionaryStore(state => state.fetchDictionaries);
+    const answerWordLeitner = useDictionaryStore(state => state.answerWordLeitner);
     const dictionaries = useDictionaryStore(state => state.dictionaries);
     const storeWords = useDictionaryStore(state => state.words);
     const loading = useDictionaryStore(state => state.loading);
@@ -59,6 +62,7 @@ export default function MatchPairs() {
     const [correctIds, setCorrectIds] = useState<Set<string>>(new Set());
     const [wrongIds, setWrongIds] = useState<Set<string>>(new Set());
     const [transitioningIds, setTransitioningIds] = useState<Set<string>>(new Set());
+    const [newlyAppearingIds, setNewlyAppearingIds] = useState<Set<string>>(new Set());
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -80,6 +84,72 @@ export default function MatchPairs() {
     const [errors, setErrors] = useState(0);
     const timerRef = useRef<number | null>(null);
     const startTimeRef = useRef<number | null>(null);
+
+    const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
+
+    useEffect(() => {
+        const loadPerfectRanks = async () => {
+            const activeDictId = dictId || 'default';
+            
+            // 1. Load from localStorage as fallback
+            const localData: Record<string, boolean> = {};
+            RANKS.forEach(rank => {
+                const isPerfect = localStorage.getItem(`benedicti_match_perfect_${activeDictId}_${rank.id}`) === 'true';
+                if (isPerfect) {
+                    localData[rank.id] = true;
+                }
+            });
+            setPerfectRanks(localData);
+
+            // 2. Load from Firebase and merge
+            if (currentUser) {
+                try {
+                    const path = `users/${currentUser.uid}/matchPairsProgress/${activeDictId}`;
+                    const snapshot = await dbGet(ref(db, path));
+                    if (snapshot.exists()) {
+                        const fbData = snapshot.val() as Record<string, boolean>;
+                        setPerfectRanks(prev => ({
+                            ...prev,
+                            ...fbData
+                        }));
+                        // Sync to localStorage
+                        Object.entries(fbData).forEach(([rankId, value]) => {
+                            if (value) {
+                                localStorage.setItem(`benedicti_match_perfect_${activeDictId}_${rankId}`, 'true');
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Failed to load progression from Firebase:', e);
+                }
+            }
+        };
+
+        loadPerfectRanks();
+    }, [currentUser, dictId, RANKS]);
+
+    const resultTitle = useMemo(() => {
+        const isRu = language === 'ru';
+        if (errors === 0) {
+            return isRu ? "🏆 Идеальный результат!" : "🏆 Perfect Score!";
+        } else if (errors <= 3) {
+            return isRu ? "🎉 Отличная работа!" : "🎉 Great Job!";
+        } else if (errors <= 10) {
+            return isRu ? "👍 Хорошая попытка!" : "👍 Good Effort!";
+        } else {
+            return isRu ? "💪 Нужно больше тренироваться!" : "💪 Keep Practicing!";
+        }
+    }, [errors, language]);
+
+    const resultMessage = useMemo(() => {
+        if (errors === 0) {
+            return t('games.pairwords.conqueredRank', { rank: selectedRank?.name || '' });
+        } else {
+            return language === 'ru' 
+                ? "Для покорения ранга завершите игру без ошибок." 
+                : "To conquer the rank, complete the game without errors.";
+        }
+    }, [errors, selectedRank, language, t]);
 
     // Track activity
     useEffect(() => {
@@ -121,14 +191,22 @@ export default function MatchPairs() {
 
     // Setup session
     const startLevel = useCallback((rank: Rank) => {
-        if (storeWords.length < rank.count) {
+        const unlearned = storeWords.filter(w => !w.isLearned);
+        const now = Date.now();
+        const dueWords = unlearned.filter(w => !w.nextReview || w.nextReview <= now);
+        const notDueWords = unlearned.filter(w => w.nextReview && w.nextReview > now);
+
+        const shuffledDue = [...dueWords].sort(() => Math.random() - 0.5);
+        const shuffledNotDue = [...notDueWords].sort(() => Math.random() - 0.5);
+        let pool = [...shuffledDue, ...shuffledNotDue];
+
+        if (pool.length < rank.count) {
             alert(t('games.pairwords.notEnoughWords', { rank: rank.name, count: rank.count }));
             return;
         }
 
-        // Shuffle and take only 15 words for the session
-        const shuffled = [...storeWords].sort(() => Math.random() - 0.5);
-        const poolForSession = shuffled.slice(0, 15);
+        // Take only 15 words for the session
+        const poolForSession = pool.slice(0, 15);
 
         setAllWordsPool(poolForSession);
         setTotalPairs(poolForSession.length);
@@ -140,6 +218,7 @@ export default function MatchPairs() {
         setCorrectIds(new Set());
         setTransitioningIds(new Set());
         setWrongIds(new Set());
+        setNewlyAppearingIds(new Set());
 
         setSelectedRank(rank);
 
@@ -162,6 +241,29 @@ export default function MatchPairs() {
     }, [isEliteMode]);
 
     const isAllDone = matchedIds.size === allWordsPool.length && allWordsPool.length > 0;
+
+    useEffect(() => {
+        if (isAllDone && errors === 0 && selectedRank) {
+            const activeDictId = dictId || 'default';
+            
+            // 1. Update React state
+            setPerfectRanks(prev => ({
+                ...prev,
+                [selectedRank.id]: true
+            }));
+
+            // 2. Save to LocalStorage
+            localStorage.setItem(`benedicti_match_perfect_${activeDictId}_${selectedRank.id}`, 'true');
+
+            // 3. Save to Firebase
+            if (currentUser) {
+                const path = `users/${currentUser.uid}/matchPairsProgress/${activeDictId}/${selectedRank.id}`;
+                dbSet(ref(db, path), true).catch(e => {
+                    console.warn('Failed to save progression to Firebase:', e);
+                });
+            }
+        }
+    }, [isAllDone, errors, selectedRank, dictId, currentUser]);
 
     // Timer logic
     useEffect(() => {
@@ -230,14 +332,20 @@ export default function MatchPairs() {
             setSelectedLeftId(null);
             setSelectedRightId(null);
 
-            // Wait 1s and transition
+            // Record Leitner correct review
+            const matchedWord = allWordsPool.find(w => w.id === leftId);
+            if (matchedWord && currentUser) {
+                answerWordLeitner(currentUser.uid, matchedWord, true);
+            }
+
+            // Wait 600ms and transition
             setTimeout(() => {
                 setCorrectIds(prev => {
                     const next = new Set(prev);
                     next.delete(leftId);
                     return next;
                 });
-                // Phase 2: Show empty button for a bit to animate replacement
+                // Phase 2: Show empty slot for 1 second (1000ms delay) to animate replacement
                 setTransitioningIds(prev => new Set([...prev, leftId]));
 
                 setTimeout(() => {
@@ -247,13 +355,24 @@ export default function MatchPairs() {
                         next.delete(leftId);
                         return next;
                     });
-                }, 500);
+                }, 1000); // 1000ms delay!
             }, 600);
         } else {
             // Wrong
             soundService.playErrorSound();
             setErrors(prev => prev + 1);
             setWrongIds(new Set([leftId, rightId]));
+
+            // Record Leitner incorrect review for both words involved in the incorrect match
+            const leftWord = allWordsPool.find(w => w.id === leftId);
+            const rightWord = allWordsPool.find(w => w.id === rightId);
+            if (leftWord && currentUser) {
+                answerWordLeitner(currentUser.uid, leftWord, false);
+            }
+            if (rightWord && currentUser) {
+                answerWordLeitner(currentUser.uid, rightWord, false);
+            }
+
             setTimeout(() => {
                 setWrongIds(new Set());
                 setSelectedLeftId(null);
@@ -277,6 +396,24 @@ export default function MatchPairs() {
         // Pick next word from pool
         const nextWord = allWordsPool[nextWordIndex.current];
         nextWordIndex.current += 1;
+
+        if (nextWord) {
+            // Mark new word as currently appearing (non-clickable, fading in)
+            setNewlyAppearingIds(prev => {
+                const next = new Set(prev);
+                next.add(nextWord.id);
+                return next;
+            });
+
+            // Remove from newlyAppearingIds after 1 second (1000ms)
+            setTimeout(() => {
+                setNewlyAppearingIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(nextWord.id);
+                    return next;
+                });
+            }, 1000);
+        }
 
         setLeftColumn(prev => prev.map(item =>
             item?.id === oldId
@@ -368,14 +505,29 @@ export default function MatchPairs() {
             </div>
 
             <div className={styles.rankGrid}>
-                {RANKS.map((rank) => {
-                    const isLocked = storeWords.length < rank.count;
+                {RANKS.map((rank, index) => {
+                    // 1. First rank is always available (if words pool is large enough)
+                    // 2. Subsequent ranks require the previous rank to be completed with 0 errors
+                    const isPreviousPerfect = index === 0 || perfectRanks[RANKS[index - 1].id] === true;
+
+                    const hasEnoughWords = storeWords.length >= rank.count;
+                    const isLocked = !hasEnoughWords || !isPreviousPerfect;
+
+                    let lockReason = '';
+                    if (!hasEnoughWords) {
+                        lockReason = t('games.pairwords.notEnoughWords', { rank: rank.name, count: rank.count });
+                    } else if (!isPreviousPerfect) {
+                        lockReason = language === 'ru'
+                            ? `🔒 Требуется идеальный ранг "${RANKS[index - 1].name}" (0 ошибок)`
+                            : `🔒 Requires perfect score on "${RANKS[index - 1].name}" rank`;
+                    }
+
                     return (
                         <button
                             key={rank.id}
                             className={`${styles.rankCard} ${isLocked ? styles.locked : ''}`}
                             onClick={() => !isLocked && startLevel(rank)}
-                            disabled={loading}
+                            disabled={loading || isLocked}
                         >
                             <div className={styles.rankIcon}>
                                 <rank.icon size={32} />
@@ -383,7 +535,11 @@ export default function MatchPairs() {
                             <div className={styles.rankDetails}>
                                 <h3 className={styles.rankName}>{rank.name}</h3>
                                 <div className={styles.rankDetailSub}>
-                                    {rank.description}
+                                    {isLocked ? (
+                                        <span className={styles.lockReasonText}>{lockReason}</span>
+                                    ) : (
+                                        rank.description
+                                    )}
                                 </div>
                             </div>
                         </button>
@@ -468,9 +624,10 @@ export default function MatchPairs() {
                                                     className={`${styles.card} 
                                                         ${selectedLeftId === item.id ? styles.selected : ''} 
                                                         ${correctIds.has(item.id) ? styles.correct : ''} 
-                                                        ${wrongIds.has(item.id) && selectedLeftId === item.id ? styles.wrong : ''}`}
+                                                        ${wrongIds.has(item.id) && selectedLeftId === item.id ? styles.wrong : ''}
+                                                        ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}`}
                                                     onClick={() => handleChoice(item.id, true)}
-                                                    disabled={transitioningIds.has(item.id)}
+                                                    disabled={transitioningIds.has(item.id) || newlyAppearingIds.has(item.id)}
                                                 >
                                                     {!transitioningIds.has(item.id) && (
                                                         isEliteMode ? <Volume2 size={24} /> : item.text
@@ -487,9 +644,10 @@ export default function MatchPairs() {
                                                     className={`${styles.card} 
                                                         ${selectedRightId === item.id ? styles.selected : ''} 
                                                         ${correctIds.has(item.id) ? styles.correct : ''} 
-                                                        ${wrongIds.has(item.id) && selectedRightId === item.id ? styles.wrong : ''}`}
+                                                        ${wrongIds.has(item.id) && selectedRightId === item.id ? styles.wrong : ''}
+                                                        ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}`}
                                                     onClick={() => handleChoice(item.id, false)}
-                                                    disabled={transitioningIds.has(item.id)}
+                                                    disabled={transitioningIds.has(item.id) || newlyAppearingIds.has(item.id)}
                                                 >
                                                     {!transitioningIds.has(item.id) && item.text}
                                                 </button>
@@ -504,8 +662,8 @@ export default function MatchPairs() {
                                     <div className={styles.successIcon}>
                                         <Sparkles size={64} />
                                     </div>
-                                    <h2>🎉 {t('common.greatJob')}</h2>
-                                    <p>{t('games.pairwords.conqueredRank', { rank: selectedRank?.name || '' })}</p>
+                                    <h2>{resultTitle}</h2>
+                                    <p>{resultMessage}</p>
 
                                     <div className={styles.finalStatsGrid}>
                                         <div className={styles.finalStatCard}>

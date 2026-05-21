@@ -45,6 +45,7 @@ export default function NBack() {
     const fetchWords = useDictionaryStore(state => state.fetchWords);
     const fetchSharedWords = useDictionaryStore(state => state.fetchSharedWords);
     const fetchDictionaries = useDictionaryStore(state => state.fetchDictionaries);
+    const answerWordLeitner = useDictionaryStore(state => state.answerWordLeitner);
     const dictionaries = useDictionaryStore(state => state.dictionaries);
     const storeWords = useDictionaryStore(state => state.words);
     const loading = useDictionaryStore(state => state.loading);
@@ -189,7 +190,15 @@ export default function NBack() {
     }, []);
 
     const startMemorizing = async (rank: Rank) => {
-        let pool = [...storeWords];
+        // Filter out learned words and prioritize due words
+        const unlearned = storeWords.filter(w => !w.isLearned);
+        const now = Date.now();
+        const dueWords = unlearned.filter(w => !w.nextReview || w.nextReview <= now);
+        const notDueWords = unlearned.filter(w => w.nextReview && w.nextReview > now);
+
+        const shuffledDue = [...dueWords].sort(() => Math.random() - 0.5);
+        const shuffledNotDue = [...notDueWords].sort(() => Math.random() - 0.5);
+        let pool = [...shuffledDue, ...shuffledNotDue];
 
         if (pool.length < SESSION_SIZE) {
             try {
@@ -296,6 +305,11 @@ export default function NBack() {
             const newScore = score + 1;
             setScore(newScore);
 
+            // Record Leitner correct review
+            if (currentUser) {
+                answerWordLeitner(currentUser.uid, targetWord, true);
+            }
+
             // Audio feedback for correct answer
             const currentDict = dictionaries.find(d => d.id === dictId);
             const answerSide = targetWord.displaySide === 'original' ? 'translation' : 'original';
@@ -317,6 +331,12 @@ export default function NBack() {
             soundService.playErrorSound();
             setErrorWordId(chosenWord.id);
             setPenaltySeconds(prev => prev + 1);
+
+            // Record Leitner incorrect review
+            if (currentUser) {
+                answerWordLeitner(currentUser.uid, targetWord, false);
+            }
+
             setTimeout(() => {
                 setErrorWordId(null);
             }, 600);

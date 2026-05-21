@@ -53,9 +53,8 @@ export default function Profile() {
         let isMounted = true;
         const loadProfile = async () => {
             if (currentUser) {
-                if (currentUser.displayName) {
-                    setName(currentUser.displayName);
-                }
+                const defaultName = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User');
+                setName(defaultName);
                 await fetchProfile(currentUser.uid);
                 
                 if (!isMounted) return;
@@ -64,8 +63,8 @@ export default function Profile() {
                 if (latestProfile) {
                     setIsTeacherLocal(latestProfile.isTeacher || false);
                 }
-                if (latestProfile && !latestProfile.beneId && currentUser.displayName) {
-                    await generateBeneId(currentUser.uid, currentUser.displayName);
+                if (latestProfile && !latestProfile.beneId) {
+                    await generateBeneId(currentUser.uid, defaultName);
                 }
 
                 // Resolve student names if any

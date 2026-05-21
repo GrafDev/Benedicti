@@ -18,7 +18,6 @@ export default function Flashcards() {
     const fetchWords = useDictionaryStore(state => state.fetchWords);
     const fetchSharedWords = useDictionaryStore(state => state.fetchSharedWords);
     const fetchDictionaries = useDictionaryStore(state => state.fetchDictionaries);
-    const markWordAsLearned = useDictionaryStore(state => state.markWordAsLearned);
     const dictionaries = useDictionaryStore(state => state.dictionaries);
     const storeWords = useDictionaryStore(state => state.words);
     const loading = useDictionaryStore(state => state.loading);
@@ -138,23 +137,7 @@ export default function Flashcards() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleNext, handlePrev]);
 
-    const handleMarkLearned = async () => {
-        if (!currentUser) return;
 
-        const currentWord = gameWords[currentIndex];
-
-        // 1. Call store to mark in DB
-        await markWordAsLearned(currentUser.uid, currentWord);
-
-        // 2. Locally remove it from gameWords immediately for smooth UI
-        const nextWords = gameWords.filter((_, idx) => idx !== currentIndex);
-        setGameWords(nextWords);
-
-        if (currentIndex >= nextWords.length && nextWords.length > 0) {
-            setCurrentIndex(nextWords.length - 1);
-        }
-        setIsFlipped(false);
-    };
 
     const isInitialLoading = loading && storeWords.length === 0;
 
@@ -323,14 +306,6 @@ export default function Flashcards() {
                                 <ChevronLeft size={32} />
                             </button>
 
-                            <button
-                                onClick={handleMarkLearned}
-                                className={styles.learnedButton}
-                                title={t('common.learned')}
-                                disabled={!currentUser}
-                            >
-                                {t('common.learned')}
-                            </button>
 
                             <button
                                 onClick={handleNext}

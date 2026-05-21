@@ -34,6 +34,7 @@ interface DictionaryState {
     updateWord: (userId: string, dictionaryId: string, wordId: string, data: Partial<Pick<Word, 'original' | 'translation'>>) => Promise<void>;
     deleteWord: (userId: string, dictionaryId: string, wordId: string) => Promise<void>;
     markWordAsLearned: (userId: string, word: Word) => Promise<void>;
+    answerWordLeitner: (userId: string, word: Word, isCorrect: boolean) => Promise<void>;
     ensureLearnedDictionaryExists: (userId: string) => Promise<void>;
 
     // Shared dictionary operations
@@ -293,46 +294,75 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
     // ─── Words ───────────────────────────────────────────────────────────────────
 
     fetchWords: async (userId: string | undefined, dictionaryId: string) => {
-        // Instant response for embedded dictionary OR for guests
-        if (dictionaryId === 'default' || dictionaryId === 'dict2500' || !userId) {
-            set(state => ({ ...state, words: defaultWords, loading: false, error: null }));
+        if (dictionaryId === 'default' || dictionaryId === 'dict2500') {
+            await get().fetchSharedWords(userId);
             return;
+        }
+
+        if (!userId) {
+            set(state => ({ ...state, words: [], loading: false, error: null }));
+            return;
+        }
+
+        // Safeguard: Ensure dictionaries are loaded first so we know ownerId/isTeacherDict/isShared
+        const hasDict = get().dictionaries.some(d => d.id === dictionaryId);
+        if (!hasDict) {
+            try {
+                await get().fetchDictionaries(userId);
+            } catch (e) {
+                console.warn('Safeguard fetchDictionaries failed:', e);
+            }
         }
 
         set(state => ({ ...state, loading: true, error: null, words: [] }));
         try {
             // Find dictionary metadata to determine the path
             const dict = get().dictionaries.find(d => d.id === dictionaryId);
+            const isForeign = dict ? (dict.userId !== userId || dict.isShared || dict.isTeacherDict) : false;
 
             let path;
-            if (dictionaryId === 'default' || (dict && dict.isShared)) {
-                path = `shared/dictionaries/${dictionaryId === 'default' ? 'dict2500' : dictionaryId}/words`;
-            } else if (userId && dictionaryId) {
-                if (dict?.isTeacherDict) {
-                    path = `users/${dict.userId}/dictionaries/${dictionaryId}/words`;
-                } else {
-                    path = `users/${userId}/dictionaries/${dictionaryId}/words`;
-                }
-            } else {
-                // For guests with non-default dictionaries that aren't marked as shared 
-                // we'll try the shared path just in case, but usually this shouldn't happen
+            if (dict && dict.isShared) {
                 path = `shared/dictionaries/${dictionaryId}/words`;
+            } else {
+                const ownerId = dict?.isTeacherDict ? dict.userId : (dict?.userId || userId);
+                path = `users/${ownerId}/dictionaries/${dictionaryId}/words`;
             }
 
-            console.log(`📡 Fetching words from path: ${path}`);
-            const snapshot = await dbGet(ref(db, path));
+            console.log(`📡 Fetching words from path: ${path} (isForeign: ${isForeign})`);
+            
+            // Parallel fetch: words and user's private progress for this foreign dictionary
+            const [snapshot, progressSnapshot] = await Promise.all([
+                dbGet(ref(db, path)),
+                isForeign ? dbGet(ref(db, `users/${userId}/dictionaryProgress/${dictionaryId}`)) : Promise.resolve(null)
+            ]);
+
+            const personalProgress = progressSnapshot && progressSnapshot.exists() ? progressSnapshot.val() : {};
             const words_list: Word[] = [];
+
             if (snapshot.exists()) {
                 snapshot.forEach((child) => {
                     const data = child.val();
+                    const wordId = child.key!;
+
+                    let box = data.box || 0;
+                    let nextReview = data.nextReview || Date.now();
+                    let isLearned = data.isLearned || false;
+
+                    if (isForeign && personalProgress[wordId]) {
+                        const prog = personalProgress[wordId];
+                        box = prog.box !== undefined ? prog.box : box;
+                        nextReview = prog.nextReview !== undefined ? prog.nextReview : nextReview;
+                        isLearned = prog.isLearned !== undefined ? prog.isLearned : isLearned;
+                    }
+
                     words_list.push({
-                        id: child.key!,
+                        id: wordId,
                         dictionaryId,
                         original: get().cleanText(data.original),
                         translation: get().cleanText(data.translation),
-                        box: data.box || 0,
-                        nextReview: data.nextReview || Date.now(),
-                        isLearned: data.isLearned || false,
+                        box,
+                        nextReview,
+                        isLearned,
                         createdAt: data.createdAt || Date.now(),
                     });
                 });
@@ -458,10 +488,17 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
         try {
             // 1. Fetch user's learned shared words list first to filter them
             let learnedIds: Record<string, boolean> = {};
+            let sharedProgress: Record<string, { box: number, nextReview: number }> = {};
             if (userId) {
                 const learnedSnapshot = await dbGet(ref(db, `users/${userId}/learnedSharedWords`));
                 if (learnedSnapshot.exists()) {
                     learnedIds = learnedSnapshot.val() || {};
+                }
+
+                // Fetch user's progress for shared words
+                const progressSnapshot = await dbGet(ref(db, `users/${userId}/sharedWordsProgress`));
+                if (progressSnapshot.exists()) {
+                    sharedProgress = progressSnapshot.val() || {};
                 }
             }
 
@@ -484,13 +521,14 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                     if (learnedIds[child.key!]) return;
 
                     const data = child.val();
+                    const progress = sharedProgress[child.key!];
                     words_list.push({
                         id: child.key!,
                         dictionaryId: 'default', // Special ID
                         original: clean(data.original),
                         translation: clean(data.translation),
-                        box: 0,
-                        nextReview: Date.now(),
+                        box: progress?.box || 0,
+                        nextReview: progress?.nextReview || Date.now(),
                         createdAt: Date.now(),
                     });
                 });
@@ -588,13 +626,20 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
             });
 
             // 3. Handle source tracking
+            const dict = get().dictionaries.find(d => d.id === word.dictionaryId);
+            const isForeign = dict ? (dict.userId !== userId || dict.isShared || dict.isTeacherDict) : false;
+
             if (word.dictionaryId === 'default') {
                 // Mark in shared list for user
                 await dbSet(ref(db, `users/${userId}/learnedSharedWords/${word.id}`), true);
+            } else if (isForeign) {
+                // Mark as learned in personal progress for this foreign dictionary
+                await update(ref(db, `users/${userId}/dictionaryProgress/${word.dictionaryId}/${word.id}`), {
+                    isLearned: true,
+                    box: 5
+                });
             } else {
-                // Mark in the original personal dictionary
-                // We need to find the word in the original dictionary and mark it
-                // Note: word.id might be the key already
+                // Mark in the original own dictionary
                 await update(ref(db, `users/${userId}/dictionaries/${word.dictionaryId}/words/${word.id}`), {
                     isLearned: true
                 });
@@ -608,6 +653,73 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
 
         } catch (error: any) {
             console.error('markWordAsLearned error:', error);
+            set(state => ({ ...state, error: error.message }));
+        }
+    },
+
+    answerWordLeitner: async (userId: string, word: Word, isCorrect: boolean) => {
+        try {
+            const LEITNER_INTERVALS = [
+                0,                        // Box 0: immediate
+                24 * 60 * 60 * 1000,      // Box 1: 1 day (24h)
+                3 * 24 * 60 * 60 * 1000,  // Box 2: 3 days
+                7 * 24 * 60 * 60 * 1000,  // Box 3: 7 days
+                14 * 24 * 60 * 60 * 1000, // Box 4: 14 days
+                30 * 24 * 60 * 60 * 1000  // Box 5: 30 days
+            ];
+
+            let newBox = 0;
+            if (isCorrect) {
+                newBox = Math.min((word.box || 0) + 1, 5);
+            } else {
+                newBox = 0; // Reset to box 0 on error
+            }
+
+            const nextReview = Date.now() + LEITNER_INTERVALS[newBox];
+
+            // 1. If it reached Box 5 (graduated), mark as learned and move to "Выученные слова"
+            if (isCorrect && newBox === 5) {
+                await get().markWordAsLearned(userId, word);
+                return;
+            }
+
+            // 2. Otherwise update box & nextReview
+            const dict = get().dictionaries.find(d => d.id === word.dictionaryId);
+            const isForeign = dict ? (dict.userId !== userId || dict.isShared || dict.isTeacherDict) : false;
+
+            if (word.dictionaryId === 'default') {
+                // Update in user-specific shared progress
+                await update(ref(db, `users/${userId}/sharedWordsProgress/${word.id}`), {
+                    box: newBox,
+                    nextReview
+                });
+            } else if (isForeign) {
+                // Update in personal progress for this foreign dictionary
+                await update(ref(db, `users/${userId}/dictionaryProgress/${word.dictionaryId}/${word.id}`), {
+                    box: newBox,
+                    nextReview,
+                    isLearned: false
+                });
+            } else {
+                // Update in the original dictionary
+                await update(ref(db, `users/${userId}/dictionaries/${word.dictionaryId}/words/${word.id}`), {
+                    box: newBox,
+                    nextReview
+                });
+            }
+
+            // 3. Update local state
+            set(state => ({
+                ...state,
+                words: state.words.map(w => 
+                    w.id === word.id 
+                        ? { ...w, box: newBox, nextReview } 
+                        : w
+                )
+            }));
+
+        } catch (error: any) {
+            console.error('answerWordLeitner error:', error);
             set(state => ({ ...state, error: error.message }));
         }
     },
@@ -708,37 +820,41 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
     fetchProfile: async (userId: string) => {
         try {
             const snapshot = await dbGet(ref(db, `users/${userId}/profile`));
+            
+            // Fetch teachers from shared relations
+            const teachersSnap = await dbGet(ref(db, `shared/relations/student_teachers/${userId}`));
+            const teachersList = teachersSnap.exists() ? Object.keys(teachersSnap.val()) : [];
+
+            // Fetch students from shared relations
+            const studentsSnap = await dbGet(ref(db, `shared/relations/teacher_students/${userId}`));
+            const studentsList = studentsSnap.exists() ? Object.keys(studentsSnap.val()) : [];
+
             if (snapshot.exists()) {
                 const data = snapshot.val();
-
-                // Fetch teachers from shared relations
-                const teachersSnap = await dbGet(ref(db, `shared/relations/student_teachers/${userId}`));
-                const teachersList = teachersSnap.exists() ? Object.keys(teachersSnap.val()) : [];
 
                 set(state => ({
                     ...state,
                     userProfile: {
                         isTeacher: data.isTeacher || false,
                         beneId: data.beneId,
-                        students: data.students ? Object.keys(data.students) : [],
+                        students: studentsList,
                         teachers: teachersList
                     }
                 }));
             } else {
-                // Fetch teachers even if profile node is missing
-                const teachersSnap = await dbGet(ref(db, `shared/relations/student_teachers/${userId}`));
-                const teachersList = teachersSnap.exists() ? Object.keys(teachersSnap.val()) : [];
-
                 set(state => ({
                     ...state,
-                    userProfile: { isTeacher: false, students: [], teachers: teachersList, beneId: undefined }
+                    userProfile: { isTeacher: false, students: studentsList, teachers: teachersList, beneId: undefined }
                 }));
             }
 
-            // Resolve teacher names if any
+            // Resolve teacher and student names if any
             const profile = get().userProfile;
-            if (profile && profile.teachers.length > 0) {
-                get().resolveBeneIds(profile.teachers);
+            if (profile) {
+                const uidsToResolve = [...profile.teachers, ...profile.students];
+                if (uidsToResolve.length > 0) {
+                    get().resolveBeneIds(uidsToResolve);
+                }
             }
         } catch (error) {
             console.error('fetchProfile error:', error);
@@ -761,7 +877,10 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
     generateBeneId: async (userId: string, name: string) => {
         try {
             // 1. Sanitize name
-            const sanitized = name.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9а-яА-Я_]/g, '');
+            let sanitized = name.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9а-яА-Я_]/g, '');
+            if (!sanitized) {
+                sanitized = 'User';
+            }
 
             // 2. Get or create user number
             const profileRef = ref(db, `users/${userId}/profile`);

@@ -424,6 +424,11 @@
     color: #94a3b8;
 }
 
+.lockReasonText {
+    color: #fca5a5;
+    font-weight: 500;
+}
+
 .rankDescSmall {
     font-size: 0.75rem;
     color: #64748b;
@@ -857,4 +862,21 @@
     font-size: 1.25rem;
     color: #94a3b8;
     margin-top: 20dvh;
+}
+
+.appearing {
+    animation: slowFadeIn 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    pointer-events: none !important;
+    user-select: none;
+}
+
+@keyframes slowFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
