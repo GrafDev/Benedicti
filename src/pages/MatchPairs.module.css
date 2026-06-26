@@ -1,16 +1,19 @@
 .container {
     min-height: calc(100dvh - 4.5rem);
     width: 100%;
-    background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%);
+    background:
+        linear-gradient(120deg, rgba(13, 148, 136, 0.18) 0%, transparent 34%),
+        linear-gradient(250deg, rgba(245, 158, 11, 0.13) 0%, transparent 31%),
+        linear-gradient(180deg, #101827 0%, #172033 48%, #0d1422 100%);
     color: #f8fafc;
-    padding: 1rem;
+    padding: 1.25rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
     position: relative;
-    width: 100%; /* CRITICAL: Syncs flex child boundaries with viewport, enabling native grid wraps */
+    width: 100%;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -24,7 +27,7 @@
     height: 44px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    border-radius: 8px;
     color: #94a3b8;
     display: flex;
     align-items: center;
@@ -40,13 +43,18 @@
     transform: translateX(-3px);
 }
 
-.setupContainer {
-    max-width: 1000px;
-    width: 100%;
-    text-align: center;
-    padding-bottom: 2rem;
+.setupShell {
+    width: min(1180px, 100%);
     margin: 0 auto;
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.45s ease-out;
+    padding-top: 0.25rem;
+}
+
+.setupContainer {
+    width: 100%;
+    text-align: left;
+    padding-bottom: 1rem;
+    margin: 0 auto;
     transition: all 0.3s ease;
 }
 
@@ -55,35 +63,29 @@
     padding-bottom: 0.5rem;
 }
 
-.royalTitle {
-    font-size: clamp(1.5rem, 5vw, 3.5rem);
-    font-weight: 900;
-    margin-bottom: 1.5rem;
-    background: linear-gradient(to bottom, #fde047 0%, #d4af37 50%, #a16207 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
-    transition: all 0.3s ease;
-}
-
 .setupToolbar {
     display: flex;
     flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
+    justify-content: space-between;
+    gap: 1rem;
     width: 100%;
-    margin-bottom: 2rem;
-    flex-wrap: nowrap; 
+    margin-bottom: 1rem;
+    flex-wrap: nowrap;
+    padding: 0.85rem;
+    background: rgba(8, 13, 24, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(14px);
 }
 
 .setupControls {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 1.5rem;
+    gap: 0.75rem;
+    min-width: 0;
 }
 
 .mobileSetupToggle {
@@ -94,16 +96,19 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 1rem;
+    gap: 0.85rem;
+    min-width: 0;
+    flex: 1;
 }
 
 .backButtonInline {
-    width: 44px;
-    height: 44px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    color: #94a3b8;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    color: #cbd5e1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -112,14 +117,15 @@
 }
 
 .backButtonInline:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(20, 184, 166, 0.13);
+    border-color: rgba(45, 212, 191, 0.42);
     color: #fff;
     transform: translateX(-3px);
 }
 
 .setupToolbar .royalTitle {
     margin: 0 !important;
-    font-size: clamp(1.2rem, 3vw, 2rem);
+    font-size: 1.9rem;
 }
 
 .setupToolbar .dictSelector,
@@ -138,15 +144,24 @@
 }
 
 .royalTitle {
-    font-size: clamp(2rem, 8vw, 3.5rem);
+    font-size: 2.15rem;
     font-weight: 900;
-    margin-bottom: 2.5rem;
-    background: linear-gradient(to bottom, #fde047 0%, #d4af37 50%, #a16207 100%);
+    margin: 0;
+    background: linear-gradient(90deg, #fef3c7 0%, #fbbf24 45%, #2dd4bf 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+    letter-spacing: 0;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35));
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+}
+
+.setupSubtitle {
+    margin: 0.25rem 0 0;
+    color: #9fb0c8;
+    font-size: 0.82rem;
+    font-weight: 600;
 }
 
 .gameArea {
@@ -165,8 +180,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 1rem;
-    width: 100%;
+    margin-bottom: 0;
+    width: auto;
     position: relative;
     z-index: 10;
 }
@@ -174,32 +189,38 @@
 .selectorHeader {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(253, 224, 71, 0.2);
-    padding: 0.6rem 1.5rem;
-    border-radius: 999px;
+    gap: 0.7rem;
+    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    padding: 0.62rem 0.9rem;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 44px;
+    max-width: 100%;
 }
 
 .selectorHeader:hover {
-    background: rgba(253, 224, 71, 0.1);
-    border-color: #fbbf24;
+    background: rgba(20, 184, 166, 0.1);
+    border-color: rgba(45, 212, 191, 0.45);
 }
 
 .selectorLabel {
     font-size: 0.8rem;
     text-transform: uppercase;
-    color: #94a3b8;
-    letter-spacing: 0.1em;
+    color: #8fa1ba;
+    letter-spacing: 0;
     font-weight: 700;
 }
 
 .activeDictName {
-    color: #fbbf24;
+    color: #f8fafc;
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    max-width: 210px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chevron {
@@ -213,18 +234,24 @@
 }
 
 .dictOptions {
-    margin-top: 0.75rem;
+    margin-top: 0.6rem;
+    position: absolute;
+    right: 0;
+    top: 100%;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0.5rem;
     padding: 1rem;
-    background: rgba(15, 23, 42, 0.8);
+    background: rgba(8, 13, 24, 0.96);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 1.5rem;
-    max-width: 90%;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    width: min(420px, calc(100vw - 2.5rem));
     animation: slideDown 0.3s ease-out;
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.42);
+    max-height: min(360px, calc(100dvh - 8rem));
+    overflow-y: auto;
 }
 
 @keyframes slideDown {
@@ -233,11 +260,11 @@
 }
 
 .dictTab {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    color: #cbd5e1;
     padding: 0.5rem 1.25rem;
-    border-radius: 999px;
+    border-radius: 8px;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -246,19 +273,19 @@
 }
 
 .dictTab:hover {
-    background: rgba(212, 175, 55, 0.2);
+    background: rgba(20, 184, 166, 0.16);
     color: #fff;
-    border-color: #d4af37;
+    border-color: rgba(45, 212, 191, 0.5);
 }
 
 .activeTab {
-    background: rgba(251, 191, 36, 0.2);
-    border-color: #fbbf24;
-    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.18);
+    border-color: rgba(251, 191, 36, 0.55);
+    color: #fef3c7;
 }
 
 .difficultyContainer {
-    margin: 2rem 0;
+    margin: 0;
     display: flex;
     justify-content: center;
 }
@@ -266,9 +293,10 @@
 .toggleLabel {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.7rem;
     cursor: pointer;
     user-select: none;
+    min-height: 44px;
 }
 
 .hiddenCheckbox {
@@ -276,8 +304,8 @@
 }
 
 .customToggle {
-    width: 3.5rem;
-    height: 1.75rem;
+    width: 3.25rem;
+    height: 1.65rem;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 999px;
@@ -286,67 +314,281 @@
 }
 
 .customToggle.active {
-    background: rgba(251, 191, 36, 0.2);    border-color: #fbbf24;
+    background: rgba(20, 184, 166, 0.22);
+    border-color: #2dd4bf;
 }
 
 .toggleThumb {
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 1.5rem;
-    height: 1.5rem;
-    background: #94a3b8;
+    width: 1.4rem;
+    height: 1.4rem;
+    background: #a8b3c5;
     border-radius: 50%;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .active .toggleThumb {
-    transform: translateX(1.75rem);
-    background: linear-gradient(to bottom, #fde047, #d4af37);
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    transform: translateX(1.58rem);
+    background: linear-gradient(to bottom, #ccfbf1, #2dd4bf);
+    box-shadow: 0 0 12px rgba(45, 212, 191, 0.45);
 }
 
 .toggleText {
     font-size: 0.9rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #94a3b8;
+    letter-spacing: 0;
+    color: #9fb0c8;
     transition: color 0.3s;
     white-space: nowrap;
     text-align: left;
+    max-width: 230px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .active .toggleText {
-    color: #fbbf24;
+    color: #99f6e4;
+}
+
+.setupSummary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.summaryItem {
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.8rem 0.95rem;
+    background: rgba(15, 23, 42, 0.62);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 8px;
+    color: #dbeafe;
+    min-width: 0;
+}
+
+.summaryItem svg {
+    color: #2dd4bf;
+    flex-shrink: 0;
+}
+
+.summaryLabel {
+    color: #90a4bf;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.summaryItem strong {
+    margin-left: auto;
+    color: #fef3c7;
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.setupBody {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+    margin-top: 0.25rem;
+}
+
+.rankPath {
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    background: rgba(8, 13, 24, 0.58);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 8px;
+}
+
+.pathStep {
+    position: relative;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 60px;
+    padding: 0.55rem;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    color: #e2e8f0;
+}
+
+.pathStep::after {
+    content: '';
+    position: absolute;
+    left: 29px;
+    bottom: -0.42rem;
+    width: 2px;
+    height: 0.5rem;
+    background: rgba(148, 163, 184, 0.22);
+}
+
+.pathStep:last-child::after {
+    display: none;
+}
+
+.pathMarker {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-radius: 8px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.24), rgba(15, 23, 42, 0.45));
+    color: #5eead4;
+    overflow: hidden;
+}
+
+.pathBadge {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.32));
+}
+
+.pathStateIcon {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 17px;
+    height: 17px;
+    padding: 2px;
+    border-radius: 8px;
+    background: rgba(8, 13, 24, 0.84);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.pathCopy {
+    min-width: 0;
+}
+
+.pathCopy span,
+.pathCopy small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pathCopy span {
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.pathCopy small {
+    color: #8fa1ba;
+    font-size: 0.72rem;
+    margin-top: 0.1rem;
+}
+
+.pathCount {
+    color: #667894;
+    font-size: 0.74rem;
+    font-weight: 900;
+}
+
+.readyPath {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(15, 23, 42, 0.78));
+    border-color: rgba(45, 212, 191, 0.42);
+    box-shadow: inset 3px 0 0 rgba(45, 212, 191, 0.8);
+}
+
+.readyPath .pathMarker {
+    background: rgba(20, 184, 166, 0.28);
+    color: #ccfbf1;
+}
+
+.readyPath .pathBadge {
+    filter: saturate(1.12) drop-shadow(0 7px 11px rgba(45, 212, 191, 0.25));
+}
+
+.readyPath .pathCount {
+    color: #5eead4;
+}
+
+.perfectPath {
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.28), rgba(20, 83, 45, 0.54));
+    border-color: rgba(74, 222, 128, 0.52);
+    box-shadow: inset 3px 0 0 rgba(34, 197, 94, 0.95);
+}
+
+.perfectPath .pathMarker {
+    background: rgba(34, 197, 94, 0.32);
+    color: #dcfce7;
+}
+
+.perfectPath .pathBadge {
+    filter: saturate(1.15) drop-shadow(0 7px 12px rgba(74, 222, 128, 0.28));
+}
+
+.perfectPath .pathCount {
+    color: #86efac;
+}
+
+.lockedPath {
+    color: #78879d;
+    background: rgba(15, 23, 42, 0.38);
+    border-color: rgba(148, 163, 184, 0.08);
+}
+
+.lockedPath .pathMarker {
+    background: rgba(148, 163, 184, 0.08);
+    color: #7d8ba1;
+}
+
+.lockedPath .pathBadge {
+    opacity: 0.46;
+    filter: grayscale(0.78) saturate(0.58) drop-shadow(0 4px 7px rgba(0, 0, 0, 0.2));
 }
 
 .rankGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
-    gap: 1.5rem;
-    margin: 1rem auto 0;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+    gap: 0.85rem;
+    margin: 0;
     justify-content: center;
-    max-width: 1000px;
     width: 100%;
     box-sizing: border-box;
-    padding: 0 1rem;
+    padding: 0;
 }
 
 .rankCard {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    border-radius: 1.5rem;
-    padding: 1.5rem;
+    min-height: 292px;
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.86), rgba(15, 23, 42, 0.76));
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
+    padding: 0.9rem;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 1.25rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
     text-align: left;
     width: 100%;
+    min-width: 0;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
 }
 
 .finalStatsGrid {
@@ -360,7 +602,7 @@
 .finalStatCard {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 1rem;
+    border-radius: 8px;
     padding: 1rem;
     display: flex;
     flex-direction: column;
@@ -371,7 +613,7 @@
 .finalStatLabel {
     font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0;
     color: #94a3b8;
     font-weight: 700;
 }
@@ -390,43 +632,165 @@
 }
 
 .rankCard:hover:not(.locked) {
-    background: rgba(212, 175, 55, 0.15);
-    border-color: #d4af37;
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    background: linear-gradient(180deg, rgba(20, 184, 166, 0.18), rgba(30, 41, 59, 0.86));
+    border-color: rgba(45, 212, 191, 0.56);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 35px rgba(0,0,0,0.35);
 }
 
-.rankIcon {
-    width: 56px;
-    height: 56px;
-    background: rgba(212, 175, 55, 0.1);
-    border-radius: 1rem;
+.ready {
+    background:
+        linear-gradient(180deg, rgba(20, 184, 166, 0.24), rgba(15, 23, 42, 0.82)),
+        linear-gradient(90deg, rgba(45, 212, 191, 0.2), transparent 34%);
+    border-color: rgba(45, 212, 191, 0.52);
+    box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.08), 0 16px 34px rgba(8, 13, 24, 0.26);
+}
+
+.ready:hover {
+    background:
+        linear-gradient(180deg, rgba(20, 184, 166, 0.32), rgba(15, 23, 42, 0.78)),
+        linear-gradient(90deg, rgba(45, 212, 191, 0.26), transparent 36%);
+    border-color: rgba(94, 234, 212, 0.7);
+}
+
+.ready .rankBadgeStage {
+    background:
+        radial-gradient(circle at 50% 42%, rgba(94, 234, 212, 0.24), transparent 52%),
+        rgba(20, 184, 166, 0.12);
+    border-color: rgba(94, 234, 212, 0.32);
+}
+
+.ready .rankBadge {
+    filter: saturate(1.12) drop-shadow(0 18px 28px rgba(45, 212, 191, 0.22));
+}
+
+.rankBadgeStage {
+    width: min(158px, 78%);
+    aspect-ratio: 1;
+    align-self: center;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fde047;
-    flex-shrink: 0;
+    border-radius: 8px;
+    background:
+        radial-gradient(circle at 50% 40%, rgba(148, 163, 184, 0.18), transparent 58%),
+        rgba(15, 23, 42, 0.38);
+    border: 1px solid rgba(148, 163, 184, 0.13);
+}
+
+.rankBadge {
+    width: min(142px, 96%);
+    height: min(142px, 96%);
+    object-fit: contain;
+    filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.35));
+    transition: transform 0.25s ease, filter 0.25s ease, opacity 0.25s ease;
+}
+
+.rankCard:hover:not(.locked) .rankBadge {
+    transform: translateY(-2px) scale(1.03);
+}
+
+.rankLevelCue {
+    position: absolute;
+    left: 0.35rem;
+    top: 0.35rem;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(8, 13, 24, 0.76);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fef3c7;
+    font-size: 0.78rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+}
+
+.rankStateIcon {
+    position: absolute;
+    right: 0.45rem;
+    top: 0.45rem;
+    width: 28px;
+    height: 28px;
+    padding: 5px;
+    border-radius: 8px;
+    background: rgba(8, 13, 24, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #cbd5e1;
 }
 
 .rankDetails {
+    display: flex;
+    flex-direction: column;
     flex: 1;
+    min-width: 0;
+}
+
+.rankTitleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
 }
 
 .rankName {
-    font-size: 1.25rem;
+    font-size: 1.12rem;
     font-weight: 700;
     color: #fff;
-    margin: 0 0 0.25rem 0;
+    margin: 0;
+    overflow-wrap: anywhere;
 }
 
-.rankDetailSub {
-    font-size: 0.8rem;
+.rankStatus {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 0.55rem;
+    border-radius: 999px;
+    background: rgba(20, 184, 166, 0.13);
+    border: 1px solid rgba(45, 212, 191, 0.28);
+    color: #99f6e4;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.statusPerfect {
+    background: rgba(34, 197, 94, 0.18);
+    border-color: rgba(74, 222, 128, 0.44);
+    color: #bbf7d0;
+}
+
+.statusLocked {
+    background: rgba(148, 163, 184, 0.09);
+    border-color: rgba(148, 163, 184, 0.15);
     color: #94a3b8;
 }
 
+.rankDetailSub {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: #a9b7cc;
+    min-width: 0;
+}
+
+.rankDetailSub span {
+    overflow-wrap: anywhere;
+}
+
 .lockReasonText {
-    color: #fca5a5;
-    font-weight: 500;
+    color: #c5a3ad;
+    font-weight: 700;
 }
 
 .rankDescSmall {
@@ -436,17 +800,82 @@
 }
 
 .locked {
-    opacity: 0.5;
+    opacity: 0.58;
     cursor: not-allowed;
-    background: rgba(0,0,0,0.2);
+    background: rgba(7, 12, 22, 0.48);
+    border-color: rgba(148, 163, 184, 0.09);
+    box-shadow: none;
+}
+
+.locked .rankBadgeStage {
+    background: rgba(15, 23, 42, 0.28);
+    border-color: rgba(148, 163, 184, 0.08);
+}
+
+.locked .rankBadge {
+    opacity: 0.4;
+    filter: grayscale(0.86) saturate(0.48) drop-shadow(0 10px 16px rgba(0, 0, 0, 0.2));
+}
+
+.locked .rankLevelCue,
+.locked .rankStateIcon {
+    color: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.12);
+}
+
+.perfect {
+    background:
+        linear-gradient(180deg, rgba(22, 163, 74, 0.34), rgba(15, 23, 42, 0.78)),
+        linear-gradient(90deg, rgba(74, 222, 128, 0.22), transparent 38%);
+    border-color: rgba(74, 222, 128, 0.58);
+    box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.12), 0 18px 36px rgba(8, 13, 24, 0.3);
+}
+
+.perfect:hover {
+    background:
+        linear-gradient(180deg, rgba(22, 163, 74, 0.42), rgba(15, 23, 42, 0.76)),
+        linear-gradient(90deg, rgba(74, 222, 128, 0.3), transparent 40%);
+    border-color: rgba(134, 239, 172, 0.76);
+}
+
+.perfect .rankBadgeStage {
+    background:
+        radial-gradient(circle at 50% 42%, rgba(134, 239, 172, 0.24), transparent 52%),
+        rgba(22, 163, 74, 0.12);
+    border-color: rgba(74, 222, 128, 0.34);
+}
+
+.perfect .rankBadge {
+    filter: saturate(1.16) drop-shadow(0 18px 30px rgba(34, 197, 94, 0.24));
+}
+
+.perfect .rankStateIcon {
+    color: #bbf7d0;
+    border-color: rgba(74, 222, 128, 0.32);
+}
+
+.perfect .rankAction {
+    color: #bbf7d0;
+}
+
+.rankAction {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    width: fit-content;
+    color: #fef3c7;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .noWordsWarning {
-    margin-top: 3rem;
-    padding: 2rem;
+    margin-top: 1rem;
+    padding: 1rem;
     background: rgba(239, 68, 68, 0.05);
     border: 1px dashed #ef4444;
-    border-radius: 1rem;
+    border-radius: 8px;
     color: #fca5a5;
 }
 
@@ -465,7 +894,7 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #64748b;
     padding: 0.6rem 1.2rem;
-    border-radius: 1rem;
+    border-radius: 8px;
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.2s;
@@ -492,7 +921,7 @@
     text-transform: uppercase;
     color: #64748b;
     font-weight: 800;
-    letter-spacing: 0.1em;
+    letter-spacing: 0;
     margin-bottom: 0.25rem;
 }
 
@@ -565,11 +994,11 @@
     max-height: 80px;
     background: rgba(30, 41, 59, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    border-radius: 8px;
     color: #fff;
     cursor: pointer;
     padding: 0.5rem 1rem;
-    font-size: clamp(0.85rem, 2dvh, 1.1rem);
+    font-size: 1rem;
     font-weight: 600;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -625,7 +1054,7 @@
     max-height: 80px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
+    border-radius: 8px;
     box-sizing: border-box;
 }
 
@@ -717,6 +1146,10 @@
 }
 
 @media (max-width: 768px) {
+    .container {
+        padding: 0.85rem;
+    }
+
     .header {
         margin-bottom: 1rem;
         gap: 0.5rem;
@@ -753,7 +1186,7 @@
 
     .results {
         padding: 1.5rem;
-        border-radius: 1.5rem;
+        border-radius: 8px;
     }
 
     .successIcon {
@@ -790,30 +1223,39 @@
 
     .setupToolbar {
         flex-direction: column;
+        align-items: stretch;
         gap: 0;
-        margin-bottom: 2rem;
+        margin-bottom: 0.85rem;
+        padding: 0.75rem;
     }
     .toolbarTitleRow {
         width: 100%;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 0.5rem;
+        padding: 0;
+        gap: 0.7rem;
+    }
+    .toolbarTitleRow > div {
+        min-width: 0;
     }
     .royalTitle {
         font-size: 1.25rem !important;
         margin: 0 !important;
-        flex: 1;
-        text-align: center;
+        text-align: left;
+    }
+    .setupSubtitle {
+        display: none;
     }
     .mobileSetupToggle {
         display: flex;
         width: 40px;
         height: 40px;
+        flex: 0 0 40px;
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        color: #fbbf24;
+        border-radius: 8px;
+        color: #2dd4bf;
         align-items: center;
         justify-content: center;
         cursor: pointer;
@@ -828,9 +1270,9 @@
         display: none;
         flex-direction: column;
         width: 100%;
-        gap: 1rem;
-        margin-top: 1.5rem;
-        padding: 0 0.5rem;
+        gap: 0.75rem;
+        margin-top: 0.85rem;
+        padding: 0;
         animation: slideDown 0.3s ease-out;
     }
     .setupControls.open {
@@ -840,21 +1282,165 @@
         width: 100%;
         justify-content: space-between;
     }
+    .activeDictName {
+        max-width: none;
+        min-width: 0;
+    }
+    .dictSelector {
+        width: 100%;
+    }
+    .dictOptions {
+        left: 0;
+        right: auto;
+        width: 100%;
+        max-width: 100%;
+    }
+    .difficultyContainer {
+        justify-content: flex-start;
+    }
+    .setupSummary {
+        grid-template-columns: 1fr;
+        gap: 0.55rem;
+    }
+    .summaryItem {
+        min-height: 48px;
+        padding: 0.65rem 0.75rem;
+    }
+    .setupBody {
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+    }
+    .rankPath {
+        position: static;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(54px, 1fr));
+        gap: 0.4rem;
+        padding: 0.55rem;
+        overflow-x: auto;
+    }
+    .pathStep {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.25rem;
+        min-width: 54px;
+        min-height: 58px;
+        padding: 0.35rem;
+        text-align: center;
+    }
+    .pathStep::after,
+    .pathCopy small,
+    .pathCount {
+        display: none;
+    }
+    .pathMarker {
+        width: 36px;
+        height: 36px;
+    }
+    .pathBadge {
+        width: 34px;
+        height: 34px;
+    }
+    .pathStateIcon {
+        width: 15px;
+        height: 15px;
+    }
+    .pathCopy span {
+        font-size: 0.62rem;
+        max-width: 48px;
+        margin: 0 auto;
+    }
 
     .columns { gap: 0.5rem; }
     .column { gap: 0.5dvh; }
     .card { 
         min-height: 0; /* Let flex engine crush it if needed */
-        font-size: clamp(0.6rem, 2dvh, 0.95rem); 
+        font-size: 0.85rem;
         padding: 0.25rem 0.5rem; 
         border-radius: 8px;
     }
     .emptySlot { min-height: 0; height: auto; flex: 1; }
-    .setupContainer { text-align: center; }
+    .setupContainer { text-align: left; }
     .rankGrid {
         display: flex;
         flex-direction: column;
-        gap: 1.25rem;
+        gap: 0.75rem;
+    }
+    .rankCard {
+        min-height: 0;
+        padding: 0.85rem;
+    }
+    .rankBadgeStage {
+        width: 118px;
+    }
+    .rankBadge {
+        width: 108px;
+        height: 108px;
+    }
+    .rankTitleRow {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+    .rankStatus {
+        min-height: 24px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 980px) {
+    .setupToolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .setupControls {
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .dictSelector {
+        flex: 1;
+        align-items: stretch;
+    }
+
+    .selectorHeader {
+        justify-content: space-between;
+        width: 100%;
+    }
+}
+
+@media (max-width: 420px) {
+    .container {
+        padding: 0.65rem;
+    }
+
+    .backButtonInline {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+    }
+
+    .royalTitle,
+    .setupToolbar .royalTitle {
+        font-size: 1.05rem !important;
+    }
+
+    .summaryItem {
+        gap: 0.5rem;
+    }
+
+    .rankCard {
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .rankBadgeStage {
+        width: 104px;
+    }
+
+    .rankBadge {
+        width: 96px;
+        height: 96px;
     }
 }
 

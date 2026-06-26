@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
-import { ArrowLeft, Volume2, RefreshCw, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronDown, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Volume2, RefreshCw, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronDown, BookOpen, CheckCircle2, LockKeyhole, Play, Target, type LucideIcon } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import { soundService } from '../utils/soundUtils';
 import { saveRecentActivity } from '../utils/activity';
@@ -25,6 +25,7 @@ interface Rank {
     name: string;
     count: number;
     icon: LucideIcon;
+    badgeSrc: string;
     description: string;
 }
 
@@ -35,13 +36,13 @@ export default function MatchPairs() {
     const { language, t } = useLanguage();
 
     const RANKS = useMemo<Rank[]>(() => [
-        { id: 'citizen', name: t('ranks.citizen.name'), count: 4, icon: User, description: `4 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.citizen.desc')}` },
-        { id: 'knight', name: t('ranks.knight.name'), count: 5, icon: Sword, description: `5 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.knight.desc')}` },
-        { id: 'baron', name: t('ranks.baron.name'), count: 6, icon: Shield, description: `6 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.baron.desc')}` },
-        { id: 'count', name: t('ranks.count.name'), count: 7, icon: Landmark, description: `7 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.count.desc')}` },
-        { id: 'duke', name: t('ranks.duke.name'), count: 8, icon: Trophy, description: `8 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.duke.desc')}` },
-        { id: 'king', name: t('ranks.king.name'), count: 9, icon: Crown, description: `9 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.king.desc')}` },
-        { id: 'emperor', name: t('ranks.emperor.name'), count: 10, icon: Sparkles, description: `10 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.emperor.desc')}` },
+        { id: 'citizen', name: t('ranks.citizen.name'), count: 4, icon: User, badgeSrc: '/assets/match-pairs/ranks/citizen-badge.png', description: `4 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.citizen.desc')}` },
+        { id: 'knight', name: t('ranks.knight.name'), count: 5, icon: Sword, badgeSrc: '/assets/match-pairs/ranks/knight-badge.png', description: `5 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.knight.desc')}` },
+        { id: 'baron', name: t('ranks.baron.name'), count: 6, icon: Shield, badgeSrc: '/assets/match-pairs/ranks/baron-badge.png', description: `6 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.baron.desc')}` },
+        { id: 'count', name: t('ranks.count.name'), count: 7, icon: Landmark, badgeSrc: '/assets/match-pairs/ranks/count-badge.png', description: `7 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.count.desc')}` },
+        { id: 'duke', name: t('ranks.duke.name'), count: 8, icon: Trophy, badgeSrc: '/assets/match-pairs/ranks/duke-badge.png', description: `8 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.duke.desc')}` },
+        { id: 'king', name: t('ranks.king.name'), count: 9, icon: Crown, badgeSrc: '/assets/match-pairs/ranks/king-badge.png', description: `9 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.king.desc')}` },
+        { id: 'emperor', name: t('ranks.emperor.name'), count: 10, icon: Sparkles, badgeSrc: '/assets/match-pairs/ranks/emperor-badge.png', description: `10 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.emperor.desc')}` },
     ], [t]);
 
     const fetchWords = useDictionaryStore(state => state.fetchWords);
@@ -488,18 +489,67 @@ export default function MatchPairs() {
 
     const isInitialLoading = loading && storeWords.length === 0;
 
-    const renderSetup = () => (
-        <>
+    const renderSetup = () => {
+        const isRu = language === 'ru';
+        const activeDictionaryName = (!currentUser || dictId === 'default' || !dictId)
+            ? t('common.defaultDict')
+            : (dictionaries.find(d => d.id === dictId)?.name || '...');
+        const completedRanks = RANKS.filter(rank => perfectRanks[rank.id]).length;
+        const availableRanks = RANKS.filter((rank, index) => {
+            const isPreviousPerfect = index === 0 || perfectRanks[RANKS[index - 1].id] === true;
+            return playableWords.length >= rank.count && isPreviousPerfect;
+        }).length;
+
+        const rankViews = RANKS.map((rank, index) => {
+            const isPreviousPerfect = index === 0 || perfectRanks[RANKS[index - 1].id] === true;
+            const hasEnoughWords = playableWords.length >= rank.count;
+            const isLocked = !hasEnoughWords || !isPreviousPerfect;
+            const isPerfect = perfectRanks[rank.id] === true;
+
+            let lockReason = '';
+            if (!hasEnoughWords) {
+                lockReason = isRu
+                    ? `Нужно ${rank.count} слов`
+                    : `Needs ${rank.count} words`;
+            } else if (!isPreviousPerfect) {
+                lockReason = isRu
+                    ? `Нужен идеальный ранг "${RANKS[index - 1].name}"`
+                    : `Requires perfect "${RANKS[index - 1].name}" rank`;
+            }
+
+            const statusLabel = isPerfect
+                ? (isRu ? 'Идеально' : 'Perfect')
+                : isLocked
+                    ? (isRu ? 'Закрыто' : 'Locked')
+                    : (isRu ? 'Готово' : 'Ready');
+
+            return {
+                rank,
+                index,
+                isLocked,
+                isPerfect,
+                statusLabel,
+                lockReason,
+            };
+        });
+
+        return (
+        <div className={`${styles.setupShell} ${loading ? styles.setupLoading : ''}`}>
             <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''} ${phase !== 'SETUP' ? styles.compactSetup : ''}`}>
                 <div className={styles.setupToolbar}>
                     <div className={styles.toolbarTitleRow}>
-                        <button onClick={() => navigate('/games')} className={styles.backButtonInline} title={t('common.back')}>
+                        <button type="button" onClick={() => navigate('/games')} className={styles.backButtonInline} title={t('common.back')}>
                             <ArrowLeft size={24} />
                         </button>
-                        <h1 className={styles.royalTitle}>{t('games.pairwords.title')}</h1>
+                        <div>
+                            <h1 className={styles.royalTitle}>{t('games.pairwords.title')}</h1>
+                            <p className={styles.setupSubtitle}>{t('games.pairwords.description')}</p>
+                        </div>
                         <button
+                            type="button"
                             className={`${styles.mobileSetupToggle} ${isMobileSetupOpen ? styles.open : ''}`}
                             onClick={() => setIsMobileSetupOpen(!isMobileSetupOpen)}
+                            aria-label={isRu ? 'Показать настройки' : 'Show settings'}
                         >
                             <ChevronDown size={24} />
                         </button>
@@ -508,14 +558,13 @@ export default function MatchPairs() {
                     <div className={`${styles.setupControls} ${isMobileSetupOpen ? styles.open : ''}`}>
                         <div className={styles.dictSelector}>
                             <button
+                                type="button"
                                 className={styles.selectorHeader}
                                 onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
                             >
                                 <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
                                 <span className={styles.activeDictName}>
-                                    {(!currentUser || dictId === 'default' || !dictId) 
-                                        ? 'Дефолтный словарь' 
-                                        : (dictionaries.find(d => d.id === dictId)?.name || '...')}
+                                    {activeDictionaryName}
                                 </span>
                                 <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                             </button>
@@ -523,6 +572,7 @@ export default function MatchPairs() {
                             {isDictSelectorOpen && (
                                 <div className={styles.dictOptions}>
                                     <button
+                                        type="button"
                                         className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
                                         onClick={() => handleDictionaryChange('default')}
                                     >
@@ -532,6 +582,7 @@ export default function MatchPairs() {
                                         .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
                                         .map(d => (
                                             <button
+                                                type="button"
                                                 key={d.id}
                                                 className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
                                                 onClick={() => handleDictionaryChange(d.id)}
@@ -561,49 +612,85 @@ export default function MatchPairs() {
                         </div>
                     </div>
                 </div>
+
+                <div className={styles.setupSummary}>
+                    <div className={styles.summaryItem}>
+                        <BookOpen size={18} />
+                        <span className={styles.summaryLabel}>{isRu ? 'Слов' : 'Words'}</span>
+                        <strong>{playableWords.length}</strong>
+                    </div>
+                    <div className={styles.summaryItem}>
+                        <Target size={18} />
+                        <span className={styles.summaryLabel}>{isRu ? 'Доступно' : 'Open'}</span>
+                        <strong>{availableRanks}/{RANKS.length}</strong>
+                    </div>
+                    <div className={styles.summaryItem}>
+                        <CheckCircle2 size={18} />
+                        <span className={styles.summaryLabel}>{isRu ? 'Идеально' : 'Perfect'}</span>
+                        <strong>{completedRanks}</strong>
+                    </div>
+                </div>
             </div>
 
-            <div className={styles.rankGrid}>
-                {RANKS.map((rank, index) => {
-                    // 1. First rank is always available (if words pool is large enough)
-                    // 2. Subsequent ranks require the previous rank to be completed with 0 errors
-                    const isPreviousPerfect = index === 0 || perfectRanks[RANKS[index - 1].id] === true;
-
-                    const hasEnoughWords = playableWords.length >= rank.count;
-                    const isLocked = !hasEnoughWords || !isPreviousPerfect;
-
-                    let lockReason = '';
-                    if (!hasEnoughWords) {
-                        lockReason = t('games.pairwords.notEnoughWords', { rank: rank.name, count: rank.count });
-                    } else if (!isPreviousPerfect) {
-                        lockReason = language === 'ru'
-                            ? `🔒 Требуется идеальный ранг "${RANKS[index - 1].name}" (0 ошибок)`
-                            : `🔒 Requires perfect score on "${RANKS[index - 1].name}" rank`;
-                    }
-
-                    return (
-                        <button
+            <div className={styles.setupBody}>
+                <aside className={styles.rankPath} aria-label={isRu ? 'Прогресс рангов' : 'Rank progress'}>
+                    {rankViews.map(({ rank, index, isLocked, isPerfect, statusLabel }) => (
+                        <div
                             key={rank.id}
-                            className={`${styles.rankCard} ${isLocked ? styles.locked : ''}`}
-                            onClick={() => !isLocked && startLevel(rank)}
-                            disabled={loading || isLocked}
+                            className={`${styles.pathStep} ${isLocked ? styles.lockedPath : ''} ${isPerfect ? styles.perfectPath : ''} ${!isLocked && !isPerfect ? styles.readyPath : ''}`}
                         >
-                            <div className={styles.rankIcon}>
-                                <rank.icon size={32} />
+                            <div className={styles.pathMarker}>
+                                <img className={styles.pathBadge} src={rank.badgeSrc} alt="" aria-hidden="true" />
+                                {isPerfect && <CheckCircle2 className={styles.pathStateIcon} size={13} />}
+                                {isLocked && <LockKeyhole className={styles.pathStateIcon} size={13} />}
                             </div>
-                            <div className={styles.rankDetails}>
-                                <h3 className={styles.rankName}>{rank.name}</h3>
-                                <div className={styles.rankDetailSub}>
-                                    {isLocked ? (
-                                        <span className={styles.lockReasonText}>{lockReason}</span>
-                                    ) : (
-                                        rank.description
-                                    )}
+                            <div className={styles.pathCopy}>
+                                <span>{rank.name}</span>
+                                <small>{statusLabel}</small>
+                            </div>
+                            <span className={styles.pathCount}>{index + 1}</span>
+                        </div>
+                    ))}
+                </aside>
+
+                <div className={styles.rankGrid}>
+                    {rankViews.map(({ rank, index, isLocked, isPerfect, statusLabel, lockReason }) => (
+                            <button
+                                type="button"
+                                key={rank.id}
+                                className={`${styles.rankCard} ${isLocked ? styles.locked : ''} ${isPerfect ? styles.perfect : ''} ${!isLocked && !isPerfect ? styles.ready : ''}`}
+                                onClick={() => !isLocked && startLevel(rank)}
+                                disabled={loading || isLocked}
+                            >
+                                <div className={styles.rankBadgeStage}>
+                                    <img className={styles.rankBadge} src={rank.badgeSrc} alt="" aria-hidden="true" />
+                                    <span className={styles.rankLevelCue}>{index + 1}</span>
+                                    {isPerfect && <CheckCircle2 className={styles.rankStateIcon} size={18} />}
+                                    {isLocked && <LockKeyhole className={styles.rankStateIcon} size={18} />}
                                 </div>
-                            </div>
-                        </button>
-                    );
-                })}
+                                <div className={styles.rankDetails}>
+                                    <div className={styles.rankTitleRow}>
+                                        <h3 className={styles.rankName}>{rank.name}</h3>
+                                        <span className={`${styles.rankStatus} ${isLocked ? styles.statusLocked : ''} ${isPerfect ? styles.statusPerfect : ''}`}>
+                                            {statusLabel}
+                                        </span>
+                                    </div>
+                                    <div className={styles.rankDetailSub}>
+                                        {isLocked ? (
+                                            <span className={styles.lockReasonText}>{lockReason}</span>
+                                        ) : (
+                                            <>
+                                                <span>{rank.description}</span>
+                                                <span className={styles.rankAction}>
+                                                    <Play size={14} /> {isRu ? 'Начать' : 'Start'}
+                                                </span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                </div>
             </div>
 
             {playableWords.length === 0 && !loading && (
@@ -611,8 +698,9 @@ export default function MatchPairs() {
                     {t('games.pairwords.noWords')}
                 </div>
             )}
-        </>
-    );
+        </div>
+        );
+    };
 
 
 

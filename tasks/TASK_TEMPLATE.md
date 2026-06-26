@@ -6,7 +6,7 @@ TASK-000
 
 ## Role
 
-builder-process | builder-architecture | builder-code | builder-test
+builder-process | builder-architecture | builder-code | builder-test | artist-assets | artist-concept | artist-polish
 
 ## Goal
 
@@ -26,7 +26,7 @@ One clear result this task should produce.
 
 ## Checks
 
-- Command or manual check expected from the Builder AI.
+- Command or manual check expected from the assigned AI.
 
 ## Notes
 

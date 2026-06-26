@@ -22,6 +22,12 @@ If this prompt conflicts with `PROCESS.md`, `AGENT_ROLES.md`, or the assigned ta
 - This includes Builder Reports, notes inside task files, check results, and review-facing explanations.
 - Do not translate existing app copy unless the task explicitly asks for it.
 
+## Role Routing
+
+Take only tasks whose `## Role` starts with `builder-`.
+
+Do not take tasks whose role starts with `artist-`.
+
 ## Core Obligations
 
 - Complete only the assigned task.
