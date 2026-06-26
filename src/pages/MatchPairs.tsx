@@ -774,7 +774,7 @@ export default function MatchPairs() {
                     </header>
 
                     <div className={styles.gameArea}>
-                        {!isAllDone ? (
+                        {!isAllDone && (
                             <>
                                 <div className={styles.gameControls}>
                                     <div className={styles.progressBar}>
@@ -831,39 +831,41 @@ export default function MatchPairs() {
                                     </div>
                                 </div>
                             </>
-                        ) : (
-                            <div className={styles.resultsOverlay}>
-                                <div className={styles.results}>
-                                    <div className={styles.successIcon}>
-                                        <Sparkles size={64} />
-                                    </div>
-                                    <h2>{resultTitle}</h2>
-                                    <p>{resultMessage}</p>
-
-                                    <div className={styles.finalStatsGrid}>
-                                        <div className={styles.finalStatCard}>
-                                            <div className={styles.finalStatLabel}>{t('common.score')}</div>
-                                            <div className={styles.finalStatValue}>{score}</div>
-                                        </div>
-                                        <div className={styles.finalStatCard}>
-                                            <div className={styles.finalStatLabel}>{t('common.time')}</div>
-                                            <div className={styles.finalStatValue}>{formatTime(timer)}</div>
-                                        </div>
-                                        <div className={styles.finalStatCard}>
-                                            <div className={styles.finalStatLabel}>{t('common.errors')}</div>
-                                            <div className={styles.finalStatValue} style={{ color: errors > 0 ? '#ef4444' : 'inherit' }}>{errors}</div>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => setPhase('SETUP')} className={styles.restartButton}>
-                                        <RefreshCw size={20} /> {t('common.playAgain')}
-                                    </button>
-                                    <button onClick={() => navigate('/games')} className={styles.menuButton}>
-                                        {t('common.menu')}
-                                    </button>
-                                </div>
-                            </div>
                         )}
                     </div>
+
+                    {isAllDone && (
+                        <div className={styles.resultsOverlay}>
+                            <div className={styles.results}>
+                                <div className={styles.successIcon}>
+                                    <Sparkles size={64} />
+                                </div>
+                                <h2>{resultTitle}</h2>
+                                <p>{resultMessage}</p>
+
+                                <div className={styles.finalStatsGrid}>
+                                    <div className={styles.finalStatCard}>
+                                        <div className={styles.finalStatLabel}>{t('common.score')}</div>
+                                        <div className={styles.finalStatValue}>{score}</div>
+                                    </div>
+                                    <div className={styles.finalStatCard}>
+                                        <div className={styles.finalStatLabel}>{t('common.time')}</div>
+                                        <div className={styles.finalStatValue}>{formatTime(timer)}</div>
+                                    </div>
+                                    <div className={styles.finalStatCard}>
+                                        <div className={styles.finalStatLabel}>{t('common.errors')}</div>
+                                        <div className={styles.finalStatValue} style={{ color: errors > 0 ? '#ef4444' : 'inherit' }}>{errors}</div>
+                                    </div>
+                                </div>
+                                <button onClick={() => setPhase('SETUP')} className={styles.restartButton}>
+                                    <RefreshCw size={20} /> {t('common.playAgain')}
+                                </button>
+                                <button onClick={() => navigate('/games')} className={styles.menuButton}>
+                                    {t('common.menu')}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </>
             )}
         </div>

@@ -20,15 +20,35 @@
 }
 
 .gameplayContainer {
+    isolation: isolate;
+}
+
+.gameplayContainer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
     background:
         linear-gradient(90deg, rgba(10, 18, 32, 0.18) 0%, rgba(10, 18, 32, 0.78) 31%, rgba(10, 18, 32, 0.84) 69%, rgba(10, 18, 32, 0.2) 100%),
         linear-gradient(180deg, rgba(5, 11, 22, 0.32) 0%, rgba(10, 18, 32, 0.76) 100%),
         url('/assets/match-pairs/game-background.png') center / cover no-repeat;
+    opacity: 1;
+    pointer-events: none;
+    z-index: 0;
+    animation: gameplayBackgroundIn 0.7s ease-out both;
 }
 
 .gameplayContainer > * {
     position: relative;
     z-index: 1;
+}
+
+@keyframes gameplayBackgroundIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 .floatingBackButton {
@@ -606,14 +626,14 @@
 .finalStatsGrid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
+    gap: 0.75rem;
     width: 100%;
-    margin: 2rem 0;
+    margin: 1.5rem 0;
 }
 
 .finalStatCard {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.14);
     border-radius: 8px;
     padding: 1rem;
     display: flex;
@@ -1107,31 +1127,36 @@
 /* RESULTS */
 .resultsOverlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100vw;
-    height: 100dvh;
-    background: rgba(15, 23, 42, 0.85);
+    inset: 0;
+    width: auto;
+    min-height: 100dvh;
+    background:
+        radial-gradient(circle at 50% 18%, rgba(251, 191, 36, 0.11), transparent 28%),
+        linear-gradient(180deg, rgba(5, 11, 22, 0.78), rgba(8, 13, 24, 0.92));
     backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
     z-index: 1000;
     padding: 1rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .results {
     text-align: center;
-    padding: 2.5rem;
-    background: #1e293b;
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    border-radius: 2rem;
+    padding: clamp(1.35rem, 4vw, 2rem);
+    background: linear-gradient(180deg, rgba(21, 34, 58, 0.96), rgba(8, 13, 24, 0.98));
+    border: 1px solid rgba(251, 191, 36, 0.26);
+    border-radius: 8px;
     width: 100%;
-    max-width: 440px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-    animation: modalIn 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    max-width: min(440px, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    color: #f8fafc;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    animation: modalIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-sizing: border-box;
 }
 
 @keyframes modalIn {
@@ -1141,9 +1166,22 @@
 
 .successIcon {
     color: #fbbf24;
-    margin-bottom: 2rem;
+    margin-bottom: 1.25rem;
     display: inline-block;
     filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.4));
+}
+
+.results h2 {
+    margin: 0 0 0.5rem;
+    color: #fef3c7;
+    font-size: 1.65rem;
+    line-height: 1.15;
+}
+
+.results p {
+    margin: 0;
+    color: #cbd5e1;
+    line-height: 1.45;
 }
 
 .finalScore {
@@ -1155,8 +1193,8 @@
 }
 
 .restartButton, .menuButton {
-    padding: 1rem 2rem;
-    border-radius: 999px;
+    padding: 0.85rem 1.25rem;
+    border-radius: 8px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
@@ -1165,6 +1203,7 @@
     justify-content: center;
     gap: 0.75rem;
     width: 100%;
+    min-height: 46px;
     margin-bottom: 1rem;
 }
 
@@ -1181,9 +1220,9 @@
 }
 
 .menuButton {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    color: #cbd5e1;
 }
 
 .menuButton:hover {
