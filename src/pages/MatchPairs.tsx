@@ -725,7 +725,7 @@ export default function MatchPairs() {
 
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${phase === 'PLAY' ? styles.gameplayContainer : ''}`}>
             {isInitialLoading && (
                 <button onClick={() => navigate('/games')} className={styles.floatingBackButton} title={t('common.back')}>
                     <ArrowLeft size={24} />
