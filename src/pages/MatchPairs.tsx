@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
-import { ArrowLeft, Volume2, RefreshCw, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Volume2, RefreshCw, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronDown, type LucideIcon } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import { soundService } from '../utils/soundUtils';
 import { saveRecentActivity } from '../utils/activity';
@@ -24,7 +24,7 @@ interface Rank {
     id: string;
     name: string;
     count: number;
-    icon: any;
+    icon: LucideIcon;
     description: string;
 }
 
@@ -61,7 +61,8 @@ export default function MatchPairs() {
     const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set());
     const [correctIds, setCorrectIds] = useState<Set<string>>(new Set());
     const [wrongIds, setWrongIds] = useState<Set<string>>(new Set());
-    const [transitioningIds, setTransitioningIds] = useState<Set<string>>(new Set());
+    const [isShuffling, setIsShuffling] = useState(false);
+    const [lastMatchedIndex, setLastMatchedIndex] = useState<number | null>(null);
     const [newlyAppearingIds, setNewlyAppearingIds] = useState<Set<string>>(new Set());
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
@@ -86,6 +87,10 @@ export default function MatchPairs() {
     const startTimeRef = useRef<number | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
+
+    const playableWords = useMemo(() => {
+        return storeWords.filter(word => word.original.trim() && word.translation.trim());
+    }, [storeWords]);
 
     useEffect(() => {
         const loadPerfectRanks = async () => {
@@ -191,14 +196,13 @@ export default function MatchPairs() {
 
     // Setup session
     const startLevel = useCallback((rank: Rank) => {
-        const unlearned = storeWords.filter(w => !w.isLearned);
         const now = Date.now();
-        const dueWords = unlearned.filter(w => !w.nextReview || w.nextReview <= now);
-        const notDueWords = unlearned.filter(w => w.nextReview && w.nextReview > now);
+        const dueWords = playableWords.filter(w => !w.isLearned && (!w.nextReview || w.nextReview <= now));
+        const otherWords = playableWords.filter(w => w.isLearned || (w.nextReview && w.nextReview > now));
 
         const shuffledDue = [...dueWords].sort(() => Math.random() - 0.5);
-        const shuffledNotDue = [...notDueWords].sort(() => Math.random() - 0.5);
-        let pool = [...shuffledDue, ...shuffledNotDue];
+        const shuffledOther = [...otherWords].sort(() => Math.random() - 0.5);
+        const pool = [...shuffledDue, ...shuffledOther];
 
         if (pool.length < rank.count) {
             alert(t('games.pairwords.notEnoughWords', { rank: rank.name, count: rank.count }));
@@ -216,7 +220,10 @@ export default function MatchPairs() {
         startTimeRef.current = Date.now();
         setMatchedIds(new Set());
         setCorrectIds(new Set());
-        setTransitioningIds(new Set());
+        setSelectedLeftId(null);
+        setSelectedRightId(null);
+        setIsShuffling(false);
+        setLastMatchedIndex(null);
         setWrongIds(new Set());
         setNewlyAppearingIds(new Set());
 
@@ -234,7 +241,7 @@ export default function MatchPairs() {
         setLeftColumn(left);
         setRightColumn(right);
         setPhase('PLAY');
-    }, [storeWords, t]);
+    }, [playableWords, t]);
 
     useEffect(() => {
         localStorage.setItem('benedicti_match_elite', JSON.stringify(isEliteMode));
@@ -293,95 +300,41 @@ export default function MatchPairs() {
         return `${mins}:${secs.toString().padStart(2, '0')}.${tenths}`;
     };
 
-    const handleChoice = useCallback((id: string, isOriginal: boolean) => {
-        if (matchedIds.has(id) || correctIds.has(id)) return;
+    const shuffleColumns = useCallback(() => {
+        const shuffle = <T,>(array: T[]): T[] => {
+            return [...array].sort(() => Math.random() - 0.5);
+        };
 
-        if (isOriginal) {
-            setSelectedLeftId(id);
-            const word = allWordsPool.find(w => w.id === id);
-            const dict = dictionaries.find(d => d.id === dictId);
+        const appearingIds = new Set<string>();
 
-            // Озвучиваем только если это первый выбор ИЛИ если выбор верный
-            const isMatch = selectedRightId === id;
-            if (word && (!selectedRightId || isMatch)) {
-                speechService.speak(word.original, dict?.sourceLang || 'en');
-            }
+        setLeftColumn(prev => {
+            const shuffled = shuffle(prev);
+            shuffled.forEach(item => {
+                if (item) appearingIds.add(item.id);
+            });
+            return shuffled;
+        });
 
-            if (selectedRightId) checkMatch(id, selectedRightId);
-        } else {
-            setSelectedRightId(id);
-            const word = allWordsPool.find(w => w.id === id);
-            const dict = dictionaries.find(d => d.id === dictId);
+        setRightColumn(prev => {
+            const shuffled = shuffle(prev);
+            shuffled.forEach(item => {
+                if (item) appearingIds.add(item.id);
+            });
+            return shuffled;
+        });
 
-            // Озвучиваем только если это первый выбор ИЛИ если выбор верный
-            const isMatch = selectedLeftId === id;
-            if (word && (!selectedLeftId || isMatch)) {
-                speechService.speak(word.translation, dict?.targetLang || 'ru');
-            }
+        setNewlyAppearingIds(appearingIds);
 
-            if (selectedLeftId) checkMatch(selectedLeftId, id);
-        }
-    }, [selectedLeftId, selectedRightId, matchedIds, correctIds, isEliteMode, allWordsPool, dictionaries, dictId]);
+        setTimeout(() => {
+            setNewlyAppearingIds(prev => {
+                const next = new Set(prev);
+                appearingIds.forEach(id => next.delete(id));
+                return next;
+            });
+        }, 1000);
+    }, []);
 
-    const checkMatch = (leftId: string, rightId: string) => {
-        if (leftId === rightId) {
-            // Correct logic
-            soundService.playSuccessSound();
-            setCorrectIds(prev => new Set([...prev, leftId]));
-            setScore(prev => prev + 1);
-            setSelectedLeftId(null);
-            setSelectedRightId(null);
-
-            // Record Leitner correct review
-            const matchedWord = allWordsPool.find(w => w.id === leftId);
-            if (matchedWord && currentUser) {
-                answerWordLeitner(currentUser.uid, matchedWord, true);
-            }
-
-            // Wait 600ms and transition
-            setTimeout(() => {
-                setCorrectIds(prev => {
-                    const next = new Set(prev);
-                    next.delete(leftId);
-                    return next;
-                });
-                // Phase 2: Show empty slot for 1 second (1000ms delay) to animate replacement
-                setTransitioningIds(prev => new Set([...prev, leftId]));
-
-                setTimeout(() => {
-                    replaceWord(leftId);
-                    setTransitioningIds(prev => {
-                        const next = new Set(prev);
-                        next.delete(leftId);
-                        return next;
-                    });
-                }, 1000); // 1000ms delay!
-            }, 600);
-        } else {
-            // Wrong
-            soundService.playErrorSound();
-            setErrors(prev => prev + 1);
-            setWrongIds(new Set([leftId, rightId]));
-
-            // Record Leitner incorrect review for both words involved in the incorrect match
-            const leftWord = allWordsPool.find(w => w.id === leftId);
-            const rightWord = allWordsPool.find(w => w.id === rightId);
-            if (leftWord && currentUser) {
-                answerWordLeitner(currentUser.uid, leftWord, false);
-            }
-            if (rightWord && currentUser) {
-                answerWordLeitner(currentUser.uid, rightWord, false);
-            }
-
-            setTimeout(() => {
-                setWrongIds(new Set());
-                setSelectedLeftId(null);
-                setSelectedRightId(null);
-            }, 800);
-        }
-    };
-
-    const replaceWord = (oldId: string) => {
+    const replaceWordOnPlace = (oldId: string) => {
         setMatchedIds(prev => {
             const next = new Set(prev);
             next.add(oldId);
@@ -425,6 +378,112 @@ export default function MatchPairs() {
                 ? (nextWord ? { id: nextWord.id, text: nextWord.translation, isOriginal: false } : null)
                 : item
         ));
+    };
+
+    const checkMatch = (leftId: string, rightId: string) => {
+        if (leftId === rightId) {
+            // Correct logic
+            soundService.playSuccessSound();
+            setCorrectIds(prev => new Set([...prev, leftId]));
+            setScore(prev => prev + 1);
+            setSelectedLeftId(null);
+            setSelectedRightId(null);
+
+            // Record Leitner correct review
+            const matchedWord = allWordsPool.find(w => w.id === leftId);
+            if (matchedWord && currentUser) {
+                answerWordLeitner(currentUser.uid, matchedWord, true);
+            }
+
+            // Find index of the matched word before replacing
+            const matchedIndex = leftColumn.findIndex(item => item?.id === leftId);
+            setLastMatchedIndex(matchedIndex);
+
+            // Wait 600ms and transition
+            setTimeout(() => {
+                setCorrectIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(leftId);
+                    return next;
+                });
+                
+                replaceWordOnPlace(leftId);
+            }, 600);
+        } else {
+            // Wrong
+            soundService.playErrorSound();
+            setErrors(prev => prev + 1);
+            setWrongIds(new Set([leftId, rightId]));
+
+            // Record Leitner incorrect review for both words involved in the incorrect match
+            const leftWord = allWordsPool.find(w => w.id === leftId);
+            const rightWord = allWordsPool.find(w => w.id === rightId);
+            if (leftWord && currentUser) {
+                answerWordLeitner(currentUser.uid, leftWord, false);
+            }
+            if (rightWord && currentUser) {
+                answerWordLeitner(currentUser.uid, rightWord, false);
+            }
+
+            setTimeout(() => {
+                setWrongIds(new Set());
+                setSelectedLeftId(null);
+                setSelectedRightId(null);
+            }, 800);
+        }
+    };
+
+    const handleChoice = (id: string, isOriginal: boolean) => {
+        if (matchedIds.has(id) || correctIds.has(id)) return;
+
+        // Check if player clicked the same position where the last match occurred
+        const clickIndex = isOriginal
+            ? leftColumn.findIndex(item => item?.id === id)
+            : rightColumn.findIndex(item => item?.id === id);
+
+        if (lastMatchedIndex !== null && clickIndex === lastMatchedIndex) {
+            // Player clicked on the same position, shuffle the columns!
+            setIsShuffling(true);
+            setLastMatchedIndex(null); // Reset matched index after shuffle trigger
+
+            // Cascade fadeOut animation is idx * 40ms + transition (200ms).
+            // For ~5-10 elements, 450ms is perfect to let it fully fade out before shuffle.
+            setTimeout(() => {
+                shuffleColumns();
+                setIsShuffling(false);
+            }, 450);
+
+            // Reset selection to prevent incorrect matches after shuffle
+            setSelectedLeftId(null);
+            setSelectedRightId(null);
+            return;
+        }
+
+        if (isOriginal) {
+            setSelectedLeftId(id);
+            const word = allWordsPool.find(w => w.id === id);
+            const dict = dictionaries.find(d => d.id === dictId);
+
+            // Play sound only if it's the first selection OR a correct match
+            const isMatch = selectedRightId === id;
+            if (word && (!selectedRightId || isMatch)) {
+                speechService.speak(word.original, dict?.sourceLang || 'en');
+            }
+
+            if (selectedRightId) checkMatch(id, selectedRightId);
+        } else {
+            setSelectedRightId(id);
+            const word = allWordsPool.find(w => w.id === id);
+            const dict = dictionaries.find(d => d.id === dictId);
+
+            // Play sound only if it's the first selection OR a correct match
+            const isMatch = selectedLeftId === id;
+            if (word && (!selectedLeftId || isMatch)) {
+                speechService.speak(word.translation, dict?.targetLang || 'ru');
+            }
+
+            if (selectedLeftId) checkMatch(selectedLeftId, id);
+        }
     };
 
     const isInitialLoading = loading && storeWords.length === 0;
@@ -510,7 +569,7 @@ export default function MatchPairs() {
                     // 2. Subsequent ranks require the previous rank to be completed with 0 errors
                     const isPreviousPerfect = index === 0 || perfectRanks[RANKS[index - 1].id] === true;
 
-                    const hasEnoughWords = storeWords.length >= rank.count;
+                    const hasEnoughWords = playableWords.length >= rank.count;
                     const isLocked = !hasEnoughWords || !isPreviousPerfect;
 
                     let lockReason = '';
@@ -547,7 +606,7 @@ export default function MatchPairs() {
                 })}
             </div>
 
-            {storeWords.length === 0 && !loading && (
+            {playableWords.length === 0 && !loading && (
                 <div className={styles.noWordsWarning}>
                     {t('games.pairwords.noWords')}
                 </div>
@@ -621,17 +680,20 @@ export default function MatchPairs() {
                                             item ? (
                                                 <button
                                                     key={`left-${item.id}`}
+                                                    style={{
+                                                        transitionDelay: isShuffling ? `${idx * 40}ms` : '0ms',
+                                                        animationDelay: newlyAppearingIds.has(item.id) ? `${idx * 40}ms` : '0ms'
+                                                    }}
                                                     className={`${styles.card} 
                                                         ${selectedLeftId === item.id ? styles.selected : ''} 
                                                         ${correctIds.has(item.id) ? styles.correct : ''} 
                                                         ${wrongIds.has(item.id) && selectedLeftId === item.id ? styles.wrong : ''}
-                                                        ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}`}
+                                                        ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
+                                                        ${isShuffling ? styles.fadeOut : ''}`}
                                                     onClick={() => handleChoice(item.id, true)}
-                                                    disabled={transitioningIds.has(item.id) || newlyAppearingIds.has(item.id)}
+                                                    disabled={isShuffling || newlyAppearingIds.has(item.id)}
                                                 >
-                                                    {!transitioningIds.has(item.id) && (
-                                                        isEliteMode ? <Volume2 size={24} /> : item.text
-                                                    )}
+                                                    {isEliteMode ? <Volume2 size={24} /> : item.text}
                                                 </button>
                                             ) : <div key={`left-empty-${idx}`} className={styles.emptySlot} />
                                         ))}
@@ -641,15 +703,20 @@ export default function MatchPairs() {
                                             item ? (
                                                 <button
                                                     key={`right-${item.id}`}
+                                                    style={{
+                                                        transitionDelay: isShuffling ? `${idx * 40}ms` : '0ms',
+                                                        animationDelay: newlyAppearingIds.has(item.id) ? `${idx * 40}ms` : '0ms'
+                                                    }}
                                                     className={`${styles.card} 
                                                         ${selectedRightId === item.id ? styles.selected : ''} 
                                                         ${correctIds.has(item.id) ? styles.correct : ''} 
                                                         ${wrongIds.has(item.id) && selectedRightId === item.id ? styles.wrong : ''}
-                                                        ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}`}
+                                                        ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
+                                                        ${isShuffling ? styles.fadeOut : ''}`}
                                                     onClick={() => handleChoice(item.id, false)}
-                                                    disabled={transitioningIds.has(item.id) || newlyAppearingIds.has(item.id)}
+                                                    disabled={isShuffling || newlyAppearingIds.has(item.id)}
                                                 >
-                                                    {!transitioningIds.has(item.id) && item.text}
+                                                    {item.text}
                                                 </button>
                                             ) : <div key={`right-empty-${idx}`} className={styles.emptySlot} />
                                         ))}

@@ -8,6 +8,7 @@ import DictionaryDetail from './pages/DictionaryDetail';
 import Flashcards from './pages/Flashcards';
 import NBack from './pages/NBack';
 import MatchPairs from './pages/MatchPairs';
+import DictSaber from './pages/DictSaber';
 import Profile from './pages/Profile';
 import PasswordReset from './pages/PasswordReset';
 import MigrationManager from './components/MigrationManager';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/play/flashcards/:dictId" element={<Flashcards />} />
             <Route path="/play/nback/:dictId" element={<NBack />} />
             <Route path="/play/match-pairs/:dictId" element={<MatchPairs />} />
+            <Route path="/play/dictsaber/:dictId" element={<DictSaber />} />
             <Route path="/play/:mode/:dictId" element={<div><h1>Other Game Mode</h1></div>} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/reset-password" element={<PasswordReset />} />

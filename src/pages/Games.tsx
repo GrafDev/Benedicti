@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
-import { Layers, Play, Crown, Grid, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Layers, Play, Crown, Grid, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Mousewheel, Navigation } from 'swiper/modules';
@@ -59,6 +59,15 @@ export default function Games() {
             iconClass: styles.iconContainer,
             iconStyle: { background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)', color: '#5b21b6' },
             btnStyle: { background: 'linear-gradient(to right, #7c3aed, #6d28d9)' }
+        },
+        {
+            id: 'dictsaber',
+            title: t('games.dictsaber.title'),
+            description: t('games.dictsaber.description'),
+            icon: <Zap size={40} />,
+            iconClass: styles.iconContainer,
+            iconStyle: { background: 'linear-gradient(135deg, #f43f5e 0%, #d946ef 100%)', color: '#ffffff' },
+            btnStyle: { background: 'linear-gradient(to right, #ec4899, #be185d)' }
         }
     ];
 

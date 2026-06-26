@@ -8,32 +8,28 @@ export default function MigrationManager() {
 
     useEffect(() => {
         const runImport = async () => {
-            // Only run when user is logged in to ensure write permissions
             if (!currentUser) return;
 
+            // 1. Standard import logic for default dictionary (placeholder if needed)
             const alreadyImported = localStorage.getItem('dict2500_imported');
-            if (alreadyImported === 'true') return;
-
-            try {
-                console.log('🚀 MigrationManager: Checking dictionary status...');
-                const response = await fetch('/dict2500.json');
-                if (!response.ok) {
-                    console.warn('⚠️ dict2500.json not found in public folder.');
-                    return;
+            if (alreadyImported !== 'true') {
+                try {
+                    console.log('🚀 MigrationManager: Checking dictionary status...');
+                    const response = await fetch('/dict2500.json');
+                    if (response.ok) {
+                        const data = await response.json();
+                        await importDefaultDictionary(data);
+                        localStorage.setItem('dict2500_imported', 'true');
+                        console.log('✅ MigrationManager: Dictionary 2500 checked successfully!');
+                    }
+                } catch (error: any) {
+                    console.error('❌ MigrationManager: Import check failed:', error.message);
                 }
-                
-                const data = await response.json();
-                await importDefaultDictionary(data);
-                
-                localStorage.setItem('dict2500_imported', 'true');
-                console.log('✅ MigrationManager: Dictionary 2500 imported successfully!');
-            } catch (error: any) {
-                console.error('❌ MigrationManager: Import failed:', error.message);
             }
         };
 
         runImport();
     }, [currentUser, importDefaultDictionary]);
 
-    return null; // This component doesn't render anything
+    return null;
 }

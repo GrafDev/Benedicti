@@ -13,6 +13,29 @@ import { db } from '../firebase';
 import type { Dictionary, Word } from '../types';
 
 /**
+ * Helper to remove square brackets [...] and collapse multiple spaces.
+ */
+const cleanBrackets = (text: string): string => {
+    if (!text) return '';
+    return text.replace(/\[.*?\]/g, '').replace(/\s\s+/g, ' ').trim();
+};
+
+const KNOWN_LEARNED_DICTIONARY_NAMES = new Set([
+    'выученные слова',
+    'learned words',
+    'learned dictionary',
+]);
+
+const isLearnedDictionaryReference = (dictionaryKey: string, data: { id?: unknown; name?: unknown }): boolean => {
+    const stableId = typeof data.id === 'string' ? data.id : dictionaryKey;
+    const normalizedName = typeof data.name === 'string' ? data.name.trim().toLowerCase() : '';
+
+    return dictionaryKey === 'learned_dict'
+        || stableId === 'learned_dict'
+        || KNOWN_LEARNED_DICTIONARY_NAMES.has(normalizedName);
+};
+
+/**
  * Store using Firebase Realtime Database.
  * Explicitly merging state in all set calls to prevent functions from disappearing.
  */
@@ -160,7 +183,12 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                             if (teacherSnapshot.exists()) {
                                 teacherSnapshot.forEach((child) => {
                                     const data = child.val();
-                                    if (typeof data === 'object' && data !== null && data.name) {
+                                    if (
+                                        typeof data === 'object'
+                                        && data !== null
+                                        && data.name
+                                        && !isLearnedDictionaryReference(child.key!, data)
+                                    ) {
                                         teacherDicts.push({
                                             id: child.key!,
                                             userId: teacherId,
@@ -386,10 +414,13 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                 dictPath = `shared/dictionaries/${dictionaryId}/info`;
             }
 
+            const cleanedOriginal = cleanBrackets(original);
+            const cleanedTranslation = cleanBrackets(translation);
+
             const newWordRef = push(ref(db, path));
             const data = {
-                original,
-                translation,
+                original: cleanedOriginal,
+                translation: cleanedTranslation,
                 box: 0,
                 nextReview: Date.now(),
                 createdAt: Date.now(),
@@ -426,10 +457,18 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                 path = `shared/dictionaries/${dictionaryId}/words/${wordId}`;
             }
 
-            await update(ref(db, path), data);
+            const cleanedData = { ...data };
+            if (cleanedData.original !== undefined) {
+                cleanedData.original = cleanBrackets(cleanedData.original);
+            }
+            if (cleanedData.translation !== undefined) {
+                cleanedData.translation = cleanBrackets(cleanedData.translation);
+            }
+
+            await update(ref(db, path), cleanedData);
             set(state => ({
                 ...state,
-                words: (state.words || []).map((w) => (w.id === wordId ? { ...w, ...data } : w)),
+                words: (state.words || []).map((w) => (w.id === wordId ? { ...w, ...cleanedData } : w)),
                 error: null
             }));
         } catch (error: any) {

@@ -6,18 +6,23 @@ import {
     Gamepad2,
     Sparkles
 } from 'lucide-react';
+import { ref, get as dbGet } from 'firebase/database';
+import { db } from '../firebase';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import styles from './Home.module.css';
 
 import { getRecentActivities, type RecentActivity } from '../utils/activity';
+import { GAMES_COUNT } from '../constants/games';
 
 export default function Home() {
     const { currentUser } = useAuth();
     const { dictionaries, fetchDictionaries } = useDictionaryStore();
     const { t } = useLanguage();
     const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+    const [personalBest, setPersonalBest] = useState<number>(0);
+    const [globalBest, setGlobalBest] = useState<{ score: number; username: string } | null>(null);
 
     useEffect(() => {
         fetchDictionaries(currentUser?.uid);
@@ -27,9 +32,61 @@ export default function Home() {
         setRecentActivities(getRecentActivities());
     }, []);
 
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const loadRecords = async () => {
+            try {
+                // 1. Load Personal Best
+                const personalRef = ref(db, `users/${currentUser.uid}/dictSaberHighScore`);
+                const personalSnapshot = await dbGet(personalRef);
+                let maxPersonal = 0;
+                if (personalSnapshot.exists()) {
+                    const data = personalSnapshot.val();
+                    if (typeof data === 'object' && data !== null) {
+                        Object.values(data).forEach((val: any) => {
+                            if (typeof val === 'number' && val > maxPersonal) {
+                                maxPersonal = val;
+                            }
+                        });
+                    }
+                }
+                setPersonalBest(maxPersonal);
+
+                // 2. Load Global Best
+                const globalRef = ref(db, 'shared/dictSaberHighScore');
+                const globalSnapshot = await dbGet(globalRef);
+                let maxGlobal: { score: number; username: string } | null = null;
+                if (globalSnapshot.exists()) {
+                    const data = globalSnapshot.val();
+                    if (typeof data === 'object' && data !== null) {
+                        Object.values(data).forEach((val: any) => {
+                            if (val && typeof val === 'object' && typeof val.score === 'number') {
+                                if (!maxGlobal || val.score > maxGlobal.score) {
+                                    maxGlobal = {
+                                        score: val.score,
+                                        username: val.username || 'Anonymous'
+                                    };
+                                }
+                            }
+                        });
+                    }
+                }
+                setGlobalBest(maxGlobal);
+            } catch (error) {
+                console.error('Error loading DictSaber highscores:', error);
+            }
+        };
+
+        loadRecords();
+    }, [currentUser]);
+
     // Derived statistics
     const totalDictionaries = dictionaries.length;
     const totalWords = dictionaries.reduce((acc, dict) => acc + (dict.wordCount || 0), 0);
+    const homeTitleName = currentUser
+        ? (currentUser.displayName || currentUser.email?.split('@')[0] || '').toUpperCase()
+        : t('common.guest').toUpperCase();
 
     const getMostPopularDictionaryName = () => {
         if (dictionaries.length === 0) return t('home.none');
@@ -74,14 +131,9 @@ export default function Home() {
         <div className={styles.pageContainer}>
             <header className={styles.header}>
                 <div className={styles.titleArea}>
-                    <h1 className={styles.mainTitle} dangerouslySetInnerHTML={{
-                        __html: t('home.title', {
-                            className: styles.sovereign,
-                            name: currentUser
-                                ? (currentUser.displayName || currentUser.email?.split('@')[0] || '').toUpperCase()
-                                : t('common.guest').toUpperCase()
-                        })
-                    }} />
+                    <h1 className={styles.mainTitle}>
+                        {t('home.title')} <span className={styles.sovereign}>{homeTitleName}</span>
+                    </h1>
                     <p className={styles.subtitle}>{t('home.subtitle')}</p>
                 </div>
             </header>
@@ -104,7 +156,7 @@ export default function Home() {
                     </div>
                     <div className={styles.actionContent}>
                         <span className={styles.actionLabel}>{t('nav.games')}</span>
-                        <span className={styles.actionSub}>{t('home.gameCount', { count: 3 })}</span>
+                        <span className={styles.actionSub}>{t('home.gameCount', { count: GAMES_COUNT })}</span>
                     </div>
                 </Link>
             </div>
@@ -122,6 +174,15 @@ export default function Home() {
                     label={t('home.mostPopular')}
                     value={popularDictName}
                     colorClass={styles.bgYellow}
+                />
+                <StatCard
+                    icon={Gamepad2}
+                    label={globalBest 
+                        ? t('home.dictSaberStats', { worldScore: globalBest.score, username: globalBest.username }) 
+                        : t('home.dictSaberRecord')
+                    }
+                    value={personalBest}
+                    colorClass={styles.bgPurple}
                 />
             </div>
 

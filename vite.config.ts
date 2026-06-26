@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.png'],
       manifest: {
         name: 'BeneDict - Language Learning',
         short_name: 'BeneDict',
@@ -36,18 +36,10 @@ export default defineConfig({
       workbox: {
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'firestore-data',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 1 day
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
+            urlPattern: /^https:\/\/[^/]+(?:\.firebasedatabase\.app|\.firebaseio\.com)\/.*/i,
+            // Realtime Database contains live learning state and highscores, so avoid
+            // serving cached API responses that could make progress look stale.
+            handler: 'NetworkOnly',
           },
           {
             urlPattern: ({ request }) => request.destination === 'image' || request.destination === 'font',
@@ -69,4 +61,3 @@ export default defineConfig({
     strictPort: true,
   }
 })
-

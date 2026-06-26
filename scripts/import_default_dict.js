@@ -28,7 +28,7 @@ results.forEach((item, index) => {
     const translations = [];
     Object.entries(meansObj).forEach(([part, text]) => {
         if (text && text.trim()) {
-            translations.push(`[${part}] ${text}`);
+            translations.push(text.trim());
         }
     });
     
