@@ -29,6 +29,12 @@ interface Rank {
     description: string;
 }
 
+interface RepeatPairTracker {
+    pairId: string;
+    repeatCount: number;
+    otherPairAttempts: number;
+}
+
 export default function MatchPairs() {
     const { dictId } = useParams<{ dictId: string }>();
     const { currentUser } = useAuth();
@@ -63,7 +69,6 @@ export default function MatchPairs() {
     const [correctIds, setCorrectIds] = useState<Set<string>>(new Set());
     const [wrongIds, setWrongIds] = useState<Set<string>>(new Set());
     const [isShuffling, setIsShuffling] = useState(false);
-    const [lastMatchedIndex, setLastMatchedIndex] = useState<number | null>(null);
     const [newlyAppearingIds, setNewlyAppearingIds] = useState<Set<string>>(new Set());
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
@@ -86,6 +91,7 @@ export default function MatchPairs() {
     const [errors, setErrors] = useState(0);
     const timerRef = useRef<number | null>(null);
     const startTimeRef = useRef<number | null>(null);
+    const repeatPairTrackerRef = useRef<RepeatPairTracker | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
 
@@ -224,7 +230,7 @@ export default function MatchPairs() {
         setSelectedLeftId(null);
         setSelectedRightId(null);
         setIsShuffling(false);
-        setLastMatchedIndex(null);
+        repeatPairTrackerRef.current = null;
         setWrongIds(new Set());
         setNewlyAppearingIds(new Set());
 
@@ -389,16 +395,13 @@ export default function MatchPairs() {
             setScore(prev => prev + 1);
             setSelectedLeftId(null);
             setSelectedRightId(null);
+            repeatPairTrackerRef.current = null;
 
             // Record Leitner correct review
             const matchedWord = allWordsPool.find(w => w.id === leftId);
             if (matchedWord && currentUser) {
                 answerWordLeitner(currentUser.uid, matchedWord, true);
             }
-
-            // Find index of the matched word before replacing
-            const matchedIndex = leftColumn.findIndex(item => item?.id === leftId);
-            setLastMatchedIndex(matchedIndex);
 
             // Wait 600ms and transition
             setTimeout(() => {
@@ -437,27 +440,40 @@ export default function MatchPairs() {
     const handleChoice = (id: string, isOriginal: boolean) => {
         if (matchedIds.has(id) || correctIds.has(id)) return;
 
-        // Check if player clicked the same position where the last match occurred
-        const clickIndex = isOriginal
-            ? leftColumn.findIndex(item => item?.id === id)
-            : rightColumn.findIndex(item => item?.id === id);
+        const isCompletingCorrectMatch = (isOriginal && selectedRightId === id) || (!isOriginal && selectedLeftId === id);
 
-        if (lastMatchedIndex !== null && clickIndex === lastMatchedIndex) {
-            // Player clicked on the same position, shuffle the columns!
-            setIsShuffling(true);
-            setLastMatchedIndex(null); // Reset matched index after shuffle trigger
+        if (!isCompletingCorrectMatch) {
+            const tracker = repeatPairTrackerRef.current;
 
-            // Cascade fadeOut animation is idx * 40ms + transition (200ms).
-            // For ~5-10 elements, 450ms is perfect to let it fully fade out before shuffle.
-            setTimeout(() => {
-                shuffleColumns();
-                setIsShuffling(false);
-            }, 450);
+            if (!tracker) {
+                repeatPairTrackerRef.current = { pairId: id, repeatCount: 1, otherPairAttempts: 0 };
+            } else if (tracker.pairId === id) {
+                const repeatCount = tracker.repeatCount + 1;
 
-            // Reset selection to prevent incorrect matches after shuffle
-            setSelectedLeftId(null);
-            setSelectedRightId(null);
-            return;
+                if (repeatCount >= 2) {
+                    setIsShuffling(true);
+                    repeatPairTrackerRef.current = null;
+
+                    // Cascade fadeOut animation is idx * 40ms + transition (200ms).
+                    // For ~5-10 elements, 450ms is perfect to let it fully fade out before shuffle.
+                    setTimeout(() => {
+                        shuffleColumns();
+                        setIsShuffling(false);
+                    }, 450);
+
+                    // Reset selection to prevent incorrect matches after shuffle
+                    setSelectedLeftId(null);
+                    setSelectedRightId(null);
+                    return;
+                }
+
+                repeatPairTrackerRef.current = { ...tracker, repeatCount, otherPairAttempts: 0 };
+            } else {
+                const otherPairAttempts = tracker.otherPairAttempts + 1;
+                repeatPairTrackerRef.current = otherPairAttempts >= 2
+                    ? null
+                    : { ...tracker, otherPairAttempts };
+            }
         }
 
         if (isOriginal) {
