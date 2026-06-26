@@ -35,6 +35,15 @@ const isLearnedDictionaryReference = (dictionaryKey: string, data: { id?: unknow
         || KNOWN_LEARNED_DICTIONARY_NAMES.has(normalizedName);
 };
 
+const LEITNER_INTERVALS = [
+    0,                        // Box 0: immediate
+    24 * 60 * 60 * 1000,      // Box 1: 1 day (24h)
+    3 * 24 * 60 * 60 * 1000,  // Box 2: 3 days
+    7 * 24 * 60 * 60 * 1000,  // Box 3: 7 days
+    14 * 24 * 60 * 60 * 1000, // Box 4: 14 days
+    30 * 24 * 60 * 60 * 1000  // Box 5: 30 days
+];
+
 /**
  * Store using Firebase Realtime Database.
  * Explicitly merging state in all set calls to prevent functions from disappearing.
@@ -671,16 +680,24 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
             if (word.dictionaryId === 'default') {
                 // Mark in shared list for user
                 await dbSet(ref(db, `users/${userId}/learnedSharedWords/${word.id}`), true);
+                await update(ref(db, `users/${userId}/sharedWordsProgress/${word.id}`), {
+                    box: 5,
+                    nextReview: word.nextReview,
+                    isLearned: true
+                });
             } else if (isForeign) {
                 // Mark as learned in personal progress for this foreign dictionary
                 await update(ref(db, `users/${userId}/dictionaryProgress/${word.dictionaryId}/${word.id}`), {
                     isLearned: true,
-                    box: 5
+                    box: 5,
+                    nextReview: word.nextReview
                 });
             } else {
                 // Mark in the original own dictionary
                 await update(ref(db, `users/${userId}/dictionaries/${word.dictionaryId}/words/${word.id}`), {
-                    isLearned: true
+                    isLearned: true,
+                    box: 5,
+                    nextReview: word.nextReview
                 });
             }
 
@@ -698,27 +715,30 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
 
     answerWordLeitner: async (userId: string, word: Word, isCorrect: boolean) => {
         try {
-            const LEITNER_INTERVALS = [
-                0,                        // Box 0: immediate
-                24 * 60 * 60 * 1000,      // Box 1: 1 day (24h)
-                3 * 24 * 60 * 60 * 1000,  // Box 2: 3 days
-                7 * 24 * 60 * 60 * 1000,  // Box 3: 7 days
-                14 * 24 * 60 * 60 * 1000, // Box 4: 14 days
-                30 * 24 * 60 * 60 * 1000  // Box 5: 30 days
-            ];
+            const now = Date.now();
+            const currentBox = Math.min(Math.max(word.box || 0, 0), 5);
+            const currentNextReview = word.nextReview || 0;
 
-            let newBox = 0;
+            if (isCorrect && (word.isLearned || currentBox >= 5)) {
+                return;
+            }
+
+            if (isCorrect && currentNextReview > now) {
+                return;
+            }
+
+            let newBox: number;
             if (isCorrect) {
-                newBox = Math.min((word.box || 0) + 1, 5);
+                newBox = Math.min(currentBox + 1, 5);
             } else {
                 newBox = 0; // Reset to box 0 on error
             }
 
-            const nextReview = Date.now() + LEITNER_INTERVALS[newBox];
+            const nextReview = now + LEITNER_INTERVALS[newBox];
 
-            // 1. If it reached Box 5 (graduated), mark as learned and move to "Выученные слова"
-            if (isCorrect && newBox === 5) {
-                await get().markWordAsLearned(userId, word);
+            // 1. If it progressed into Box 5 (graduated), mark as learned and move to "Выученные слова"
+            if (isCorrect && currentBox === 4 && newBox === 5) {
+                await get().markWordAsLearned(userId, { ...word, box: newBox, nextReview, isLearned: true });
                 return;
             }
 
@@ -730,7 +750,8 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                 // Update in user-specific shared progress
                 await update(ref(db, `users/${userId}/sharedWordsProgress/${word.id}`), {
                     box: newBox,
-                    nextReview
+                    nextReview,
+                    isLearned: false
                 });
             } else if (isForeign) {
                 // Update in personal progress for this foreign dictionary
@@ -743,7 +764,8 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                 // Update in the original dictionary
                 await update(ref(db, `users/${userId}/dictionaries/${word.dictionaryId}/words/${word.id}`), {
                     box: newBox,
-                    nextReview
+                    nextReview,
+                    isLearned: false
                 });
             }
 
@@ -752,7 +774,7 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                 ...state,
                 words: state.words.map(w => 
                     w.id === word.id 
-                        ? { ...w, box: newBox, nextReview } 
+                        ? { ...w, box: newBox, nextReview, isLearned: false } 
                         : w
                 )
             }));
