@@ -358,6 +358,8 @@ export default function MatchPairs() {
         nextWordIndex.current += 1;
 
         if (nextWord) {
+            repeatPairTrackerRef.current = { pairId: nextWord.id, repeatCount: 1, otherPairAttempts: 0 };
+
             // Mark new word as currently appearing (non-clickable, fading in)
             setNewlyAppearingIds(prev => {
                 const next = new Set(prev);
@@ -373,6 +375,8 @@ export default function MatchPairs() {
                     return next;
                 });
             }, 1000);
+        } else {
+            repeatPairTrackerRef.current = null;
         }
 
         setLeftColumn(prev => prev.map(item =>
@@ -446,7 +450,7 @@ export default function MatchPairs() {
             const tracker = repeatPairTrackerRef.current;
 
             if (!tracker) {
-                repeatPairTrackerRef.current = { pairId: id, repeatCount: 1, otherPairAttempts: 0 };
+                // Repeat tracking starts only after a correct match inserts a replacement pair.
             } else if (tracker.pairId === id) {
                 const repeatCount = tracker.repeatCount + 1;
 
