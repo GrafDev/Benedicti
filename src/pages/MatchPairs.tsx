@@ -18,6 +18,11 @@ interface MatchItem {
     isOriginal: boolean;
 }
 
+interface MatchColumnEntry {
+    item: MatchItem | null;
+    slotIndex: number;
+}
+
 type Phase = 'SETUP' | 'PLAY' | 'GAMEOVER';
 
 interface Rank {
@@ -29,8 +34,10 @@ interface Rank {
     description: string;
 }
 
-interface RepeatPairTracker {
+interface ReplacementGuard {
     pairId: string;
+    leftSlotIndex: number;
+    rightSlotIndex: number;
     repeatCount: number;
     otherPairAttempts: number;
 }
@@ -94,7 +101,7 @@ export default function MatchPairs() {
     const [errors, setErrors] = useState(0);
     const timerRef = useRef<number | null>(null);
     const startTimeRef = useRef<number | null>(null);
-    const repeatPairTrackerRef = useRef<RepeatPairTracker | null>(null);
+    const replacementGuardsRef = useRef<ReplacementGuard[]>([]);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
 
@@ -233,7 +240,7 @@ export default function MatchPairs() {
         setSelectedLeftId(null);
         setSelectedRightId(null);
         setIsShuffling(false);
-        repeatPairTrackerRef.current = null;
+        replacementGuardsRef.current = [];
         setWrongIds(new Set());
         setNewlyAppearingIds(new Set());
 
@@ -344,7 +351,38 @@ export default function MatchPairs() {
         }, 1000);
     }, []);
 
+    const triggerReplacementShuffle = useCallback(() => {
+        setIsShuffling(true);
+        replacementGuardsRef.current = [];
+
+        // Cascade fadeOut animation is idx * 40ms + transition (200ms).
+        // For ~5-10 elements, 450ms is perfect to let it fully fade out before shuffle.
+        setTimeout(() => {
+            shuffleColumns();
+            setIsShuffling(false);
+        }, 450);
+
+        // Reset selection to prevent incorrect matches after shuffle
+        setSelectedLeftId(null);
+        setSelectedRightId(null);
+    }, [shuffleColumns]);
+
+    const recordCompletedOtherPairAttempt = useCallback((completedPairId: string) => {
+        replacementGuardsRef.current = replacementGuardsRef.current
+            .map(guard => guard.pairId === completedPairId
+                ? guard
+                : { ...guard, otherPairAttempts: guard.otherPairAttempts + 1 }
+            )
+            .filter(guard =>
+                guard.pairId === completedPairId
+                || guard.otherPairAttempts < REPLACEMENT_OTHER_ATTEMPT_RESET_THRESHOLD
+            );
+    }, []);
+
     const replaceWordOnPlace = (oldId: string) => {
+        const leftSlotIndex = leftColumn.findIndex(item => item?.id === oldId);
+        const rightSlotIndex = rightColumn.findIndex(item => item?.id === oldId);
+
         setMatchedIds(prev => {
             const next = new Set(prev);
             next.add(oldId);
@@ -361,7 +399,16 @@ export default function MatchPairs() {
         nextWordIndex.current += 1;
 
         if (nextWord) {
-            repeatPairTrackerRef.current = { pairId: nextWord.id, repeatCount: 1, otherPairAttempts: 0 };
+            replacementGuardsRef.current = [
+                ...replacementGuardsRef.current,
+                {
+                    pairId: nextWord.id,
+                    leftSlotIndex,
+                    rightSlotIndex,
+                    repeatCount: 1,
+                    otherPairAttempts: 0
+                }
+            ];
 
             // Mark new word as currently appearing (non-clickable, fading in)
             setNewlyAppearingIds(prev => {
@@ -379,7 +426,7 @@ export default function MatchPairs() {
                 });
             }, 1000);
         } else {
-            repeatPairTrackerRef.current = null;
+            replacementGuardsRef.current = replacementGuardsRef.current.filter(guard => guard.pairId !== oldId);
         }
 
         setLeftColumn(prev => prev.map(item =>
@@ -402,9 +449,8 @@ export default function MatchPairs() {
             setScore(prev => prev + 1);
             setSelectedLeftId(null);
             setSelectedRightId(null);
-            if (repeatPairTrackerRef.current?.pairId === leftId) {
-                repeatPairTrackerRef.current = null;
-            }
+            recordCompletedOtherPairAttempt(leftId);
+            replacementGuardsRef.current = replacementGuardsRef.current.filter(guard => guard.pairId !== leftId);
 
             // Record Leitner correct review
             const matchedWord = allWordsPool.find(w => w.id === leftId);
@@ -446,46 +492,37 @@ export default function MatchPairs() {
         }
     };
 
-    const handleChoice = (id: string, isOriginal: boolean) => {
+    const handleChoice = (id: string, isOriginal: boolean, slotIndex: number) => {
         if (matchedIds.has(id) || correctIds.has(id)) return;
 
         const isCompletingCorrectMatch = (isOriginal && selectedRightId === id) || (!isOriginal && selectedLeftId === id);
 
         if (!isCompletingCorrectMatch) {
-            const tracker = repeatPairTrackerRef.current;
+            const touchedGuard = replacementGuardsRef.current.find(guard =>
+                guard.pairId === id || (isOriginal ? guard.leftSlotIndex === slotIndex : guard.rightSlotIndex === slotIndex)
+            );
 
-            if (!tracker) {
-                // Repeat tracking starts only after a correct match inserts a replacement pair.
-            } else if (tracker.pairId === id) {
-                const repeatCount = tracker.repeatCount + 1;
+            if (touchedGuard) {
+                const repeatCount = touchedGuard.repeatCount + 1;
 
                 if (repeatCount >= REPLACEMENT_REPEAT_SHUFFLE_THRESHOLD) {
-                    setIsShuffling(true);
-                    repeatPairTrackerRef.current = null;
-
-                    // Cascade fadeOut animation is idx * 40ms + transition (200ms).
-                    // For ~5-10 elements, 450ms is perfect to let it fully fade out before shuffle.
-                    setTimeout(() => {
-                        shuffleColumns();
-                        setIsShuffling(false);
-                    }, 450);
-
-                    // Reset selection to prevent incorrect matches after shuffle
-                    setSelectedLeftId(null);
-                    setSelectedRightId(null);
+                    triggerReplacementShuffle();
                     return;
                 }
 
-                repeatPairTrackerRef.current = { ...tracker, repeatCount, otherPairAttempts: 0 };
+                replacementGuardsRef.current = replacementGuardsRef.current.map(guard =>
+                    guard === touchedGuard
+                        ? { ...guard, repeatCount, otherPairAttempts: 0 }
+                        : guard
+                );
             } else {
                 const selectedOppositeId = isOriginal ? selectedRightId : selectedLeftId;
-                const isCompletingOtherPairAttempt = Boolean(selectedOppositeId && selectedOppositeId !== tracker.pairId);
+                const isCompletingOtherPairAttempt = Boolean(selectedOppositeId);
 
                 if (isCompletingOtherPairAttempt) {
-                    const otherPairAttempts = tracker.otherPairAttempts + 1;
-                    repeatPairTrackerRef.current = otherPairAttempts >= REPLACEMENT_OTHER_ATTEMPT_RESET_THRESHOLD
-                        ? null
-                        : { ...tracker, otherPairAttempts };
+                    replacementGuardsRef.current = replacementGuardsRef.current
+                        .map(guard => ({ ...guard, otherPairAttempts: guard.otherPairAttempts + 1 }))
+                        .filter(guard => guard.otherPairAttempts < REPLACEMENT_OTHER_ATTEMPT_RESET_THRESHOLD);
                 }
             }
         }
@@ -519,8 +556,14 @@ export default function MatchPairs() {
 
     const isInitialLoading = loading && storeWords.length === 0;
 
-    const renderMatchCard = (item: MatchItem | null, idx: number, isOriginal: boolean, keyPrefix: string) => (
-        item ? (
+    const toColumnEntries = (items: (MatchItem | null)[]): MatchColumnEntry[] => (
+        items.map((item, slotIndex) => ({ item, slotIndex }))
+    );
+
+    const renderMatchCard = (entry: MatchColumnEntry, idx: number, isOriginal: boolean, keyPrefix: string) => {
+        const item = entry.item;
+
+        return item ? (
             <button
                 key={`${keyPrefix}-${item.id}`}
                 style={{
@@ -533,29 +576,34 @@ export default function MatchPairs() {
                     ${wrongIds.has(item.id) && (isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.wrong : ''}
                     ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
                     ${isShuffling ? styles.fadeOut : ''}`}
-                onClick={() => handleChoice(item.id, isOriginal)}
+                onClick={() => handleChoice(item.id, isOriginal, entry.slotIndex)}
                 disabled={isShuffling || newlyAppearingIds.has(item.id)}
             >
                 {isEliteMode && isOriginal ? <Volume2 size={24} /> : item.text}
             </button>
-        ) : <div key={`${keyPrefix}-empty-${idx}`} className={styles.emptySlot} />
-    );
+        ) : <div key={`${keyPrefix}-empty-${entry.slotIndex}-${idx}`} className={styles.emptySlot} />;
+    };
 
-    const renderMatchColumn = (items: (MatchItem | null)[], isOriginal: boolean, keyPrefix: string) => (
+    const renderMatchColumn = (entries: MatchColumnEntry[], isOriginal: boolean, keyPrefix: string) => (
         <div className={styles.column}>
-            {items.map((item, idx) => renderMatchCard(item, idx, isOriginal, keyPrefix))}
+            {entries.map((entry, idx) => renderMatchCard(entry, idx, isOriginal, keyPrefix))}
         </div>
     );
 
-    const tabletSplitIndex = Math.ceil(leftColumn.length / 2);
-    const tabletLeftFirst = leftColumn.slice(0, tabletSplitIndex);
-    const tabletLeftSecond = leftColumn.slice(tabletSplitIndex);
-    const getTabletTranslations = (sourceItems: (MatchItem | null)[]) => {
-        const sourceIds = new Set(sourceItems.flatMap(item => item ? [item.id] : []));
-        const translations = rightColumn.filter(item => item && sourceIds.has(item.id));
+    const leftColumnEntries = toColumnEntries(leftColumn);
+    const rightColumnEntries = toColumnEntries(rightColumn);
+    const tabletSplitIndex = Math.ceil(leftColumnEntries.length / 2);
+    const tabletLeftFirst = leftColumnEntries.slice(0, tabletSplitIndex);
+    const tabletLeftSecond = leftColumnEntries.slice(tabletSplitIndex);
+    const getTabletTranslations = (sourceEntries: MatchColumnEntry[]) => {
+        const sourceIds = new Set(sourceEntries.flatMap(entry => entry.item ? [entry.item.id] : []));
+        const translations = rightColumnEntries.filter(entry => entry.item && sourceIds.has(entry.item.id));
         return [
             ...translations,
-            ...Array(Math.max(sourceItems.length - translations.length, 0)).fill(null)
+            ...Array.from({ length: Math.max(sourceEntries.length - translations.length, 0) }, (_, index) => ({
+                item: null,
+                slotIndex: -index - 1
+            }))
         ];
     };
     const tabletRightFirst = getTabletTranslations(tabletLeftFirst);
@@ -835,8 +883,8 @@ export default function MatchPairs() {
                                 </div>
 
                                 <div className={`${styles.columns} ${styles.desktopColumns}`}>
-                                    {renderMatchColumn(leftColumn, true, 'left')}
-                                    {renderMatchColumn(rightColumn, false, 'right')}
+                                    {renderMatchColumn(leftColumnEntries, true, 'left')}
+                                    {renderMatchColumn(rightColumnEntries, false, 'right')}
                                 </div>
 
                                 <div className={`${styles.columns} ${styles.tabletColumns}`}>
