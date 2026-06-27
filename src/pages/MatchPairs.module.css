@@ -1100,10 +1100,17 @@
     animation: correctPairBounce 0.42s ease-out;
 }
 
+.answerShuffleLift {
+    z-index: 6;
+    animation: answerShuffleLift 0.16s ease-out both;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 22px 38px rgba(0, 0, 0, 0.36);
+    pointer-events: none;
+}
+
 .answerShuffling {
     z-index: var(--shuffle-z, 3);
-    animation: answerSideShuffle 0.52s cubic-bezier(0.22, 0.82, 0.22, 1);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 34px rgba(0, 0, 0, 0.34);
+    animation: answerSideShuffle 0.68s cubic-bezier(0.2, 0.86, 0.18, 1) both;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 24px 44px rgba(0, 0, 0, 0.4);
     pointer-events: none;
 }
 
@@ -1126,21 +1133,36 @@
     62% { transform: translateY(-2px) rotate(0.55deg); }
 }
 
+@keyframes answerShuffleLift {
+    0% {
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        transform: translateY(-12px) scale(1.045);
+    }
+}
+
 @keyframes answerSideShuffle {
     0% {
-        transform: translate(var(--shuffle-x, 0), var(--shuffle-y, 0)) scale(1.015);
-    }
-    42% {
         transform: translate(
-            calc(var(--shuffle-x, 0) * 0.52),
-            calc((var(--shuffle-y, 0) * 0.52) - 10px)
+            var(--shuffle-x, 0),
+            calc(var(--shuffle-y, 0) - 12px)
         ) scale(1.045);
     }
-    72% {
+    34% {
         transform: translate(
-            calc(var(--shuffle-x, 0) * 0.16),
-            calc((var(--shuffle-y, 0) * 0.16) - 4px)
-        ) scale(1.025);
+            calc(var(--shuffle-x, 0) * 0.58),
+            calc((var(--shuffle-y, 0) * 0.58) - 18px)
+        ) scale(1.06);
+    }
+    66% {
+        transform: translate(
+            calc(var(--shuffle-x, 0) * 0.18),
+            calc((var(--shuffle-y, 0) * 0.18) - 7px)
+        ) scale(1.035);
+    }
+    86% {
+        transform: translate(0, -2px) scale(1.01);
     }
     100% {
         transform: translate(0, 0) scale(1);
@@ -1149,22 +1171,29 @@
 
 @keyframes answerSideShuffleAppearing {
     0% {
-        opacity: 0;
-        transform: translate(var(--shuffle-x, 0), var(--shuffle-y, 0)) scale(0.98);
+        opacity: 0.2;
+        transform: translate(
+            var(--shuffle-x, 0),
+            calc(var(--shuffle-y, 0) - 12px)
+        ) scale(1.02);
     }
-    42% {
+    34% {
         opacity: 1;
         transform: translate(
-            calc(var(--shuffle-x, 0) * 0.52),
-            calc((var(--shuffle-y, 0) * 0.52) - 10px)
-        ) scale(1.045);
+            calc(var(--shuffle-x, 0) * 0.58),
+            calc((var(--shuffle-y, 0) * 0.58) - 18px)
+        ) scale(1.06);
     }
-    72% {
+    66% {
         opacity: 1;
         transform: translate(
-            calc(var(--shuffle-x, 0) * 0.16),
-            calc((var(--shuffle-y, 0) * 0.16) - 4px)
-        ) scale(1.025);
+            calc(var(--shuffle-x, 0) * 0.18),
+            calc((var(--shuffle-y, 0) * 0.18) - 7px)
+        ) scale(1.035);
+    }
+    86% {
+        opacity: 1;
+        transform: translate(0, -2px) scale(1.01);
     }
     100% {
         opacity: 1;
@@ -1647,7 +1676,11 @@
 }
 
 .answerShuffling.appearing {
-    animation: answerSideShuffleAppearing 0.52s cubic-bezier(0.22, 0.82, 0.22, 1) both;
+    animation: answerSideShuffleAppearing 0.68s cubic-bezier(0.2, 0.86, 0.18, 1) both;
+}
+
+.answerShuffleLift.appearing {
+    animation: answerShuffleLift 0.16s ease-out both;
 }
 
 @keyframes slowFadeIn {
