@@ -35,6 +35,9 @@ interface RepeatPairTracker {
     otherPairAttempts: number;
 }
 
+const REPLACEMENT_REPEAT_SHUFFLE_THRESHOLD = 2;
+const REPLACEMENT_OTHER_ATTEMPT_RESET_THRESHOLD = 2;
+
 export default function MatchPairs() {
     const { dictId } = useParams<{ dictId: string }>();
     const { currentUser } = useAuth();
@@ -399,7 +402,9 @@ export default function MatchPairs() {
             setScore(prev => prev + 1);
             setSelectedLeftId(null);
             setSelectedRightId(null);
-            repeatPairTrackerRef.current = null;
+            if (repeatPairTrackerRef.current?.pairId === leftId) {
+                repeatPairTrackerRef.current = null;
+            }
 
             // Record Leitner correct review
             const matchedWord = allWordsPool.find(w => w.id === leftId);
@@ -454,7 +459,7 @@ export default function MatchPairs() {
             } else if (tracker.pairId === id) {
                 const repeatCount = tracker.repeatCount + 1;
 
-                if (repeatCount >= 2) {
+                if (repeatCount >= REPLACEMENT_REPEAT_SHUFFLE_THRESHOLD) {
                     setIsShuffling(true);
                     repeatPairTrackerRef.current = null;
 
@@ -473,10 +478,15 @@ export default function MatchPairs() {
 
                 repeatPairTrackerRef.current = { ...tracker, repeatCount, otherPairAttempts: 0 };
             } else {
-                const otherPairAttempts = tracker.otherPairAttempts + 1;
-                repeatPairTrackerRef.current = otherPairAttempts >= 2
-                    ? null
-                    : { ...tracker, otherPairAttempts };
+                const selectedOppositeId = isOriginal ? selectedRightId : selectedLeftId;
+                const isCompletingOtherPairAttempt = Boolean(selectedOppositeId && selectedOppositeId !== tracker.pairId);
+
+                if (isCompletingOtherPairAttempt) {
+                    const otherPairAttempts = tracker.otherPairAttempts + 1;
+                    repeatPairTrackerRef.current = otherPairAttempts >= REPLACEMENT_OTHER_ATTEMPT_RESET_THRESHOLD
+                        ? null
+                        : { ...tracker, otherPairAttempts };
+                }
             }
         }
 
@@ -508,6 +518,48 @@ export default function MatchPairs() {
     };
 
     const isInitialLoading = loading && storeWords.length === 0;
+
+    const renderMatchCard = (item: MatchItem | null, idx: number, isOriginal: boolean, keyPrefix: string) => (
+        item ? (
+            <button
+                key={`${keyPrefix}-${item.id}`}
+                style={{
+                    transitionDelay: isShuffling ? `${idx * 40}ms` : '0ms',
+                    animationDelay: newlyAppearingIds.has(item.id) ? `${idx * 40}ms` : '0ms'
+                }}
+                className={`${styles.card}
+                    ${(isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.selected : ''}
+                    ${correctIds.has(item.id) ? styles.correct : ''}
+                    ${wrongIds.has(item.id) && (isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.wrong : ''}
+                    ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
+                    ${isShuffling ? styles.fadeOut : ''}`}
+                onClick={() => handleChoice(item.id, isOriginal)}
+                disabled={isShuffling || newlyAppearingIds.has(item.id)}
+            >
+                {isEliteMode && isOriginal ? <Volume2 size={24} /> : item.text}
+            </button>
+        ) : <div key={`${keyPrefix}-empty-${idx}`} className={styles.emptySlot} />
+    );
+
+    const renderMatchColumn = (items: (MatchItem | null)[], isOriginal: boolean, keyPrefix: string) => (
+        <div className={styles.column}>
+            {items.map((item, idx) => renderMatchCard(item, idx, isOriginal, keyPrefix))}
+        </div>
+    );
+
+    const tabletSplitIndex = Math.ceil(leftColumn.length / 2);
+    const tabletLeftFirst = leftColumn.slice(0, tabletSplitIndex);
+    const tabletLeftSecond = leftColumn.slice(tabletSplitIndex);
+    const getTabletTranslations = (sourceItems: (MatchItem | null)[]) => {
+        const sourceIds = new Set(sourceItems.flatMap(item => item ? [item.id] : []));
+        const translations = rightColumn.filter(item => item && sourceIds.has(item.id));
+        return [
+            ...translations,
+            ...Array(Math.max(sourceItems.length - translations.length, 0)).fill(null)
+        ];
+    };
+    const tabletRightFirst = getTabletTranslations(tabletLeftFirst);
+    const tabletRightSecond = getTabletTranslations(tabletLeftSecond);
 
     const renderSetup = () => {
         const isRu = language === 'ru';
@@ -782,53 +834,16 @@ export default function MatchPairs() {
                                     </div>
                                 </div>
 
-                                <div className={styles.columns}>
-                                    <div className={styles.column}>
-                                        {leftColumn.map((item, idx) => (
-                                            item ? (
-                                                <button
-                                                    key={`left-${item.id}`}
-                                                    style={{
-                                                        transitionDelay: isShuffling ? `${idx * 40}ms` : '0ms',
-                                                        animationDelay: newlyAppearingIds.has(item.id) ? `${idx * 40}ms` : '0ms'
-                                                    }}
-                                                    className={`${styles.card} 
-                                                        ${selectedLeftId === item.id ? styles.selected : ''} 
-                                                        ${correctIds.has(item.id) ? styles.correct : ''} 
-                                                        ${wrongIds.has(item.id) && selectedLeftId === item.id ? styles.wrong : ''}
-                                                        ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
-                                                        ${isShuffling ? styles.fadeOut : ''}`}
-                                                    onClick={() => handleChoice(item.id, true)}
-                                                    disabled={isShuffling || newlyAppearingIds.has(item.id)}
-                                                >
-                                                    {isEliteMode ? <Volume2 size={24} /> : item.text}
-                                                </button>
-                                            ) : <div key={`left-empty-${idx}`} className={styles.emptySlot} />
-                                        ))}
-                                    </div>
-                                    <div className={styles.column}>
-                                        {rightColumn.map((item, idx) => (
-                                            item ? (
-                                                <button
-                                                    key={`right-${item.id}`}
-                                                    style={{
-                                                        transitionDelay: isShuffling ? `${idx * 40}ms` : '0ms',
-                                                        animationDelay: newlyAppearingIds.has(item.id) ? `${idx * 40}ms` : '0ms'
-                                                    }}
-                                                    className={`${styles.card} 
-                                                        ${selectedRightId === item.id ? styles.selected : ''} 
-                                                        ${correctIds.has(item.id) ? styles.correct : ''} 
-                                                        ${wrongIds.has(item.id) && selectedRightId === item.id ? styles.wrong : ''}
-                                                        ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
-                                                        ${isShuffling ? styles.fadeOut : ''}`}
-                                                    onClick={() => handleChoice(item.id, false)}
-                                                    disabled={isShuffling || newlyAppearingIds.has(item.id)}
-                                                >
-                                                    {item.text}
-                                                </button>
-                                            ) : <div key={`right-empty-${idx}`} className={styles.emptySlot} />
-                                        ))}
-                                    </div>
+                                <div className={`${styles.columns} ${styles.desktopColumns}`}>
+                                    {renderMatchColumn(leftColumn, true, 'left')}
+                                    {renderMatchColumn(rightColumn, false, 'right')}
+                                </div>
+
+                                <div className={`${styles.columns} ${styles.tabletColumns}`}>
+                                    {renderMatchColumn(tabletLeftFirst, true, 'tablet-left-a')}
+                                    {renderMatchColumn(tabletRightFirst, false, 'tablet-right-a')}
+                                    {renderMatchColumn(tabletLeftSecond, true, 'tablet-left-b')}
+                                    {renderMatchColumn(tabletRightSecond, false, 'tablet-right-b')}
                                 </div>
                             </>
                         )}

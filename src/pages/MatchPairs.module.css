@@ -1043,6 +1043,10 @@
     min-height: 0;
 }
 
+.tabletColumns {
+    display: none;
+}
+
 .column {
     display: flex;
     flex-direction: column;
@@ -1093,6 +1097,7 @@
     border-color: rgba(134, 239, 172, 0.78) !important;
     color: #dcfce7 !important;
     box-shadow: 0 0 24px rgba(74, 222, 128, 0.22);
+    animation: correctPairBounce 0.42s ease-out;
 }
 
 .wrong {
@@ -1106,6 +1111,12 @@
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-5px); }
     75% { transform: translateX(5px); }
+}
+
+@keyframes correctPairBounce {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    34% { transform: translateY(-5px) rotate(-0.7deg); }
+    62% { transform: translateY(-2px) rotate(0.55deg); }
 }
 
 .fadeOut {
@@ -1477,6 +1488,39 @@
     }
     .rankStatus {
         min-height: 24px;
+    }
+}
+
+@media (min-width: 700px) and (max-width: 1180px) {
+    .gameArea {
+        max-width: min(980px, calc(100vw - 1.5rem));
+        padding: 0.65rem;
+    }
+
+    .desktopColumns {
+        display: none;
+    }
+
+    .tabletColumns {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .tabletColumns .column {
+        gap: min(0.5rem, 0.8dvh);
+    }
+
+    .tabletColumns .card,
+    .tabletColumns .emptySlot {
+        max-height: 62px;
+    }
+
+    .tabletColumns .card {
+        min-height: 42px;
+        padding: 0.42rem 0.45rem;
+        font-size: 0.84rem;
+        line-height: 1.15;
     }
 }
 
