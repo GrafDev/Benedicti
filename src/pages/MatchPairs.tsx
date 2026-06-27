@@ -23,10 +23,20 @@ interface MatchColumnEntry {
     slotIndex: number;
 }
 
-interface AnswerShuffleMotion {
-    x: number;
-    y: number;
+interface AnswerShuffleRect {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+}
+
+interface AnswerShuffleClone {
+    id: string;
+    text: string;
+    from: AnswerShuffleRect;
+    to: AnswerShuffleRect;
     z: number;
+    isAppearing: boolean;
 }
 
 interface AnswerShuffleMove {
@@ -87,8 +97,8 @@ export default function MatchPairs() {
     const [correctIds, setCorrectIds] = useState<Set<string>>(new Set());
     const [wrongIds, setWrongIds] = useState<Set<string>>(new Set());
     const [newlyAppearingIds, setNewlyAppearingIds] = useState<Set<string>>(new Set());
-    const [answerLiftIds, setAnswerLiftIds] = useState<Set<string>>(new Set());
-    const [answerShuffleMotions, setAnswerShuffleMotions] = useState<Record<string, AnswerShuffleMotion>>({});
+    const [answerHiddenIds, setAnswerHiddenIds] = useState<Set<string>>(new Set());
+    const [answerShuffleClones, setAnswerShuffleClones] = useState<AnswerShuffleClone[]>([]);
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -112,7 +122,7 @@ export default function MatchPairs() {
     const startTimeRef = useRef<number | null>(null);
     const answerCardRefs = useRef<Map<string, Set<HTMLButtonElement>>>(new Map());
     const pendingAnswerShuffleRef = useRef<PendingAnswerShuffle | null>(null);
-    const answerShuffleLiftTimeoutRef = useRef<number | null>(null);
+    const answerShuffleFrameRef = useRef<number | null>(null);
     const answerShuffleTimeoutRef = useRef<number | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
@@ -253,12 +263,12 @@ export default function MatchPairs() {
         setSelectedRightId(null);
         setWrongIds(new Set());
         setNewlyAppearingIds(new Set());
-        setAnswerLiftIds(new Set());
-        setAnswerShuffleMotions({});
+        setAnswerHiddenIds(new Set());
+        setAnswerShuffleClones([]);
         pendingAnswerShuffleRef.current = null;
-        if (answerShuffleLiftTimeoutRef.current) {
-            window.clearTimeout(answerShuffleLiftTimeoutRef.current);
-            answerShuffleLiftTimeoutRef.current = null;
+        if (answerShuffleFrameRef.current) {
+            window.cancelAnimationFrame(answerShuffleFrameRef.current);
+            answerShuffleFrameRef.current = null;
         }
         if (answerShuffleTimeoutRef.current) {
             window.clearTimeout(answerShuffleTimeoutRef.current);
@@ -371,54 +381,73 @@ export default function MatchPairs() {
         return rects;
     }, []);
 
-    useEffect(() => {
-        if (answerLiftIds.size === 0 || !pendingAnswerShuffleRef.current) return;
+    const toShuffleRect = (rect: DOMRect): AnswerShuffleRect => ({
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height
+    });
 
-        if (answerShuffleLiftTimeoutRef.current) {
-            window.clearTimeout(answerShuffleLiftTimeoutRef.current);
+    useEffect(() => {
+        if (answerHiddenIds.size === 0 || !pendingAnswerShuffleRef.current || answerShuffleClones.length > 0) return;
+
+        if (answerShuffleFrameRef.current) {
+            window.cancelAnimationFrame(answerShuffleFrameRef.current);
         }
 
-        answerShuffleLiftTimeoutRef.current = window.setTimeout(() => {
+        answerShuffleFrameRef.current = window.requestAnimationFrame(() => {
             const pendingShuffle = pendingAnswerShuffleRef.current;
             if (!pendingShuffle) return;
 
-            const motions: Record<string, AnswerShuffleMotion> = {};
+            const clones: AnswerShuffleClone[] = [];
 
             pendingShuffle.moves.forEach((move, index) => {
+                const movingItem = pendingShuffle.replacedRightColumn[move.fromIndex];
                 const targetSlotItem = pendingShuffle.replacedRightColumn[move.toIndex];
-                const previousRect = getVisibleAnswerCardRects(new Set([move.id])).get(move.id);
+                const sourceRect = getVisibleAnswerCardRects(new Set([move.id])).get(move.id);
                 const targetRect = targetSlotItem
                     ? getVisibleAnswerCardRects(new Set([targetSlotItem.id])).get(targetSlotItem.id)
                     : undefined;
-                const fallbackDirection = index % 2 === 0 ? 1 : -1;
 
-                motions[move.id] = {
-                    x: previousRect && targetRect
-                        ? previousRect.left - targetRect.left
-                        : fallbackDirection * (34 + index * 10),
-                    y: previousRect && targetRect
-                        ? previousRect.top - targetRect.top
-                        : -14 + fallbackDirection * 8,
-                    z: pendingShuffle.shuffledIds.size + index
-                };
+                if (!movingItem || !sourceRect || !targetRect) return;
+
+                clones.push({
+                    id: move.id,
+                    text: movingItem.text,
+                    from: toShuffleRect(sourceRect),
+                    to: toShuffleRect(targetRect),
+                    z: 20 + index,
+                    isAppearing: newlyAppearingIds.has(move.id)
+                });
             });
 
-            setAnswerLiftIds(new Set());
-            setAnswerShuffleMotions(motions);
-            setRightColumn(pendingShuffle.nextColumn);
-            pendingAnswerShuffleRef.current = null;
+            if (clones.length === 0) {
+                setRightColumn(pendingShuffle.nextColumn);
+                setAnswerHiddenIds(new Set());
+                pendingAnswerShuffleRef.current = null;
+                answerShuffleFrameRef.current = null;
+                return;
+            }
+
+            setAnswerShuffleClones(clones);
 
             if (answerShuffleTimeoutRef.current) {
                 window.clearTimeout(answerShuffleTimeoutRef.current);
             }
 
             answerShuffleTimeoutRef.current = window.setTimeout(() => {
-                setAnswerShuffleMotions({});
+                const latestPendingShuffle = pendingAnswerShuffleRef.current;
+                if (latestPendingShuffle) {
+                    setRightColumn(latestPendingShuffle.nextColumn);
+                }
+                setAnswerShuffleClones([]);
+                setAnswerHiddenIds(new Set());
+                pendingAnswerShuffleRef.current = null;
                 answerShuffleTimeoutRef.current = null;
-            }, 720);
-            answerShuffleLiftTimeoutRef.current = null;
-        }, 220);
-    }, [answerLiftIds, getVisibleAnswerCardRects]);
+            }, 760);
+            answerShuffleFrameRef.current = null;
+        });
+    }, [answerHiddenIds, answerShuffleClones.length, getVisibleAnswerCardRects, newlyAppearingIds]);
 
     const shuffleReplacementAnswerSide = useCallback((column: (MatchItem | null)[], replacementPairId: string) => {
         const replacementIndex = column.findIndex(item => item?.id === replacementPairId);
@@ -512,19 +541,19 @@ export default function MatchPairs() {
         if (nextWord) {
             const { nextColumn, shuffledIds, moves } = shuffleReplacementAnswerSide(replacedRightColumn, nextWord.id);
 
-            setAnswerShuffleMotions({});
+            setAnswerShuffleClones([]);
             pendingAnswerShuffleRef.current = {
                 nextColumn,
                 replacedRightColumn,
                 shuffledIds,
                 moves
             };
-            setAnswerLiftIds(new Set(shuffledIds));
+            setAnswerHiddenIds(new Set(shuffledIds));
             setRightColumn(replacedRightColumn);
 
-            if (answerShuffleLiftTimeoutRef.current) {
-                window.clearTimeout(answerShuffleLiftTimeoutRef.current);
-                answerShuffleLiftTimeoutRef.current = null;
+            if (answerShuffleFrameRef.current) {
+                window.cancelAnimationFrame(answerShuffleFrameRef.current);
+                answerShuffleFrameRef.current = null;
             }
             if (answerShuffleTimeoutRef.current) {
                 window.clearTimeout(answerShuffleTimeoutRef.current);
@@ -622,17 +651,10 @@ export default function MatchPairs() {
 
     const renderMatchCard = (entry: MatchColumnEntry, idx: number, isOriginal: boolean, keyPrefix: string) => {
         const item = entry.item;
-        const shuffleMotion = !isOriginal ? answerShuffleMotions[item?.id || ''] : undefined;
-        const isAnswerLifting = !isOriginal && answerLiftIds.has(item?.id || '');
-        const cardStyle: CSSProperties & Record<string, string | number> = {
+        const isAnswerHidden = !isOriginal && answerHiddenIds.has(item?.id || '');
+        const cardStyle: CSSProperties = {
             animationDelay: newlyAppearingIds.has(item?.id || '') ? `${idx * 40}ms` : '0ms'
         };
-
-        if (shuffleMotion) {
-            cardStyle['--shuffle-x'] = `${Math.round(shuffleMotion.x)}px`;
-            cardStyle['--shuffle-y'] = `${Math.round(shuffleMotion.y)}px`;
-            cardStyle['--shuffle-z'] = shuffleMotion.z;
-        }
 
         return item ? (
             <button
@@ -644,10 +666,9 @@ export default function MatchPairs() {
                     ${correctIds.has(item.id) ? styles.correct : ''}
                     ${wrongIds.has(item.id) && (isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.wrong : ''}
                     ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
-                    ${isAnswerLifting ? styles.answerShuffleLift : ''}
-                    ${shuffleMotion ? styles.answerShuffling : ''}`}
+                    ${isAnswerHidden ? styles.answerShuffleHidden : ''}`}
                 onClick={() => handleChoice(item.id, isOriginal)}
-                disabled={newlyAppearingIds.has(item.id) || isAnswerLifting || Boolean(shuffleMotion)}
+                disabled={newlyAppearingIds.has(item.id) || isAnswerHidden}
             >
                 {isEliteMode && isOriginal ? <Volume2 size={24} /> : item.text}
             </button>
@@ -659,6 +680,32 @@ export default function MatchPairs() {
             {entries.map((entry, idx) => renderMatchCard(entry, idx, isOriginal, keyPrefix))}
         </div>
     );
+
+    const renderAnswerShuffleOverlay = () => answerShuffleClones.length > 0 ? (
+        <div className={styles.answerShuffleOverlay} aria-hidden="true">
+            {answerShuffleClones.map(clone => {
+                const cloneStyle: CSSProperties & Record<string, string | number> = {
+                    left: `${clone.from.left}px`,
+                    top: `${clone.from.top}px`,
+                    width: `${clone.from.width}px`,
+                    height: `${clone.from.height}px`,
+                    '--fly-x': `${Math.round(clone.to.left - clone.from.left)}px`,
+                    '--fly-y': `${Math.round(clone.to.top - clone.from.top)}px`,
+                    '--clone-z': clone.z
+                };
+
+                return (
+                    <div
+                        key={`answer-clone-${clone.id}`}
+                        className={`${styles.answerShuffleClone} ${clone.isAppearing ? styles.answerShuffleCloneAppearing : ''}`}
+                        style={cloneStyle}
+                    >
+                        {clone.text}
+                    </div>
+                );
+            })}
+        </div>
+    ) : null;
 
     const leftColumnEntries = toColumnEntries(leftColumn);
     const rightColumnEntries = toColumnEntries(rightColumn);
@@ -952,6 +999,8 @@ export default function MatchPairs() {
                                     {renderMatchColumn(tabletLeftSecond, true, 'tablet-left-b')}
                                     {renderMatchColumn(tabletRightSecond, false, 'tablet-right-b')}
                                 </div>
+
+                                {renderAnswerShuffleOverlay()}
                             </>
                         )}
                     </div>
