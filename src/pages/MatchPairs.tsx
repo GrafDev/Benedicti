@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +23,12 @@ interface MatchColumnEntry {
     slotIndex: number;
 }
 
+interface AnswerShuffleMotion {
+    x: number;
+    y: number;
+    z: number;
+}
+
 type Phase = 'SETUP' | 'PLAY' | 'GAMEOVER';
 
 interface Rank {
@@ -33,17 +39,6 @@ interface Rank {
     badgeSrc: string;
     description: string;
 }
-
-interface ReplacementGuard {
-    pairId: string;
-    leftSlotIndex: number;
-    rightSlotIndex: number;
-    repeatCount: number;
-    otherPairAttempts: number;
-}
-
-const REPLACEMENT_REPEAT_SHUFFLE_THRESHOLD = 2;
-const REPLACEMENT_OTHER_ATTEMPT_RESET_THRESHOLD = 2;
 
 export default function MatchPairs() {
     const { dictId } = useParams<{ dictId: string }>();
@@ -78,8 +73,8 @@ export default function MatchPairs() {
     const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set());
     const [correctIds, setCorrectIds] = useState<Set<string>>(new Set());
     const [wrongIds, setWrongIds] = useState<Set<string>>(new Set());
-    const [isShuffling, setIsShuffling] = useState(false);
     const [newlyAppearingIds, setNewlyAppearingIds] = useState<Set<string>>(new Set());
+    const [answerShuffleMotions, setAnswerShuffleMotions] = useState<Record<string, AnswerShuffleMotion>>({});
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -101,7 +96,8 @@ export default function MatchPairs() {
     const [errors, setErrors] = useState(0);
     const timerRef = useRef<number | null>(null);
     const startTimeRef = useRef<number | null>(null);
-    const replacementGuardsRef = useRef<ReplacementGuard[]>([]);
+    const answerCardRefs = useRef<Map<string, Set<HTMLButtonElement>>>(new Map());
+    const answerShuffleTimeoutRef = useRef<number | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
 
@@ -239,10 +235,13 @@ export default function MatchPairs() {
         setCorrectIds(new Set());
         setSelectedLeftId(null);
         setSelectedRightId(null);
-        setIsShuffling(false);
-        replacementGuardsRef.current = [];
         setWrongIds(new Set());
         setNewlyAppearingIds(new Set());
+        setAnswerShuffleMotions({});
+        if (answerShuffleTimeoutRef.current) {
+            window.clearTimeout(answerShuffleTimeoutRef.current);
+            answerShuffleTimeoutRef.current = null;
+        }
 
         setSelectedRank(rank);
 
@@ -317,72 +316,82 @@ export default function MatchPairs() {
         return `${mins}:${secs.toString().padStart(2, '0')}.${tenths}`;
     };
 
-    const shuffleColumns = useCallback(() => {
-        const shuffle = <T,>(array: T[]): T[] => {
-            return [...array].sort(() => Math.random() - 0.5);
-        };
+    const registerAnswerCard = useCallback((id: string, node: HTMLButtonElement | null) => {
+        if (!node) return;
 
-        const appearingIds = new Set<string>();
-
-        setLeftColumn(prev => {
-            const shuffled = shuffle(prev);
-            shuffled.forEach(item => {
-                if (item) appearingIds.add(item.id);
-            });
-            return shuffled;
-        });
-
-        setRightColumn(prev => {
-            const shuffled = shuffle(prev);
-            shuffled.forEach(item => {
-                if (item) appearingIds.add(item.id);
-            });
-            return shuffled;
-        });
-
-        setNewlyAppearingIds(appearingIds);
-
-        setTimeout(() => {
-            setNewlyAppearingIds(prev => {
-                const next = new Set(prev);
-                appearingIds.forEach(id => next.delete(id));
-                return next;
-            });
-        }, 1000);
+        const refs = answerCardRefs.current.get(id) || new Set<HTMLButtonElement>();
+        refs.add(node);
+        answerCardRefs.current.set(id, refs);
     }, []);
 
-    const triggerReplacementShuffle = useCallback(() => {
-        setIsShuffling(true);
-        replacementGuardsRef.current = [];
+    const getVisibleAnswerCardRects = useCallback((ids: Set<string>) => {
+        const rects = new Map<string, DOMRect>();
 
-        // Cascade fadeOut animation is idx * 40ms + transition (200ms).
-        // For ~5-10 elements, 450ms is perfect to let it fully fade out before shuffle.
-        setTimeout(() => {
-            shuffleColumns();
-            setIsShuffling(false);
-        }, 450);
+        ids.forEach(id => {
+            const refs = answerCardRefs.current.get(id);
+            if (!refs) return;
 
-        // Reset selection to prevent incorrect matches after shuffle
-        setSelectedLeftId(null);
-        setSelectedRightId(null);
-    }, [shuffleColumns]);
+            const visibleNode = [...refs].find(node => {
+                if (!node.isConnected) {
+                    refs.delete(node);
+                    return false;
+                }
 
-    const recordCompletedOtherPairAttempt = useCallback((completedPairId: string) => {
-        replacementGuardsRef.current = replacementGuardsRef.current
-            .map(guard => guard.pairId === completedPairId
-                ? guard
-                : { ...guard, otherPairAttempts: guard.otherPairAttempts + 1 }
-            )
-            .filter(guard =>
-                guard.pairId === completedPairId
-                || guard.otherPairAttempts < REPLACEMENT_OTHER_ATTEMPT_RESET_THRESHOLD
-            );
+                const rect = node.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0 && window.getComputedStyle(node).display !== 'none';
+            });
+
+            if (visibleNode) {
+                rects.set(id, visibleNode.getBoundingClientRect());
+            }
+        });
+
+        return rects;
+    }, []);
+
+    const shuffleReplacementAnswerSide = useCallback((column: (MatchItem | null)[], replacementPairId: string) => {
+        const replacementIndex = column.findIndex(item => item?.id === replacementPairId);
+        if (replacementIndex === -1) {
+            return { nextColumn: column, shuffledIds: new Set<string>(), moves: [] };
+        }
+
+        const availableIndices = column
+            .map((item, index) => item ? index : -1)
+            .filter(index => index !== -1);
+        const otherIndices = availableIndices
+            .filter(index => index !== replacementIndex)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 2);
+        const targetIndices = [replacementIndex, ...otherIndices];
+        const targetItems = targetIndices.map(index => column[index]);
+        const shuffledItems = targetItems.length > 1
+            ? [...targetItems.slice(1), targetItems[0]]
+            : targetItems;
+        const nextColumn = [...column];
+        const moves: { id: string; fromIndex: number; toIndex: number }[] = [];
+
+        targetIndices.forEach((index, itemIndex) => {
+            nextColumn[index] = shuffledItems[itemIndex];
+
+            const item = shuffledItems[itemIndex];
+            if (!item) return;
+
+            const fromItemIndex = targetItems.findIndex(targetItem => targetItem?.id === item.id);
+            moves.push({
+                id: item.id,
+                fromIndex: targetIndices[fromItemIndex],
+                toIndex: index
+            });
+        });
+
+        return {
+            nextColumn,
+            shuffledIds: new Set(targetItems.flatMap(item => item ? [item.id] : [])),
+            moves
+        };
     }, []);
 
     const replaceWordOnPlace = (oldId: string) => {
-        const leftSlotIndex = leftColumn.findIndex(item => item?.id === oldId);
-        const rightSlotIndex = rightColumn.findIndex(item => item?.id === oldId);
-
         setMatchedIds(prev => {
             const next = new Set(prev);
             next.add(oldId);
@@ -399,17 +408,6 @@ export default function MatchPairs() {
         nextWordIndex.current += 1;
 
         if (nextWord) {
-            replacementGuardsRef.current = [
-                ...replacementGuardsRef.current,
-                {
-                    pairId: nextWord.id,
-                    leftSlotIndex,
-                    rightSlotIndex,
-                    repeatCount: 1,
-                    otherPairAttempts: 0
-                }
-            ];
-
             // Mark new word as currently appearing (non-clickable, fading in)
             setNewlyAppearingIds(prev => {
                 const next = new Set(prev);
@@ -425,20 +423,57 @@ export default function MatchPairs() {
                     return next;
                 });
             }, 1000);
-        } else {
-            replacementGuardsRef.current = replacementGuardsRef.current.filter(guard => guard.pairId !== oldId);
         }
 
-        setLeftColumn(prev => prev.map(item =>
+        const nextLeftColumn = leftColumn.map(item =>
             item?.id === oldId
                 ? (nextWord ? { id: nextWord.id, text: nextWord.original, isOriginal: true } : null)
                 : item
-        ));
-        setRightColumn(prev => prev.map(item =>
+        );
+        const replacedRightColumn = rightColumn.map(item =>
             item?.id === oldId
                 ? (nextWord ? { id: nextWord.id, text: nextWord.translation, isOriginal: false } : null)
                 : item
-        ));
+        );
+
+        setLeftColumn(nextLeftColumn);
+
+        if (nextWord) {
+            const { nextColumn, shuffledIds, moves } = shuffleReplacementAnswerSide(replacedRightColumn, nextWord.id);
+            const motions: Record<string, AnswerShuffleMotion> = {};
+
+            moves.forEach((move, index) => {
+                const fromId = move.id === nextWord.id ? oldId : move.id;
+                const toId = rightColumn[move.toIndex]?.id || fromId;
+                const previousRect = getVisibleAnswerCardRects(new Set([fromId])).get(fromId);
+                const nextRect = getVisibleAnswerCardRects(new Set([toId])).get(toId);
+                const fallbackDirection = index % 2 === 0 ? 1 : -1;
+
+                motions[move.id] = {
+                    x: previousRect && nextRect
+                        ? previousRect.left - nextRect.left
+                        : fallbackDirection * (28 + index * 8),
+                    y: previousRect && nextRect
+                        ? previousRect.top - nextRect.top
+                        : -10 + fallbackDirection * 6,
+                    z: shuffledIds.size + index
+                };
+            });
+
+            setAnswerShuffleMotions(motions);
+            setRightColumn(nextColumn);
+
+            if (answerShuffleTimeoutRef.current) {
+                window.clearTimeout(answerShuffleTimeoutRef.current);
+            }
+
+            answerShuffleTimeoutRef.current = window.setTimeout(() => {
+                setAnswerShuffleMotions({});
+                answerShuffleTimeoutRef.current = null;
+            }, 560);
+        } else {
+            setRightColumn(replacedRightColumn);
+        }
     };
 
     const checkMatch = (leftId: string, rightId: string) => {
@@ -449,8 +484,6 @@ export default function MatchPairs() {
             setScore(prev => prev + 1);
             setSelectedLeftId(null);
             setSelectedRightId(null);
-            recordCompletedOtherPairAttempt(leftId);
-            replacementGuardsRef.current = replacementGuardsRef.current.filter(guard => guard.pairId !== leftId);
 
             // Record Leitner correct review
             const matchedWord = allWordsPool.find(w => w.id === leftId);
@@ -492,40 +525,8 @@ export default function MatchPairs() {
         }
     };
 
-    const handleChoice = (id: string, isOriginal: boolean, slotIndex: number) => {
+    const handleChoice = (id: string, isOriginal: boolean) => {
         if (matchedIds.has(id) || correctIds.has(id)) return;
-
-        const isCompletingCorrectMatch = (isOriginal && selectedRightId === id) || (!isOriginal && selectedLeftId === id);
-
-        if (!isCompletingCorrectMatch) {
-            const touchedGuard = replacementGuardsRef.current.find(guard =>
-                guard.pairId === id || (isOriginal ? guard.leftSlotIndex === slotIndex : guard.rightSlotIndex === slotIndex)
-            );
-
-            if (touchedGuard) {
-                const repeatCount = touchedGuard.repeatCount + 1;
-
-                if (repeatCount >= REPLACEMENT_REPEAT_SHUFFLE_THRESHOLD) {
-                    triggerReplacementShuffle();
-                    return;
-                }
-
-                replacementGuardsRef.current = replacementGuardsRef.current.map(guard =>
-                    guard === touchedGuard
-                        ? { ...guard, repeatCount, otherPairAttempts: 0 }
-                        : guard
-                );
-            } else {
-                const selectedOppositeId = isOriginal ? selectedRightId : selectedLeftId;
-                const isCompletingOtherPairAttempt = Boolean(selectedOppositeId);
-
-                if (isCompletingOtherPairAttempt) {
-                    replacementGuardsRef.current = replacementGuardsRef.current
-                        .map(guard => ({ ...guard, otherPairAttempts: guard.otherPairAttempts + 1 }))
-                        .filter(guard => guard.otherPairAttempts < REPLACEMENT_OTHER_ATTEMPT_RESET_THRESHOLD);
-                }
-            }
-        }
 
         if (isOriginal) {
             setSelectedLeftId(id);
@@ -562,22 +563,30 @@ export default function MatchPairs() {
 
     const renderMatchCard = (entry: MatchColumnEntry, idx: number, isOriginal: boolean, keyPrefix: string) => {
         const item = entry.item;
+        const shuffleMotion = !isOriginal ? answerShuffleMotions[item?.id || ''] : undefined;
+        const cardStyle: CSSProperties & Record<string, string | number> = {
+            animationDelay: newlyAppearingIds.has(item?.id || '') ? `${idx * 40}ms` : '0ms'
+        };
+
+        if (shuffleMotion) {
+            cardStyle['--shuffle-x'] = `${Math.round(shuffleMotion.x)}px`;
+            cardStyle['--shuffle-y'] = `${Math.round(shuffleMotion.y)}px`;
+            cardStyle['--shuffle-z'] = shuffleMotion.z;
+        }
 
         return item ? (
             <button
                 key={`${keyPrefix}-${item.id}`}
-                style={{
-                    transitionDelay: isShuffling ? `${idx * 40}ms` : '0ms',
-                    animationDelay: newlyAppearingIds.has(item.id) ? `${idx * 40}ms` : '0ms'
-                }}
+                ref={!isOriginal ? node => registerAnswerCard(item.id, node) : undefined}
+                style={cardStyle}
                 className={`${styles.card}
                     ${(isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.selected : ''}
                     ${correctIds.has(item.id) ? styles.correct : ''}
                     ${wrongIds.has(item.id) && (isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.wrong : ''}
                     ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
-                    ${isShuffling ? styles.fadeOut : ''}`}
-                onClick={() => handleChoice(item.id, isOriginal, entry.slotIndex)}
-                disabled={isShuffling || newlyAppearingIds.has(item.id)}
+                    ${shuffleMotion ? styles.answerShuffling : ''}`}
+                onClick={() => handleChoice(item.id, isOriginal)}
+                disabled={newlyAppearingIds.has(item.id)}
             >
                 {isEliteMode && isOriginal ? <Volume2 size={24} /> : item.text}
             </button>
@@ -595,19 +604,8 @@ export default function MatchPairs() {
     const tabletSplitIndex = Math.ceil(leftColumnEntries.length / 2);
     const tabletLeftFirst = leftColumnEntries.slice(0, tabletSplitIndex);
     const tabletLeftSecond = leftColumnEntries.slice(tabletSplitIndex);
-    const getTabletTranslations = (sourceEntries: MatchColumnEntry[]) => {
-        const sourceIds = new Set(sourceEntries.flatMap(entry => entry.item ? [entry.item.id] : []));
-        const translations = rightColumnEntries.filter(entry => entry.item && sourceIds.has(entry.item.id));
-        return [
-            ...translations,
-            ...Array.from({ length: Math.max(sourceEntries.length - translations.length, 0) }, (_, index) => ({
-                item: null,
-                slotIndex: -index - 1
-            }))
-        ];
-    };
-    const tabletRightFirst = getTabletTranslations(tabletLeftFirst);
-    const tabletRightSecond = getTabletTranslations(tabletLeftSecond);
+    const tabletRightFirst = rightColumnEntries.slice(0, tabletSplitIndex);
+    const tabletRightSecond = rightColumnEntries.slice(tabletSplitIndex);
 
     const renderSetup = () => {
         const isRu = language === 'ru';
