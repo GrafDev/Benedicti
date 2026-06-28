@@ -896,6 +896,331 @@
     white-space: nowrap;
 }
 
+.realmShell {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.72fr) minmax(0, 2.4fr) minmax(210px, 0.88fr);
+    gap: 0.85rem;
+    align-items: stretch;
+    min-height: min(720px, calc(100dvh - 250px));
+    margin-top: 0.25rem;
+}
+
+.realmPlayerPanel,
+.realmStatusPanel {
+    min-width: 0;
+    padding: 0.9rem;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(8, 13, 24, 0.84));
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 8px;
+    box-shadow: 0 20px 46px rgba(0, 0, 0, 0.3);
+}
+
+.realmPanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+}
+
+.realmPanelHeader span {
+    color: #8fa1ba;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.realmPanelHeader strong {
+    color: #fef3c7;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.realmCastleSigil {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.85rem;
+    border-radius: 8px;
+    color: #fde68a;
+    background:
+        radial-gradient(circle, rgba(245, 158, 11, 0.28), rgba(15, 23, 42, 0.68) 68%),
+        linear-gradient(180deg, rgba(71, 85, 105, 0.36), rgba(15, 23, 42, 0.42));
+    border: 1px solid rgba(251, 191, 36, 0.28);
+}
+
+.realmPlayerPanel h2 {
+    margin: 0 0 0.45rem;
+    color: #fff7ed;
+    font-size: 1.1rem;
+    overflow-wrap: anywhere;
+}
+
+.realmPlayerPanel p {
+    margin: 0 0 1rem;
+    color: #a9b7cc;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.realmStatList {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.realmStatList div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem;
+    background: rgba(15, 23, 42, 0.54);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 8px;
+}
+
+.realmStatList span {
+    color: #8fa1ba;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.realmStatList strong {
+    color: #ccfbf1;
+    font-variant-numeric: tabular-nums;
+}
+
+.realmMapPanel {
+    min-width: 0;
+    min-height: 560px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(45, 212, 191, 0.14), transparent 44%),
+        linear-gradient(180deg, rgba(15, 23, 42, 0.72), rgba(8, 13, 24, 0.9));
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+}
+
+.realmViewport {
+    width: 100%;
+    height: 100%;
+    min-height: 560px;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.realmViewport:active {
+    cursor: grabbing;
+}
+
+.realmWorld {
+    position: relative;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+.realmWorldBackdrop {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 54% 48%, rgba(20, 184, 166, 0.16), transparent 28%),
+        radial-gradient(circle at 30% 35%, rgba(245, 158, 11, 0.12), transparent 25%),
+        radial-gradient(circle at 72% 70%, rgba(59, 130, 246, 0.1), transparent 27%),
+        linear-gradient(145deg, rgba(8, 13, 24, 0.94), rgba(15, 23, 42, 0.76));
+}
+
+.realmHex {
+    position: absolute;
+    width: 74px;
+    height: 64px;
+    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(191, 219, 254, 0.1);
+    background: rgba(30, 41, 59, 0.78);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.realmHexClaimed {
+    background: linear-gradient(180deg, rgba(20, 184, 166, 0.54), rgba(15, 118, 110, 0.62));
+    border-color: rgba(94, 234, 212, 0.3);
+}
+
+.realmHexFrontier {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.42), rgba(146, 64, 14, 0.52));
+    border-color: rgba(253, 230, 138, 0.34);
+}
+
+.realmHexNeutral {
+    background: linear-gradient(180deg, rgba(51, 65, 85, 0.72), rgba(30, 41, 59, 0.68));
+}
+
+.realmCastle {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 92px;
+    transform: translate(-50%, -50%);
+    color: #dbeafe;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+}
+
+.realmCastle svg {
+    width: 42px;
+    height: 42px;
+    padding: 9px;
+    color: #cbd5e1;
+    background: rgba(8, 13, 24, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+}
+
+.currentRealmCastle svg {
+    color: #fde68a;
+    border-color: rgba(251, 191, 36, 0.48);
+    background: linear-gradient(180deg, rgba(120, 53, 15, 0.72), rgba(8, 13, 24, 0.86));
+}
+
+.realmMapHud {
+    position: absolute;
+    left: 0.85rem;
+    right: 0.85rem;
+    bottom: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    pointer-events: none;
+}
+
+.realmMapHud span {
+    max-width: 310px;
+    padding: 0.6rem 0.75rem;
+    color: #cbd5e1;
+    background: rgba(8, 13, 24, 0.76);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.realmActionButton {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    color: #0f172a;
+    background: linear-gradient(135deg, #fde68a, #f59e0b);
+    border: 1px solid rgba(253, 230, 138, 0.7);
+    border-radius: 8px;
+    box-shadow: 0 12px 26px rgba(245, 158, 11, 0.24);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.realmActionButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+.realmStatusBadge {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.85rem;
+    color: #fef3c7;
+    background: linear-gradient(135deg, rgba(120, 53, 15, 0.3), rgba(15, 23, 42, 0.68));
+    border: 1px solid rgba(251, 191, 36, 0.22);
+    border-radius: 8px;
+}
+
+.realmStatusBadge span,
+.realmStatusBadge small {
+    display: block;
+}
+
+.realmStatusBadge span {
+    font-weight: 900;
+}
+
+.realmStatusBadge small {
+    margin-top: 0.15rem;
+    color: #cbd5e1;
+    font-size: 0.72rem;
+}
+
+.realmLeaderboard {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.realmLeaderboard div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0.65rem;
+    color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.48);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 8px;
+    font-size: 0.78rem;
+}
+
+.realmLeaderboard span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.realmLeaderboard strong {
+    color: #ccfbf1;
+    font-variant-numeric: tabular-nums;
+}
+
+.currentRealmLeader {
+    border-color: rgba(45, 212, 191, 0.34) !important;
+    background: rgba(20, 184, 166, 0.14) !important;
+}
+
+@media (max-width: 1100px) {
+    .realmShell {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .realmMapPanel {
+        grid-column: 1 / -1;
+        min-height: 540px;
+        order: -1;
+    }
+
+    .realmViewport {
+        min-height: 540px;
+    }
+}
+
 .noWordsWarning {
     margin-top: 1rem;
     padding: 1rem;
@@ -1455,6 +1780,34 @@
     .setupBody {
         grid-template-columns: 1fr;
         gap: 0.85rem;
+    }
+    .realmShell {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        min-height: 0;
+    }
+    .realmMapPanel,
+    .realmViewport {
+        min-height: min(560px, calc(100dvh - 220px));
+    }
+    .realmMapPanel {
+        order: -1;
+    }
+    .realmMapHud {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .realmMapHud span,
+    .realmActionButton {
+        width: 100%;
+        max-width: none;
+    }
+    .realmActionButton {
+        min-height: 46px;
+    }
+    .realmPlayerPanel,
+    .realmStatusPanel {
+        padding: 0.8rem;
     }
     .rankPath {
         position: static;

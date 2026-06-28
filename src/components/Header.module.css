@@ -125,6 +125,33 @@
     color: #fbbf24;
 }
 
+.adminBadge,
+.mobileAdminBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    color: #fde68a;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.32);
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.adminBadge {
+    padding: 0.22rem 0.45rem;
+}
+
+@media (max-width: 1100px) {
+    .userNameLink .adminBadge {
+        display: none;
+    }
+}
+
 .signInButton {
     display: flex;
     align-items: center;
@@ -311,6 +338,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
     padding: 1rem;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 1rem;
@@ -320,9 +348,17 @@
     font-weight: 700;
 }
 
+.mobileAdminBadge {
+    padding: 0.35rem 0.55rem;
+    flex-shrink: 0;
+}
+
 .mobileUserLink .userEmail {
     color: #fff;
     font-weight: 800;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mobileUserLink:hover {

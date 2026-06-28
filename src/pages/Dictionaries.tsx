@@ -6,13 +6,12 @@ import { Plus, Book, Loader, X, Globe, RotateCcw, ChevronLeft, ChevronRight } fr
 import { Link } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Mousewheel, Navigation } from 'swiper/modules';
-import { ADMIN_EMAILS } from '../constants/admin';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import styles from './Dictionaries.module.css';
 
 export default function Dictionaries() {
-    const { currentUser } = useAuth();
+    const { currentUser, isAdmin } = useAuth();
     const { t } = useLanguage();
 
     // Using individual selectors for better stability in Zustand 5
@@ -193,7 +192,7 @@ export default function Dictionaries() {
                                         <h3 className={styles.cardTitle}>{dict.name}</h3>
                                         <p className={styles.cardSubtitle}>{t('common.wordsCount', { count: dict.wordCount })}</p>
 
-                                        {currentUser?.email && ADMIN_EMAILS.includes(currentUser.email) && !dict.isShared && (
+                                        {isAdmin && !dict.isShared && (
                                             <button
                                                 className={styles.publishButton}
                                                 onClick={(e) => handlePublish(e, dict.id, dict.name)}
@@ -203,7 +202,7 @@ export default function Dictionaries() {
                                             </button>
                                         )}
 
-                                        {currentUser?.email && ADMIN_EMAILS.includes(currentUser.email) && dict.isShared && (
+                                        {isAdmin && dict.isShared && (
                                             <button
                                                 className={`${styles.publishButton} ${styles.unpublishButton}`}
                                                 onClick={(e) => handleUnpublish(e, dict.id, dict.name)}

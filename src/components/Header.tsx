@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User as UserIcon, Download } from 'lucide-react';
+import { Menu, X, User as UserIcon, Download, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -12,7 +12,7 @@ export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const { currentUser } = useAuth();
+    const { currentUser, isAdmin } = useAuth();
     const { t } = useLanguage();
     const location = useLocation();
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -125,6 +125,12 @@ export default function Header() {
 
                             {currentUser ? (
                                 <Link to="/profile" className={styles.userNameLink}>
+                                    {isAdmin && (
+                                        <span className={styles.adminBadge}>
+                                            <ShieldCheck size={14} />
+                                            {t('common.adminMode')}
+                                        </span>
+                                    )}
                                     <span className={styles.userEmail}>
                                         {currentUser.displayName || currentUser.email?.split('@')[0]}
                                     </span>
@@ -188,6 +194,12 @@ export default function Header() {
                                             onClick={() => setIsMenuOpen(false)}
                                             className={styles.mobileUserLink}
                                         >
+                                            {isAdmin && (
+                                                <span className={styles.mobileAdminBadge}>
+                                                    <ShieldCheck size={16} />
+                                                    {t('common.adminMode')}
+                                                </span>
+                                            )}
                                             <span className={styles.userEmail}>
                                                 {currentUser.displayName || currentUser.email?.split('@')[0]}
                                             </span>

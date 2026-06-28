@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
@@ -52,6 +52,10 @@ const TABLET_LAYOUT_MIN_WIDTH = 769;
 const TABLET_LAYOUT_MAX_WIDTH = 1180;
 const TWO_COLUMN_MIN_CARD_HEIGHT = 64;
 const TWO_COLUMN_ROW_GAP = 8;
+const REALM_WORLD_WIDTH = 1320;
+const REALM_WORLD_HEIGHT = 920;
+const REALM_EDGE_PAN_ZONE = 76;
+const REALM_EDGE_PAN_SPEED = 13;
 
 interface Rank {
     id: string;
@@ -60,6 +64,22 @@ interface Rank {
     icon: LucideIcon;
     badgeSrc: string;
     description: string;
+}
+
+interface RealmCell {
+    id: string;
+    x: number;
+    y: number;
+    state: 'claimed' | 'frontier' | 'neutral';
+}
+
+interface RealmCastle {
+    id: string;
+    name: string;
+    x: number;
+    y: number;
+    score: number;
+    isCurrent: boolean;
 }
 
 export default function MatchPairs() {
@@ -100,6 +120,7 @@ export default function MatchPairs() {
     const [answerHiddenSlotIndices, setAnswerHiddenSlotIndices] = useState<Set<number>>(new Set());
     const [answerFlightCards, setAnswerFlightCards] = useState<AnswerFlightCard[]>([]);
     const [useTabletFourColumnLayout, setUseTabletFourColumnLayout] = useState(false);
+    const [realmPan, setRealmPan] = useState({ x: -320, y: -220 });
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -125,12 +146,169 @@ export default function MatchPairs() {
     const answerShuffleTimeoutRef = useRef<number | null>(null);
     const answerFlightStageRef = useRef<HTMLDivElement | null>(null);
     const completionProgressHandledRef = useRef(false);
+    const realmViewportRef = useRef<HTMLDivElement | null>(null);
+    const realmEdgeVelocityRef = useRef({ x: 0, y: 0 });
+    const realmAnimationFrameRef = useRef<number | null>(null);
+    const realmDragRef = useRef<{
+        pointerId: number;
+        startX: number;
+        startY: number;
+        startPan: { x: number; y: number };
+    } | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
 
     const playableWords = useMemo(() => {
         return storeWords.filter(word => word.original.trim() && word.translation.trim());
     }, [storeWords]);
+
+    const clampRealmPan = useCallback((nextPan: { x: number; y: number }) => {
+        const viewport = realmViewportRef.current;
+        if (!viewport) return nextPan;
+
+        const rect = viewport.getBoundingClientRect();
+        const minX = Math.min(0, rect.width - REALM_WORLD_WIDTH);
+        const minY = Math.min(0, rect.height - REALM_WORLD_HEIGHT);
+
+        return {
+            x: Math.min(0, Math.max(minX, nextPan.x)),
+            y: Math.min(0, Math.max(minY, nextPan.y))
+        };
+    }, []);
+
+    const stopRealmEdgePan = useCallback(() => {
+        realmEdgeVelocityRef.current = { x: 0, y: 0 };
+        if (realmAnimationFrameRef.current !== null) {
+            window.cancelAnimationFrame(realmAnimationFrameRef.current);
+            realmAnimationFrameRef.current = null;
+        }
+    }, []);
+
+    const runRealmEdgePan = useCallback(() => {
+        const { x, y } = realmEdgeVelocityRef.current;
+        if (x === 0 && y === 0) {
+            realmAnimationFrameRef.current = null;
+            return;
+        }
+
+        setRealmPan(prev => clampRealmPan({ x: prev.x + x, y: prev.y + y }));
+        realmAnimationFrameRef.current = window.requestAnimationFrame(runRealmEdgePan);
+    }, [clampRealmPan]);
+
+    const startRealmEdgePan = useCallback((velocity: { x: number; y: number }) => {
+        realmEdgeVelocityRef.current = velocity;
+        if (velocity.x === 0 && velocity.y === 0) {
+            stopRealmEdgePan();
+            return;
+        }
+
+        if (realmAnimationFrameRef.current === null) {
+            realmAnimationFrameRef.current = window.requestAnimationFrame(runRealmEdgePan);
+        }
+    }, [runRealmEdgePan, stopRealmEdgePan]);
+
+    useEffect(() => {
+        return () => {
+            stopRealmEdgePan();
+        };
+    }, [stopRealmEdgePan]);
+
+    const realmCells = useMemo<RealmCell[]>(() => {
+        const targetCells = Math.min(96, Math.max(42, playableWords.length + 6));
+        const cells: RealmCell[] = [];
+        const radius = 6;
+
+        for (let q = -radius; q <= radius; q += 1) {
+            for (let r = -radius; r <= radius; r += 1) {
+                const s = -q - r;
+                if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) > radius) continue;
+
+                const x = (REALM_WORLD_WIDTH / 2) + (q * 64) + (r * 32);
+                const y = (REALM_WORLD_HEIGHT / 2) + (r * 56);
+                const index = cells.length;
+                const state = index < 18 ? 'claimed' : index < 30 ? 'frontier' : 'neutral';
+
+                cells.push({
+                    id: `${q}:${r}`,
+                    x,
+                    y,
+                    state
+                });
+            }
+        }
+
+        return cells.slice(0, targetCells);
+    }, [playableWords.length]);
+
+    const realmCastles = useMemo<RealmCastle[]>(() => {
+        const names = ['North Keep', 'Amber Gate', 'Moon Tower', 'Eastwatch', 'River Hold', 'Sunspire'];
+
+        return names.map((name, index) => {
+            const angle = (Math.PI * 2 * index) / names.length - Math.PI / 2;
+            return {
+                id: `castle-${index}`,
+                name,
+                x: (REALM_WORLD_WIDTH / 2) + Math.cos(angle) * 520,
+                y: (REALM_WORLD_HEIGHT / 2) + Math.sin(angle) * 350,
+                score: 28 - (index * 3),
+                isCurrent: index === 0
+            };
+        });
+    }, []);
+
+    const handleRealmMouseMove = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+        if (realmDragRef.current) return;
+
+        const rect = event.currentTarget.getBoundingClientRect();
+        let x = 0;
+        let y = 0;
+
+        if (event.clientX - rect.left < REALM_EDGE_PAN_ZONE) {
+            x = REALM_EDGE_PAN_SPEED;
+        } else if (rect.right - event.clientX < REALM_EDGE_PAN_ZONE) {
+            x = -REALM_EDGE_PAN_SPEED;
+        }
+
+        if (event.clientY - rect.top < REALM_EDGE_PAN_ZONE) {
+            y = REALM_EDGE_PAN_SPEED;
+        } else if (rect.bottom - event.clientY < REALM_EDGE_PAN_ZONE) {
+            y = -REALM_EDGE_PAN_SPEED;
+        }
+
+        startRealmEdgePan({ x, y });
+    }, [startRealmEdgePan]);
+
+    const handleRealmPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        stopRealmEdgePan();
+        realmDragRef.current = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            startPan: realmPan
+        };
+    }, [realmPan, stopRealmEdgePan]);
+
+    const handleRealmPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        const drag = realmDragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+
+        event.preventDefault();
+        setRealmPan(clampRealmPan({
+            x: drag.startPan.x + event.clientX - drag.startX,
+            y: drag.startPan.y + event.clientY - drag.startY
+        }));
+    }, [clampRealmPan]);
+
+    const handleRealmPointerEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        if (realmDragRef.current?.pointerId === event.pointerId) {
+            realmDragRef.current = null;
+        }
+
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+    }, []);
 
     useEffect(() => {
         const loadPerfectRanks = async () => {
@@ -802,6 +980,9 @@ export default function MatchPairs() {
             ? t('common.defaultDict')
             : (dictionaries.find(d => d.id === dictId)?.name || '...');
         const completedRanks = RANKS.filter(rank => perfectRanks[rank.id]).length;
+        const hasReachedKing = perfectRanks.king === true;
+        const isEmperor = perfectRanks.emperor === true;
+        const kingRank = RANKS.find(rank => rank.id === 'king');
         const availableRanks = RANKS.filter((rank, index) => {
             const isPreviousPerfect = index === 0 || perfectRanks[RANKS[index - 1].id] === true;
             return playableWords.length >= rank.count && isPreviousPerfect;
@@ -839,6 +1020,108 @@ export default function MatchPairs() {
                 lockReason,
             };
         });
+
+        const renderRealmShell = () => (
+            <div className={styles.realmShell}>
+                <section className={styles.realmPlayerPanel} aria-label={t('games.pairwords.realmPlayerPanel')}>
+                    <div className={styles.realmPanelHeader}>
+                        <span>{t('games.pairwords.realmPlayerPanel')}</span>
+                        <strong>{isEmperor ? t('games.pairwords.realmEmperor') : t('games.pairwords.realmKing')}</strong>
+                    </div>
+                    <div className={styles.realmCastleSigil}>
+                        <Landmark size={34} />
+                    </div>
+                    <h2>{t('games.pairwords.realmCastleName')}</h2>
+                    <p>{t('games.pairwords.realmCastleDesc', { dict: activeDictionaryName })}</p>
+                    <div className={styles.realmStatList}>
+                        <div>
+                            <span>{t('games.pairwords.realmCells')}</span>
+                            <strong>18 / {realmCells.length}</strong>
+                        </div>
+                        <div>
+                            <span>{t('games.pairwords.realmStudents')}</span>
+                            <strong>{realmCastles.length}</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <section className={styles.realmMapPanel} aria-label={t('games.pairwords.realmMap')}>
+                    <div
+                        ref={realmViewportRef}
+                        className={styles.realmViewport}
+                        onMouseMove={handleRealmMouseMove}
+                        onMouseLeave={stopRealmEdgePan}
+                        onPointerDown={handleRealmPointerDown}
+                        onPointerMove={handleRealmPointerMove}
+                        onPointerUp={handleRealmPointerEnd}
+                        onPointerCancel={handleRealmPointerEnd}
+                    >
+                        <div
+                            className={styles.realmWorld}
+                            style={{
+                                width: REALM_WORLD_WIDTH,
+                                height: REALM_WORLD_HEIGHT,
+                                transform: `translate3d(${realmPan.x}px, ${realmPan.y}px, 0)`
+                            }}
+                        >
+                            <div className={styles.realmWorldBackdrop} />
+                            {realmCells.map(cell => (
+                                <div
+                                    key={cell.id}
+                                    className={`${styles.realmHex} ${styles[`realmHex${cell.state[0].toUpperCase()}${cell.state.slice(1)}`]}`}
+                                    style={{ left: cell.x, top: cell.y }}
+                                />
+                            ))}
+                            {realmCastles.map(castle => (
+                                <div
+                                    key={castle.id}
+                                    className={`${styles.realmCastle} ${castle.isCurrent ? styles.currentRealmCastle : ''}`}
+                                    style={{ left: castle.x, top: castle.y }}
+                                >
+                                    <Landmark size={22} />
+                                    <span>{castle.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className={styles.realmMapHud}>
+                        <span>{t('games.pairwords.realmMapHint')}</span>
+                        <button
+                            type="button"
+                            className={styles.realmActionButton}
+                            onClick={() => kingRank && startLevel(kingRank)}
+                            disabled={!kingRank || loading}
+                        >
+                            <Play size={18} />
+                            {t('games.pairwords.realmPlayKing')}
+                        </button>
+                    </div>
+                </section>
+
+                <aside className={styles.realmStatusPanel} aria-label={t('games.pairwords.realmStatusPanel')}>
+                    <div className={styles.realmPanelHeader}>
+                        <span>{t('games.pairwords.realmStatusPanel')}</span>
+                        <strong>{t('games.pairwords.realmPlaceholder')}</strong>
+                    </div>
+                    <div className={styles.realmStatusBadge}>
+                        <Crown size={24} />
+                        <div>
+                            <span>{isEmperor ? t('games.pairwords.realmEmperor') : t('games.pairwords.realmKing')}</span>
+                            <small>{t('games.pairwords.realmStatusCopy')}</small>
+                        </div>
+                    </div>
+                    <div className={styles.realmLeaderboard}>
+                        {realmCastles.map((castle, index) => (
+                            <div key={castle.id} className={castle.isCurrent ? styles.currentRealmLeader : ''}>
+                                <span>{index + 1}. {castle.name}</span>
+                                <strong>{castle.score}%</strong>
+                            </div>
+                        ))}
+                    </div>
+                </aside>
+            </div>
+        );
 
         return (
         <div className={`${styles.setupShell} ${loading ? styles.setupLoading : ''}`}>
@@ -939,6 +1222,7 @@ export default function MatchPairs() {
                 </div>
             </div>
 
+            {hasReachedKing ? renderRealmShell() : (
             <div className={styles.setupBody}>
                 <aside className={styles.rankPath} aria-label={isRu ? 'Прогресс рангов' : 'Rank progress'}>
                     {rankViews.map(({ rank, index, isLocked, isPerfect, statusLabel }) => (
@@ -999,6 +1283,7 @@ export default function MatchPairs() {
                         ))}
                 </div>
             </div>
+            )}
 
             {playableWords.length === 0 && !loading && (
                 <div className={styles.noWordsWarning}>

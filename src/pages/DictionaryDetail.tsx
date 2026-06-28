@@ -5,12 +5,11 @@ import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useLanguage } from '../i18n/LanguageContext';
 import { ArrowLeft, Plus, Pencil, Trash2, Check, X, BookOpen, Loader, Volume2, Globe } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
-import { ADMIN_EMAILS } from '../constants/admin';
 import styles from './DictionaryDetail.module.css';
 
 export default function DictionaryDetail() {
     const { id: dictionaryId } = useParams<{ id: string }>();
-    const { currentUser } = useAuth();
+    const { currentUser, isAdmin } = useAuth();
     const { t } = useLanguage();
     const navigate = useNavigate();
 
@@ -40,7 +39,6 @@ export default function DictionaryDetail() {
 
     const dictionary = (dictionaries || []).find(d => d.id === dictionaryId);
     
-    const isAdmin = currentUser?.email && ADMIN_EMAILS.includes(currentUser.email);
     const canEdit = !dictionary?.isShared || isAdmin;
 
     useEffect(() => {

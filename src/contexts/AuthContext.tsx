@@ -15,10 +15,22 @@ import {
     confirmPasswordReset
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
-import { auth } from '../firebase';
+import { get, ref } from 'firebase/database';
+import { auth, db } from '../firebase';
+
+export interface UserProfile {
+    role?: string;
+    isAdmin?: boolean;
+    isTeacher?: boolean;
+    displayName?: string;
+    email?: string;
+}
 
 interface AuthContextType {
     currentUser: User | null;
+    userProfile: UserProfile | null;
+    isAdmin: boolean;
+    isTeacher: boolean;
     loading: boolean;
     signInWithGoogle: () => Promise<void>;
     signInWithApple: () => Promise<void>;
@@ -43,6 +55,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -74,6 +87,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             unsubscribe();
         };
     }, []);
+
+    useEffect(() => {
+        if (!currentUser) {
+            setUserProfile(null);
+            return;
+        }
+
+        let isActive = true;
+
+        const loadUserProfile = async () => {
+            try {
+                const snapshot = await get(ref(db, `users/${currentUser.uid}/profile`));
+                if (!isActive) return;
+
+                setUserProfile(snapshot.exists() ? snapshot.val() as UserProfile : null);
+            } catch (error) {
+                console.warn('Failed to load user profile role:', error);
+                if (isActive) {
+                    setUserProfile(null);
+                }
+            }
+        };
+
+        loadUserProfile();
+
+        return () => {
+            isActive = false;
+        };
+    }, [currentUser]);
 
     const isStandaloneContext = () => {
         return (window.matchMedia('(display-mode: standalone)').matches) || (window.navigator as any).standalone;
@@ -157,8 +199,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const logout = () => signOut(auth);
 
+    const isAdmin = userProfile?.role === 'admin' || userProfile?.isAdmin === true;
+    const isTeacher = isAdmin || userProfile?.isTeacher === true;
+
     const value = {
         currentUser,
+        userProfile,
+        isAdmin,
+        isTeacher,
         loading,
         signInWithGoogle,
         signInWithApple,
