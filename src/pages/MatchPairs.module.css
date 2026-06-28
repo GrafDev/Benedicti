@@ -1127,11 +1127,6 @@
     left: 0;
     max-height: none;
     cursor: default;
-    border-color: rgba(125, 211, 252, 0.72);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.18),
-        0 22px 44px rgba(0, 0, 0, 0.42),
-        0 0 22px rgba(45, 212, 191, 0.2);
     pointer-events: none;
     transform-origin: center;
     transition: none;
@@ -1543,27 +1538,29 @@
         max-width: min(980px, calc(100vw - 1.5rem));
         padding: 0.65rem;
     }
+}
 
-    .desktopColumns {
+@media (min-width: 769px) and (max-width: 1180px) {
+    .tabletFourColumnLayout .desktopColumns {
         display: none;
     }
 
-    .tabletColumns {
+    .tabletFourColumnLayout .tabletColumns {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 0.5rem;
     }
 
-    .tabletColumns .column {
+    .tabletFourColumnLayout .tabletColumns .column {
         gap: min(0.5rem, 0.8dvh);
     }
 
-    .tabletColumns .card,
-    .tabletColumns .emptySlot {
+    .tabletFourColumnLayout .tabletColumns .card,
+    .tabletFourColumnLayout .tabletColumns .emptySlot {
         max-height: 62px;
     }
 
-    .tabletColumns .card {
+    .tabletFourColumnLayout .tabletColumns .card {
         min-height: 42px;
         padding: 0.42rem 0.45rem;
         font-size: 0.84rem;

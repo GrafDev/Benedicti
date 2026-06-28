@@ -48,6 +48,11 @@ interface AnswerFlightCard {
 
 type Phase = 'SETUP' | 'PLAY' | 'GAMEOVER';
 
+const TABLET_LAYOUT_MIN_WIDTH = 769;
+const TABLET_LAYOUT_MAX_WIDTH = 1180;
+const TWO_COLUMN_MIN_CARD_HEIGHT = 64;
+const TWO_COLUMN_ROW_GAP = 8;
+
 interface Rank {
     id: string;
     name: string;
@@ -94,6 +99,7 @@ export default function MatchPairs() {
     const [isAnswerShuffleLocked, setIsAnswerShuffleLocked] = useState(false);
     const [answerHiddenSlotIndices, setAnswerHiddenSlotIndices] = useState<Set<number>>(new Set());
     const [answerFlightCards, setAnswerFlightCards] = useState<AnswerFlightCard[]>([]);
+    const [useTabletFourColumnLayout, setUseTabletFourColumnLayout] = useState(false);
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -118,6 +124,7 @@ export default function MatchPairs() {
     const startTimeRef = useRef<number | null>(null);
     const answerShuffleTimeoutRef = useRef<number | null>(null);
     const answerFlightStageRef = useRef<HTMLDivElement | null>(null);
+    const completionProgressHandledRef = useRef(false);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
 
@@ -154,6 +161,8 @@ export default function MatchPairs() {
                         Object.entries(fbData).forEach(([rankId, value]) => {
                             if (value) {
                                 localStorage.setItem(`benedicti_match_perfect_${activeDictId}_${rankId}`, 'true');
+                            } else {
+                                localStorage.removeItem(`benedicti_match_perfect_${activeDictId}_${rankId}`);
                             }
                         });
                     }
@@ -256,6 +265,7 @@ export default function MatchPairs() {
         setSelectedLeftId(null);
         setSelectedRightId(null);
         setWrongIds(new Set());
+        completionProgressHandledRef.current = false;
         setNewlyAppearingIds(new Set());
         setIsAnswerShuffleLocked(false);
         setAnswerHiddenSlotIndices(new Set());
@@ -287,28 +297,114 @@ export default function MatchPairs() {
 
     const isAllDone = matchedIds.size === allWordsPool.length && allWordsPool.length > 0;
 
+    const updateTabletColumnFit = useCallback(() => {
+        if (typeof window === 'undefined' || phase !== 'PLAY' || isAllDone) {
+            setUseTabletFourColumnLayout(false);
+            return;
+        }
+
+        const width = window.innerWidth;
+        if (width < TABLET_LAYOUT_MIN_WIDTH || width > TABLET_LAYOUT_MAX_WIDTH) {
+            setUseTabletFourColumnLayout(false);
+            return;
+        }
+
+        const stage = answerFlightStageRef.current;
+        if (!stage) {
+            setUseTabletFourColumnLayout(false);
+            return;
+        }
+
+        const visibleRows = Math.max(
+            leftColumn.filter(Boolean).length,
+            rightColumn.filter(Boolean).length
+        );
+        if (visibleRows <= 0) {
+            setUseTabletFourColumnLayout(false);
+            return;
+        }
+
+        const stageHeight = stage.getBoundingClientRect().height;
+        const requiredTwoColumnHeight =
+            (visibleRows * TWO_COLUMN_MIN_CARD_HEIGHT) +
+            (Math.max(visibleRows - 1, 0) * TWO_COLUMN_ROW_GAP);
+
+        setUseTabletFourColumnLayout(requiredTwoColumnHeight > stageHeight);
+    }, [isAllDone, leftColumn, phase, rightColumn]);
+
     useEffect(() => {
-        if (isAllDone && errors === 0 && selectedRank) {
-            const activeDictId = dictId || 'default';
-            
-            // 1. Update React state
+        updateTabletColumnFit();
+
+        const stage = answerFlightStageRef.current;
+        const resizeObserver = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(updateTabletColumnFit)
+            : null;
+
+        if (stage) {
+            resizeObserver?.observe(stage);
+        }
+        window.addEventListener('resize', updateTabletColumnFit);
+
+        return () => {
+            resizeObserver?.disconnect();
+            window.removeEventListener('resize', updateTabletColumnFit);
+        };
+    }, [updateTabletColumnFit]);
+
+    useEffect(() => {
+        if (!isAllDone || !selectedRank || completionProgressHandledRef.current) {
+            return;
+        }
+
+        completionProgressHandledRef.current = true;
+        const activeDictId = dictId || 'default';
+
+        if (errors === 0) {
             setPerfectRanks(prev => ({
                 ...prev,
                 [selectedRank.id]: true
             }));
 
-            // 2. Save to LocalStorage
             localStorage.setItem(`benedicti_match_perfect_${activeDictId}_${selectedRank.id}`, 'true');
 
-            // 3. Save to Firebase
             if (currentUser) {
                 const path = `users/${currentUser.uid}/matchPairsProgress/${activeDictId}/${selectedRank.id}`;
                 dbSet(ref(db, path), true).catch(e => {
                     console.warn('Failed to save progression to Firebase:', e);
                 });
             }
+
+            return;
         }
-    }, [isAllDone, errors, selectedRank, dictId, currentUser]);
+
+        const selectedRankIndex = RANKS.findIndex(rank => rank.id === selectedRank.id);
+        if (selectedRankIndex === -1) {
+            return;
+        }
+
+        const ranksToClear = RANKS.slice(selectedRankIndex);
+
+        setPerfectRanks(prev => {
+            const next = { ...prev };
+            ranksToClear.forEach(rank => {
+                delete next[rank.id];
+            });
+            return next;
+        });
+
+        ranksToClear.forEach(rank => {
+            localStorage.removeItem(`benedicti_match_perfect_${activeDictId}_${rank.id}`);
+        });
+
+        if (currentUser) {
+            Promise.all(ranksToClear.map(rank => {
+                const path = `users/${currentUser.uid}/matchPairsProgress/${activeDictId}/${rank.id}`;
+                return dbSet(ref(db, path), false);
+            })).catch(e => {
+                console.warn('Failed to demote progression in Firebase:', e);
+            });
+        }
+    }, [RANKS, isAllDone, errors, selectedRank, dictId, currentUser]);
 
     // Timer logic
     useEffect(() => {
@@ -625,7 +721,7 @@ export default function MatchPairs() {
             ${(isOriginal ? selectedLeftId : selectedRightId) === item?.id ? styles.selected : ''}
             ${item && correctIds.has(item.id) ? styles.correct : ''}
             ${item && wrongIds.has(item.id) && (isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.wrong : ''}
-            ${item && newlyAppearingIds.has(item.id) ? styles.appearing : ''}
+            ${item && isOriginal && newlyAppearingIds.has(item.id) ? styles.appearing : ''}
             ${isAnswerSlotHidden ? styles.answerSlotHidden : ''}
             ${isAnswerLocked ? styles.answerMotionLocked : ''}`;
 
@@ -647,7 +743,7 @@ export default function MatchPairs() {
                     style={cardStyle}
                     className={className}
                     onClick={() => handleChoice(item.id, isOriginal)}
-                    disabled={newlyAppearingIds.has(item.id) || isAnswerLocked}
+                    disabled={isAnswerLocked}
                 >
                     {item.text}
                 </button>
@@ -973,7 +1069,10 @@ export default function MatchPairs() {
                                     </div>
                                 </div>
 
-                                <div className={styles.answerFlightStage} ref={answerFlightStageRef}>
+                                <div
+                                    className={`${styles.answerFlightStage} ${useTabletFourColumnLayout ? styles.tabletFourColumnLayout : ''}`}
+                                    ref={answerFlightStageRef}
+                                >
                                     <div className={`${styles.columns} ${styles.desktopColumns}`}>
                                         {renderMatchColumn(leftColumnEntries, true, 'left')}
                                         {renderMatchColumn(rightColumnEntries, false, 'right')}
