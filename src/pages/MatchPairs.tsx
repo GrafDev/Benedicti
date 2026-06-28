@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { LayoutGroup, motion } from 'framer-motion';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -21,35 +22,6 @@ interface MatchItem {
 interface MatchColumnEntry {
     item: MatchItem | null;
     slotIndex: number;
-}
-
-interface AnswerShuffleRect {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-}
-
-interface AnswerShuffleClone {
-    id: string;
-    text: string;
-    from: AnswerShuffleRect;
-    to: AnswerShuffleRect;
-    z: number;
-    isAppearing: boolean;
-}
-
-interface AnswerShuffleMove {
-    id: string;
-    fromIndex: number;
-    toIndex: number;
-}
-
-interface PendingAnswerShuffle {
-    nextColumn: (MatchItem | null)[];
-    replacedRightColumn: (MatchItem | null)[];
-    shuffledIds: Set<string>;
-    moves: AnswerShuffleMove[];
 }
 
 type Phase = 'SETUP' | 'PLAY' | 'GAMEOVER';
@@ -97,8 +69,8 @@ export default function MatchPairs() {
     const [correctIds, setCorrectIds] = useState<Set<string>>(new Set());
     const [wrongIds, setWrongIds] = useState<Set<string>>(new Set());
     const [newlyAppearingIds, setNewlyAppearingIds] = useState<Set<string>>(new Set());
-    const [answerHiddenIds, setAnswerHiddenIds] = useState<Set<string>>(new Set());
-    const [answerShuffleClones, setAnswerShuffleClones] = useState<AnswerShuffleClone[]>([]);
+    const [answerAnimatingIds, setAnswerAnimatingIds] = useState<Set<string>>(new Set());
+    const [isAnswerShuffleLocked, setIsAnswerShuffleLocked] = useState(false);
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -120,9 +92,6 @@ export default function MatchPairs() {
     const [errors, setErrors] = useState(0);
     const timerRef = useRef<number | null>(null);
     const startTimeRef = useRef<number | null>(null);
-    const answerCardRefs = useRef<Map<string, Set<HTMLButtonElement>>>(new Map());
-    const pendingAnswerShuffleRef = useRef<PendingAnswerShuffle | null>(null);
-    const answerShuffleFrameRef = useRef<number | null>(null);
     const answerShuffleTimeoutRef = useRef<number | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
@@ -263,13 +232,8 @@ export default function MatchPairs() {
         setSelectedRightId(null);
         setWrongIds(new Set());
         setNewlyAppearingIds(new Set());
-        setAnswerHiddenIds(new Set());
-        setAnswerShuffleClones([]);
-        pendingAnswerShuffleRef.current = null;
-        if (answerShuffleFrameRef.current) {
-            window.cancelAnimationFrame(answerShuffleFrameRef.current);
-            answerShuffleFrameRef.current = null;
-        }
+        setAnswerAnimatingIds(new Set());
+        setIsAnswerShuffleLocked(false);
         if (answerShuffleTimeoutRef.current) {
             window.clearTimeout(answerShuffleTimeoutRef.current);
             answerShuffleTimeoutRef.current = null;
@@ -348,111 +312,10 @@ export default function MatchPairs() {
         return `${mins}:${secs.toString().padStart(2, '0')}.${tenths}`;
     };
 
-    const registerAnswerCard = useCallback((id: string, node: HTMLButtonElement | null) => {
-        if (!node) return;
-
-        const refs = answerCardRefs.current.get(id) || new Set<HTMLButtonElement>();
-        refs.add(node);
-        answerCardRefs.current.set(id, refs);
-    }, []);
-
-    const getVisibleAnswerCardRects = useCallback((ids: Set<string>) => {
-        const rects = new Map<string, DOMRect>();
-
-        ids.forEach(id => {
-            const refs = answerCardRefs.current.get(id);
-            if (!refs) return;
-
-            const visibleNode = [...refs].find(node => {
-                if (!node.isConnected) {
-                    refs.delete(node);
-                    return false;
-                }
-
-                const rect = node.getBoundingClientRect();
-                return rect.width > 0 && rect.height > 0 && window.getComputedStyle(node).display !== 'none';
-            });
-
-            if (visibleNode) {
-                rects.set(id, visibleNode.getBoundingClientRect());
-            }
-        });
-
-        return rects;
-    }, []);
-
-    const toShuffleRect = (rect: DOMRect): AnswerShuffleRect => ({
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height
-    });
-
-    useEffect(() => {
-        if (answerHiddenIds.size === 0 || !pendingAnswerShuffleRef.current || answerShuffleClones.length > 0) return;
-
-        if (answerShuffleFrameRef.current) {
-            window.cancelAnimationFrame(answerShuffleFrameRef.current);
-        }
-
-        answerShuffleFrameRef.current = window.requestAnimationFrame(() => {
-            const pendingShuffle = pendingAnswerShuffleRef.current;
-            if (!pendingShuffle) return;
-
-            const clones: AnswerShuffleClone[] = [];
-
-            pendingShuffle.moves.forEach((move, index) => {
-                const movingItem = pendingShuffle.replacedRightColumn[move.fromIndex];
-                const targetSlotItem = pendingShuffle.replacedRightColumn[move.toIndex];
-                const sourceRect = getVisibleAnswerCardRects(new Set([move.id])).get(move.id);
-                const targetRect = targetSlotItem
-                    ? getVisibleAnswerCardRects(new Set([targetSlotItem.id])).get(targetSlotItem.id)
-                    : undefined;
-
-                if (!movingItem || !sourceRect || !targetRect) return;
-
-                clones.push({
-                    id: move.id,
-                    text: movingItem.text,
-                    from: toShuffleRect(sourceRect),
-                    to: toShuffleRect(targetRect),
-                    z: 20 + index,
-                    isAppearing: newlyAppearingIds.has(move.id)
-                });
-            });
-
-            if (clones.length === 0) {
-                setRightColumn(pendingShuffle.nextColumn);
-                setAnswerHiddenIds(new Set());
-                pendingAnswerShuffleRef.current = null;
-                answerShuffleFrameRef.current = null;
-                return;
-            }
-
-            setAnswerShuffleClones(clones);
-
-            if (answerShuffleTimeoutRef.current) {
-                window.clearTimeout(answerShuffleTimeoutRef.current);
-            }
-
-            answerShuffleTimeoutRef.current = window.setTimeout(() => {
-                const latestPendingShuffle = pendingAnswerShuffleRef.current;
-                if (latestPendingShuffle) {
-                    setRightColumn(latestPendingShuffle.nextColumn);
-                }
-                setAnswerShuffleClones([]);
-                setAnswerHiddenIds(new Set());
-                pendingAnswerShuffleRef.current = null;
-                answerShuffleTimeoutRef.current = null;
-            }, 760);
-            answerShuffleFrameRef.current = null;
-        });
-    }, [answerHiddenIds, answerShuffleClones.length, getVisibleAnswerCardRects, newlyAppearingIds]);
-
     const shuffleReplacementAnswerSide = useCallback((column: (MatchItem | null)[], replacementPairId: string) => {
         const replacementIndex = column.findIndex(item => item?.id === replacementPairId);
         if (replacementIndex === -1) {
-            return { nextColumn: column, shuffledIds: new Set<string>(), moves: [] };
+            return { nextColumn: column, shuffledIds: new Set<string>() };
         }
 
         const availableIndices = column
@@ -468,26 +331,14 @@ export default function MatchPairs() {
             ? [...targetItems.slice(1), targetItems[0]]
             : targetItems;
         const nextColumn = [...column];
-        const moves: AnswerShuffleMove[] = [];
 
         targetIndices.forEach((index, itemIndex) => {
             nextColumn[index] = shuffledItems[itemIndex];
-
-            const item = shuffledItems[itemIndex];
-            if (!item) return;
-
-            const fromItemIndex = targetItems.findIndex(targetItem => targetItem?.id === item.id);
-            moves.push({
-                id: item.id,
-                fromIndex: targetIndices[fromItemIndex],
-                toIndex: index
-            });
         });
 
         return {
             nextColumn,
-            shuffledIds: new Set(targetItems.flatMap(item => item ? [item.id] : [])),
-            moves
+            shuffledIds: new Set(targetItems.flatMap(item => item ? [item.id] : []))
         };
     }, []);
 
@@ -539,26 +390,22 @@ export default function MatchPairs() {
         setLeftColumn(nextLeftColumn);
 
         if (nextWord) {
-            const { nextColumn, shuffledIds, moves } = shuffleReplacementAnswerSide(replacedRightColumn, nextWord.id);
+            const { nextColumn, shuffledIds } = shuffleReplacementAnswerSide(replacedRightColumn, nextWord.id);
 
-            setAnswerShuffleClones([]);
-            pendingAnswerShuffleRef.current = {
-                nextColumn,
-                replacedRightColumn,
-                shuffledIds,
-                moves
-            };
-            setAnswerHiddenIds(new Set(shuffledIds));
-            setRightColumn(replacedRightColumn);
+            setAnswerAnimatingIds(new Set(shuffledIds));
+            setIsAnswerShuffleLocked(true);
+            setRightColumn(nextColumn);
 
-            if (answerShuffleFrameRef.current) {
-                window.cancelAnimationFrame(answerShuffleFrameRef.current);
-                answerShuffleFrameRef.current = null;
-            }
             if (answerShuffleTimeoutRef.current) {
                 window.clearTimeout(answerShuffleTimeoutRef.current);
                 answerShuffleTimeoutRef.current = null;
             }
+
+            answerShuffleTimeoutRef.current = window.setTimeout(() => {
+                setAnswerAnimatingIds(new Set());
+                setIsAnswerShuffleLocked(false);
+                answerShuffleTimeoutRef.current = null;
+            }, 720);
         } else {
             setRightColumn(replacedRightColumn);
         }
@@ -651,27 +498,58 @@ export default function MatchPairs() {
 
     const renderMatchCard = (entry: MatchColumnEntry, idx: number, isOriginal: boolean, keyPrefix: string) => {
         const item = entry.item;
-        const isAnswerHidden = !isOriginal && answerHiddenIds.has(item?.id || '');
+        const isAnswerAnimating = !isOriginal && answerAnimatingIds.has(item?.id || '');
+        const isAnswerLocked = !isOriginal && isAnswerShuffleLocked;
         const cardStyle: CSSProperties = {
             animationDelay: newlyAppearingIds.has(item?.id || '') ? `${idx * 40}ms` : '0ms'
         };
 
+        const className = `${styles.card}
+            ${(isOriginal ? selectedLeftId : selectedRightId) === item?.id ? styles.selected : ''}
+            ${item && correctIds.has(item.id) ? styles.correct : ''}
+            ${item && wrongIds.has(item.id) && (isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.wrong : ''}
+            ${item && newlyAppearingIds.has(item.id) ? styles.appearing : ''}
+            ${isAnswerAnimating ? styles.answerMotionActive : ''}
+            ${isAnswerLocked ? styles.answerMotionLocked : ''}`;
+
         return item ? (
-            <button
-                key={`${keyPrefix}-${item.id}`}
-                ref={!isOriginal ? node => registerAnswerCard(item.id, node) : undefined}
-                style={cardStyle}
-                className={`${styles.card}
-                    ${(isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.selected : ''}
-                    ${correctIds.has(item.id) ? styles.correct : ''}
-                    ${wrongIds.has(item.id) && (isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.wrong : ''}
-                    ${newlyAppearingIds.has(item.id) ? styles.appearing : ''}
-                    ${isAnswerHidden ? styles.answerShuffleHidden : ''}`}
-                onClick={() => handleChoice(item.id, isOriginal)}
-                disabled={newlyAppearingIds.has(item.id) || isAnswerHidden}
-            >
-                {isEliteMode && isOriginal ? <Volume2 size={24} /> : item.text}
-            </button>
+            isOriginal ? (
+                <button
+                    key={`${keyPrefix}-${item.id}`}
+                    style={cardStyle}
+                    className={className}
+                    onClick={() => handleChoice(item.id, isOriginal)}
+                    disabled={newlyAppearingIds.has(item.id)}
+                >
+                    {isEliteMode ? <Volume2 size={24} /> : item.text}
+                </button>
+            ) : (
+                <motion.button
+                    key={`${keyPrefix}-${item.id}`}
+                    layout="position"
+                    layoutDependency={rightColumn.map(columnItem => columnItem?.id || 'empty').join('|')}
+                    transition={{
+                        layout: {
+                            type: 'spring',
+                            stiffness: 460,
+                            damping: 34,
+                            mass: 0.72
+                        },
+                        scale: { duration: 0.18 },
+                        boxShadow: { duration: 0.18 }
+                    }}
+                    animate={isAnswerAnimating
+                        ? { scale: 1.025, y: -2 }
+                        : { scale: 1, y: 0 }
+                    }
+                    style={cardStyle}
+                    className={className}
+                    onClick={() => handleChoice(item.id, isOriginal)}
+                    disabled={newlyAppearingIds.has(item.id) || isAnswerLocked}
+                >
+                    {item.text}
+                </motion.button>
+            )
         ) : <div key={`${keyPrefix}-empty-${entry.slotIndex}-${idx}`} className={styles.emptySlot} />;
     };
 
@@ -680,32 +558,6 @@ export default function MatchPairs() {
             {entries.map((entry, idx) => renderMatchCard(entry, idx, isOriginal, keyPrefix))}
         </div>
     );
-
-    const renderAnswerShuffleOverlay = () => answerShuffleClones.length > 0 ? (
-        <div className={styles.answerShuffleOverlay} aria-hidden="true">
-            {answerShuffleClones.map(clone => {
-                const cloneStyle: CSSProperties & Record<string, string | number> = {
-                    left: `${clone.from.left}px`,
-                    top: `${clone.from.top}px`,
-                    width: `${clone.from.width}px`,
-                    height: `${clone.from.height}px`,
-                    '--fly-x': `${Math.round(clone.to.left - clone.from.left)}px`,
-                    '--fly-y': `${Math.round(clone.to.top - clone.from.top)}px`,
-                    '--clone-z': clone.z
-                };
-
-                return (
-                    <div
-                        key={`answer-clone-${clone.id}`}
-                        className={`${styles.answerShuffleClone} ${clone.isAppearing ? styles.answerShuffleCloneAppearing : ''}`}
-                        style={cloneStyle}
-                    >
-                        {clone.text}
-                    </div>
-                );
-            })}
-        </div>
-    ) : null;
 
     const leftColumnEntries = toColumnEntries(leftColumn);
     const rightColumnEntries = toColumnEntries(rightColumn);
@@ -988,19 +840,19 @@ export default function MatchPairs() {
                                     </div>
                                 </div>
 
-                                <div className={`${styles.columns} ${styles.desktopColumns}`}>
-                                    {renderMatchColumn(leftColumnEntries, true, 'left')}
-                                    {renderMatchColumn(rightColumnEntries, false, 'right')}
-                                </div>
+                                <LayoutGroup id="match-pairs-answer-shuffle">
+                                    <div className={`${styles.columns} ${styles.desktopColumns}`}>
+                                        {renderMatchColumn(leftColumnEntries, true, 'left')}
+                                        {renderMatchColumn(rightColumnEntries, false, 'right')}
+                                    </div>
 
-                                <div className={`${styles.columns} ${styles.tabletColumns}`}>
-                                    {renderMatchColumn(tabletLeftFirst, true, 'tablet-left-a')}
-                                    {renderMatchColumn(tabletRightFirst, false, 'tablet-right-a')}
-                                    {renderMatchColumn(tabletLeftSecond, true, 'tablet-left-b')}
-                                    {renderMatchColumn(tabletRightSecond, false, 'tablet-right-b')}
-                                </div>
-
-                                {renderAnswerShuffleOverlay()}
+                                    <div className={`${styles.columns} ${styles.tabletColumns}`}>
+                                        {renderMatchColumn(tabletLeftFirst, true, 'tablet-left-a')}
+                                        {renderMatchColumn(tabletRightFirst, false, 'tablet-right-a')}
+                                        {renderMatchColumn(tabletLeftSecond, true, 'tablet-left-b')}
+                                        {renderMatchColumn(tabletRightSecond, false, 'tablet-right-b')}
+                                    </div>
+                                </LayoutGroup>
                             </>
                         )}
                     </div>
