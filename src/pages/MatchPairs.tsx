@@ -87,6 +87,7 @@ export default function MatchPairs() {
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
     const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
     const [isMobileSetupOpen, setIsMobileSetupOpen] = useState(false);
+    const ANSWER_SHUFFLE_LOCK_MS = 980;
 
     const [timer, setTimer] = useState(0);
     const [errors, setErrors] = useState(0);
@@ -312,6 +313,20 @@ export default function MatchPairs() {
         return `${mins}:${secs.toString().padStart(2, '0')}.${tenths}`;
     };
 
+    const selectAnswerShuffleIndices = useCallback((availableIndices: number[], replacementIndex: number) => {
+        const otherIndices = availableIndices
+            .filter(index => index !== replacementIndex)
+            .map(index => ({
+                index,
+                distance: Math.abs(index - replacementIndex)
+            }))
+            .sort((a, b) => b.distance - a.distance || a.index - b.index)
+            .slice(0, 2)
+            .map(({ index }) => index);
+
+        return [replacementIndex, ...otherIndices].sort((a, b) => a - b);
+    }, []);
+
     const shuffleReplacementAnswerSide = useCallback((column: (MatchItem | null)[], replacementPairId: string) => {
         const replacementIndex = column.findIndex(item => item?.id === replacementPairId);
         if (replacementIndex === -1) {
@@ -321,11 +336,7 @@ export default function MatchPairs() {
         const availableIndices = column
             .map((item, index) => item ? index : -1)
             .filter(index => index !== -1);
-        const otherIndices = availableIndices
-            .filter(index => index !== replacementIndex)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 2);
-        const targetIndices = [replacementIndex, ...otherIndices];
+        const targetIndices = selectAnswerShuffleIndices(availableIndices, replacementIndex);
         const targetItems = targetIndices.map(index => column[index]);
         const shuffledItems = targetItems.length > 1
             ? [...targetItems.slice(1), targetItems[0]]
@@ -340,7 +351,7 @@ export default function MatchPairs() {
             nextColumn,
             shuffledIds: new Set(targetItems.flatMap(item => item ? [item.id] : []))
         };
-    }, []);
+    }, [selectAnswerShuffleIndices]);
 
     const replaceWordOnPlace = (oldId: string) => {
         setMatchedIds(prev => {
@@ -405,7 +416,7 @@ export default function MatchPairs() {
                 setAnswerAnimatingIds(new Set());
                 setIsAnswerShuffleLocked(false);
                 answerShuffleTimeoutRef.current = null;
-            }, 720);
+            }, ANSWER_SHUFFLE_LOCK_MS);
         } else {
             setRightColumn(replacedRightColumn);
         }
@@ -526,21 +537,32 @@ export default function MatchPairs() {
             ) : (
                 <motion.button
                     key={`${keyPrefix}-${item.id}`}
-                    layout="position"
+                    layout
                     layoutDependency={rightColumn.map(columnItem => columnItem?.id || 'empty').join('|')}
                     transition={{
                         layout: {
-                            type: 'spring',
-                            stiffness: 460,
-                            damping: 34,
-                            mass: 0.72
+                            duration: 0.82,
+                            ease: 'easeInOut'
                         },
-                        scale: { duration: 0.18 },
-                        boxShadow: { duration: 0.18 }
+                        y: {
+                            duration: 0.9,
+                            ease: 'easeInOut',
+                            times: [0, 0.18, 0.7, 1]
+                        },
+                        scale: {
+                            duration: 0.9,
+                            ease: 'easeInOut',
+                            times: [0, 0.18, 0.7, 1]
+                        },
+                        boxShadow: { duration: 0.9, ease: 'easeInOut' }
                     }}
                     animate={isAnswerAnimating
-                        ? { scale: 1.025, y: -2 }
-                        : { scale: 1, y: 0 }
+                        ? {
+                            scale: [1, 1.22, 1.14, 1],
+                            y: [0, -44, -30, 0],
+                            zIndex: 6
+                        }
+                        : { scale: 1, y: 0, zIndex: 1 }
                     }
                     style={cardStyle}
                     className={className}
