@@ -1043,6 +1043,27 @@
     min-height: 0;
 }
 
+.answerFlightStage {
+    position: relative;
+    display: flex;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.answerFlightStage .columns {
+    flex: 1;
+}
+
+.answerFlightLayer {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .tabletColumns {
     display: none;
 }
@@ -1100,16 +1121,26 @@
     animation: correctPairBounce 0.42s ease-out;
 }
 
-.answerMotionActive {
-    position: relative;
-    z-index: 6;
+.answerFlightCard {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-height: none;
+    cursor: default;
     border-color: rgba(125, 211, 252, 0.72);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.18),
         0 22px 44px rgba(0, 0, 0, 0.42),
         0 0 22px rgba(45, 212, 191, 0.2);
     pointer-events: none;
+    transform-origin: center;
+    transition: none;
     will-change: transform;
+}
+
+.answerSlotHidden {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .answerMotionLocked {
@@ -1153,7 +1184,7 @@
 
 /* RESULTS */
 .resultsOverlay {
-    position: fixed;
+    position: absolute;
     inset: 0;
     width: auto;
     min-height: 100dvh;

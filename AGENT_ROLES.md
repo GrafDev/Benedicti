@@ -42,6 +42,9 @@ Responsibilities:
 - Avoid files listed in `Forbidden Files`.
 - Add a `Builder Report` inside the task file.
 - Move completed or blocked tasks to `tasks/review`.
+- After moving a task to `tasks/review`, send a completion signal back to the Lead AI thread when thread messaging is available.
+- Use the `source_thread_id` from the delegation message, or the Lead thread id explicitly provided by Lead AI.
+- The signal must include task id, status, changed files, checks run, and that the task is ready for Lead Review.
 
 Limits:
 - Do not accept your own work.

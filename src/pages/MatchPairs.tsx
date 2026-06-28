@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LayoutGroup, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -22,6 +22,28 @@ interface MatchItem {
 interface MatchColumnEntry {
     item: MatchItem | null;
     slotIndex: number;
+}
+
+interface AnswerShuffleMove {
+    id: string;
+    text: string;
+    fromSlotIndex: number;
+    toSlotIndex: number;
+}
+
+interface AnswerFlightRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+interface AnswerFlightCard {
+    id: string;
+    text: string;
+    from: AnswerFlightRect;
+    to: AnswerFlightRect;
+    z: number;
 }
 
 type Phase = 'SETUP' | 'PLAY' | 'GAMEOVER';
@@ -69,8 +91,9 @@ export default function MatchPairs() {
     const [correctIds, setCorrectIds] = useState<Set<string>>(new Set());
     const [wrongIds, setWrongIds] = useState<Set<string>>(new Set());
     const [newlyAppearingIds, setNewlyAppearingIds] = useState<Set<string>>(new Set());
-    const [answerAnimatingIds, setAnswerAnimatingIds] = useState<Set<string>>(new Set());
     const [isAnswerShuffleLocked, setIsAnswerShuffleLocked] = useState(false);
+    const [answerHiddenSlotIndices, setAnswerHiddenSlotIndices] = useState<Set<number>>(new Set());
+    const [answerFlightCards, setAnswerFlightCards] = useState<AnswerFlightCard[]>([]);
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -87,13 +110,14 @@ export default function MatchPairs() {
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
     const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
     const [isMobileSetupOpen, setIsMobileSetupOpen] = useState(false);
-    const ANSWER_SHUFFLE_LOCK_MS = 980;
+    const ANSWER_FLIGHT_MS = 820;
 
     const [timer, setTimer] = useState(0);
     const [errors, setErrors] = useState(0);
     const timerRef = useRef<number | null>(null);
     const startTimeRef = useRef<number | null>(null);
     const answerShuffleTimeoutRef = useRef<number | null>(null);
+    const answerFlightStageRef = useRef<HTMLDivElement | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
 
@@ -233,8 +257,9 @@ export default function MatchPairs() {
         setSelectedRightId(null);
         setWrongIds(new Set());
         setNewlyAppearingIds(new Set());
-        setAnswerAnimatingIds(new Set());
         setIsAnswerShuffleLocked(false);
+        setAnswerHiddenSlotIndices(new Set());
+        setAnswerFlightCards([]);
         if (answerShuffleTimeoutRef.current) {
             window.clearTimeout(answerShuffleTimeoutRef.current);
             answerShuffleTimeoutRef.current = null;
@@ -330,7 +355,7 @@ export default function MatchPairs() {
     const shuffleReplacementAnswerSide = useCallback((column: (MatchItem | null)[], replacementPairId: string) => {
         const replacementIndex = column.findIndex(item => item?.id === replacementPairId);
         if (replacementIndex === -1) {
-            return { nextColumn: column, shuffledIds: new Set<string>() };
+            return { nextColumn: column, shuffledIds: new Set<string>(), moves: [] };
         }
 
         const availableIndices = column
@@ -342,16 +367,105 @@ export default function MatchPairs() {
             ? [...targetItems.slice(1), targetItems[0]]
             : targetItems;
         const nextColumn = [...column];
+        const moves: AnswerShuffleMove[] = [];
 
         targetIndices.forEach((index, itemIndex) => {
             nextColumn[index] = shuffledItems[itemIndex];
+
+            const item = targetItems[itemIndex];
+            if (!item) return;
+
+            const destinationIndex = targetIndices[shuffledItems.findIndex(shuffledItem => shuffledItem?.id === item.id)];
+            moves.push({
+                id: item.id,
+                text: item.text,
+                fromSlotIndex: index,
+                toSlotIndex: destinationIndex
+            });
         });
 
         return {
             nextColumn,
-            shuffledIds: new Set(targetItems.flatMap(item => item ? [item.id] : []))
+            shuffledIds: new Set(targetItems.flatMap(item => item ? [item.id] : [])),
+            moves
         };
     }, [selectAnswerShuffleIndices]);
+
+    const getVisibleAnswerSlotRect = useCallback((slotIndex: number): AnswerFlightRect | null => {
+        const stage = answerFlightStageRef.current;
+        if (!stage) return null;
+
+        const stageRect = stage.getBoundingClientRect();
+        const slots = Array.from(stage.querySelectorAll<HTMLElement>(`[data-answer-slot-index="${slotIndex}"]`));
+        const visibleSlot = slots.find(slot => {
+            const rect = slot.getBoundingClientRect();
+            const style = window.getComputedStyle(slot);
+            return rect.width > 0 && rect.height > 0 && style.display !== 'none';
+        });
+
+        if (!visibleSlot) return null;
+
+        const rect = visibleSlot.getBoundingClientRect();
+        return {
+            x: rect.left - stageRect.left,
+            y: rect.top - stageRect.top,
+            width: rect.width,
+            height: rect.height
+        };
+    }, []);
+
+    const startAnswerShuffleFlight = useCallback((nextColumn: (MatchItem | null)[], moves: AnswerShuffleMove[]) => {
+        const meaningfulMoves = moves.filter(move => move.fromSlotIndex !== move.toSlotIndex);
+        if (meaningfulMoves.length === 0) {
+            setRightColumn(nextColumn);
+            return false;
+        }
+
+        const flightCards = meaningfulMoves.map((move, index) => {
+            const from = getVisibleAnswerSlotRect(move.fromSlotIndex);
+            const to = getVisibleAnswerSlotRect(move.toSlotIndex);
+
+            if (!from || !to) return null;
+
+            return {
+                id: move.id,
+                text: move.text,
+                from,
+                to,
+                z: 20 + index
+            };
+        });
+
+        if (flightCards.some(card => card === null)) {
+            setRightColumn(nextColumn);
+            return false;
+        }
+
+        const hiddenSlots = new Set<number>();
+        meaningfulMoves.forEach(move => {
+            hiddenSlots.add(move.fromSlotIndex);
+            hiddenSlots.add(move.toSlotIndex);
+        });
+
+        setAnswerFlightCards(flightCards as AnswerFlightCard[]);
+        setAnswerHiddenSlotIndices(hiddenSlots);
+        setIsAnswerShuffleLocked(true);
+
+        if (answerShuffleTimeoutRef.current) {
+            window.clearTimeout(answerShuffleTimeoutRef.current);
+            answerShuffleTimeoutRef.current = null;
+        }
+
+        answerShuffleTimeoutRef.current = window.setTimeout(() => {
+            setRightColumn(nextColumn);
+            setAnswerFlightCards([]);
+            setAnswerHiddenSlotIndices(new Set());
+            setIsAnswerShuffleLocked(false);
+            answerShuffleTimeoutRef.current = null;
+        }, ANSWER_FLIGHT_MS);
+
+        return true;
+    }, [ANSWER_FLIGHT_MS, getVisibleAnswerSlotRect]);
 
     const replaceWordOnPlace = (oldId: string) => {
         setMatchedIds(prev => {
@@ -401,22 +515,14 @@ export default function MatchPairs() {
         setLeftColumn(nextLeftColumn);
 
         if (nextWord) {
-            const { nextColumn, shuffledIds } = shuffleReplacementAnswerSide(replacedRightColumn, nextWord.id);
+            const { nextColumn, moves } = shuffleReplacementAnswerSide(replacedRightColumn, nextWord.id);
+            const didStartFlight = startAnswerShuffleFlight(nextColumn, moves);
 
-            setAnswerAnimatingIds(new Set(shuffledIds));
-            setIsAnswerShuffleLocked(true);
-            setRightColumn(nextColumn);
-
-            if (answerShuffleTimeoutRef.current) {
-                window.clearTimeout(answerShuffleTimeoutRef.current);
-                answerShuffleTimeoutRef.current = null;
-            }
-
-            answerShuffleTimeoutRef.current = window.setTimeout(() => {
-                setAnswerAnimatingIds(new Set());
+            if (!didStartFlight) {
+                setAnswerHiddenSlotIndices(new Set());
+                setAnswerFlightCards([]);
                 setIsAnswerShuffleLocked(false);
-                answerShuffleTimeoutRef.current = null;
-            }, ANSWER_SHUFFLE_LOCK_MS);
+            }
         } else {
             setRightColumn(replacedRightColumn);
         }
@@ -509,8 +615,8 @@ export default function MatchPairs() {
 
     const renderMatchCard = (entry: MatchColumnEntry, idx: number, isOriginal: boolean, keyPrefix: string) => {
         const item = entry.item;
-        const isAnswerAnimating = !isOriginal && answerAnimatingIds.has(item?.id || '');
         const isAnswerLocked = !isOriginal && isAnswerShuffleLocked;
+        const isAnswerSlotHidden = !isOriginal && answerHiddenSlotIndices.has(entry.slotIndex);
         const cardStyle: CSSProperties = {
             animationDelay: newlyAppearingIds.has(item?.id || '') ? `${idx * 40}ms` : '0ms'
         };
@@ -520,7 +626,7 @@ export default function MatchPairs() {
             ${item && correctIds.has(item.id) ? styles.correct : ''}
             ${item && wrongIds.has(item.id) && (isOriginal ? selectedLeftId : selectedRightId) === item.id ? styles.wrong : ''}
             ${item && newlyAppearingIds.has(item.id) ? styles.appearing : ''}
-            ${isAnswerAnimating ? styles.answerMotionActive : ''}
+            ${isAnswerSlotHidden ? styles.answerSlotHidden : ''}
             ${isAnswerLocked ? styles.answerMotionLocked : ''}`;
 
         return item ? (
@@ -535,42 +641,16 @@ export default function MatchPairs() {
                     {isEliteMode ? <Volume2 size={24} /> : item.text}
                 </button>
             ) : (
-                <motion.button
+                <button
                     key={`${keyPrefix}-${item.id}`}
-                    layout
-                    layoutDependency={rightColumn.map(columnItem => columnItem?.id || 'empty').join('|')}
-                    transition={{
-                        layout: {
-                            duration: 0.82,
-                            ease: 'easeInOut'
-                        },
-                        y: {
-                            duration: 0.9,
-                            ease: 'easeInOut',
-                            times: [0, 0.18, 0.7, 1]
-                        },
-                        scale: {
-                            duration: 0.9,
-                            ease: 'easeInOut',
-                            times: [0, 0.18, 0.7, 1]
-                        },
-                        boxShadow: { duration: 0.9, ease: 'easeInOut' }
-                    }}
-                    animate={isAnswerAnimating
-                        ? {
-                            scale: [1, 1.22, 1.14, 1],
-                            y: [0, -44, -30, 0],
-                            zIndex: 6
-                        }
-                        : { scale: 1, y: 0, zIndex: 1 }
-                    }
+                    data-answer-slot-index={entry.slotIndex}
                     style={cardStyle}
                     className={className}
                     onClick={() => handleChoice(item.id, isOriginal)}
                     disabled={newlyAppearingIds.has(item.id) || isAnswerLocked}
                 >
                     {item.text}
-                </motion.button>
+                </button>
             )
         ) : <div key={`${keyPrefix}-empty-${entry.slotIndex}-${idx}`} className={styles.emptySlot} />;
     };
@@ -578,6 +658,37 @@ export default function MatchPairs() {
     const renderMatchColumn = (entries: MatchColumnEntry[], isOriginal: boolean, keyPrefix: string) => (
         <div className={styles.column}>
             {entries.map((entry, idx) => renderMatchCard(entry, idx, isOriginal, keyPrefix))}
+        </div>
+    );
+
+    const renderAnswerFlightLayer = () => (
+        <div className={styles.answerFlightLayer} aria-hidden="true">
+            {answerFlightCards.map(card => (
+                <motion.div
+                    key={`${card.id}-${card.from.x}-${card.to.x}-${card.to.y}`}
+                    className={`${styles.card} ${styles.answerFlightCard}`}
+                    initial={{
+                        x: card.from.x,
+                        y: card.from.y,
+                        zIndex: card.z
+                    }}
+                    animate={{
+                        x: card.to.x,
+                        y: card.to.y,
+                        zIndex: card.z
+                    }}
+                    transition={{
+                        x: { duration: ANSWER_FLIGHT_MS / 1000, ease: [0.22, 1, 0.36, 1] },
+                        y: { duration: ANSWER_FLIGHT_MS / 1000, ease: [0.22, 1, 0.36, 1] }
+                    }}
+                    style={{
+                        width: card.from.width,
+                        height: card.from.height
+                    }}
+                >
+                    {card.text}
+                </motion.div>
+            ))}
         </div>
     );
 
@@ -862,7 +973,7 @@ export default function MatchPairs() {
                                     </div>
                                 </div>
 
-                                <LayoutGroup id="match-pairs-answer-shuffle">
+                                <div className={styles.answerFlightStage} ref={answerFlightStageRef}>
                                     <div className={`${styles.columns} ${styles.desktopColumns}`}>
                                         {renderMatchColumn(leftColumnEntries, true, 'left')}
                                         {renderMatchColumn(rightColumnEntries, false, 'right')}
@@ -874,7 +985,8 @@ export default function MatchPairs() {
                                         {renderMatchColumn(tabletLeftSecond, true, 'tablet-left-b')}
                                         {renderMatchColumn(tabletRightSecond, false, 'tablet-right-b')}
                                     </div>
-                                </LayoutGroup>
+                                    {renderAnswerFlightLayer()}
+                                </div>
                             </>
                         )}
                     </div>

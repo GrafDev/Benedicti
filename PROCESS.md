@@ -72,6 +72,10 @@ If an AI sees a task whose role prefix does not match its role, it must not take
 - Do not move tasks to `tasks/done`.
 - When finished or blocked, append a `Builder Report` to the task file.
 - Move the task from `tasks/todo` to `tasks/review`.
+- After moving the task to `tasks/review`, send a completion signal back to the Lead AI thread when thread messaging is available.
+  - Use the `source_thread_id` from the delegation message, or the Lead thread id explicitly provided by Lead AI.
+  - The signal must say the task id, status, changed files, checks run, and that the task is ready for Lead Review.
+  - If thread messaging is not available, state this in the Builder final response and rely on the task file in `tasks/review`.
 - Do not run `git commit` or `git push`.
 
 ## Artist AI Rules
