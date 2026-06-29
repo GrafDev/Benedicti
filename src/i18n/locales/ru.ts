@@ -8,6 +8,7 @@ export const ru = {
     confirm: 'Подтвердить',
     logout: 'Выйти',
     cancel: 'Отмена',
+    close: 'Закрыть',
     delete: 'Удалить',
     learned: 'Выучено',
     restart: 'Начать заново',
@@ -108,6 +109,9 @@ export const ru = {
       realmPlayKing: 'Играть ранг Короля',
       realmPlaceholder: 'Макет',
       realmStatusCopy: 'Данные завоевания подключим позже',
+      realmTerritoryPercent: '{{percent}}% державы',
+      realmNotInWar: 'Еще не участвует в борьбе за державу',
+      realmNoTerritoryYet: 'Территория пока не захвачена',
     },
     flashcards: {
       title: 'FLASHCARDS',

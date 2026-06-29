@@ -10,6 +10,7 @@ export const en: Translations = {
     confirm: 'Confirm',
     logout: 'Logout',
     cancel: 'Cancel',
+    close: 'Close',
     delete: 'Delete',
     learned: 'Learned',
     restart: 'Restart',
@@ -110,6 +111,9 @@ export const en: Translations = {
       realmPlayKing: 'Play King level',
       realmPlaceholder: 'Preview',
       realmStatusCopy: 'Conquest data will connect later',
+      realmTerritoryPercent: '{{percent}}% of realm',
+      realmNotInWar: 'Not in the realm war yet',
+      realmNoTerritoryYet: 'No territory claimed yet',
     },
     flashcards: {
       title: 'FLASHCARDS',

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
-import { ArrowLeft, Volume2, RefreshCw, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronDown, BookOpen, CheckCircle2, LockKeyhole, Play, Target, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Volume2, RefreshCw, User, Sword, Shield, Landmark, Trophy, Crown, Sparkles, ChevronDown, BookOpen, CheckCircle2, LockKeyhole, Play, Target, X, type LucideIcon } from 'lucide-react';
 import { speechService } from '../utils/speechUtils';
 import { soundService } from '../utils/soundUtils';
 import { saveRecentActivity } from '../utils/activity';
@@ -68,18 +68,24 @@ interface Rank {
 
 interface RealmCell {
     id: string;
+    q: number;
+    r: number;
+    ring: number;
     x: number;
     y: number;
     state: 'claimed' | 'frontier' | 'neutral';
+    player?: RealmPlayer;
 }
 
-interface RealmCastle {
+interface RealmPlayer {
     id: string;
     name: string;
-    x: number;
-    y: number;
+    rankId: string;
+    rankName: string;
+    badgeSrc: string;
     score: number;
     isCurrent: boolean;
+    territoryPercent?: number;
 }
 
 export default function MatchPairs() {
@@ -121,6 +127,7 @@ export default function MatchPairs() {
     const [answerFlightCards, setAnswerFlightCards] = useState<AnswerFlightCard[]>([]);
     const [useTabletFourColumnLayout, setUseTabletFourColumnLayout] = useState(false);
     const [realmPan, setRealmPan] = useState({ x: -320, y: -220 });
+    const [selectedRealmPlayer, setSelectedRealmPlayer] = useState<RealmPlayer | null>(null);
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -213,48 +220,103 @@ export default function MatchPairs() {
         };
     }, [stopRealmEdgePan]);
 
-    const realmCells = useMemo<RealmCell[]>(() => {
-        const targetCells = Math.min(96, Math.max(42, playableWords.length + 6));
-        const cells: RealmCell[] = [];
-        const radius = 6;
+    const realmPlayers = useMemo<RealmPlayer[]>(() => {
+        const rankById = new Map(RANKS.map(rank => [rank.id, rank]));
+        const playerSeeds = [
+            { id: 'player-current', name: 'North Keep', rankId: 'king', score: 28, isCurrent: true, territoryPercent: 28 },
+            { id: 'player-amber', name: 'Amber Gate', rankId: 'duke', score: 0, isCurrent: false },
+            { id: 'player-moon', name: 'Moon Tower', rankId: 'emperor', score: 54, isCurrent: false, territoryPercent: 54 },
+            { id: 'player-east', name: 'Eastwatch', rankId: 'king', score: 0, isCurrent: false },
+            { id: 'player-river', name: 'River Hold', rankId: 'baron', score: 0, isCurrent: false },
+            { id: 'player-sun', name: 'Sunspire', rankId: 'knight', score: 0, isCurrent: false }
+        ];
 
-        for (let q = -radius; q <= radius; q += 1) {
-            for (let r = -radius; r <= radius; r += 1) {
-                const s = -q - r;
-                if (Math.max(Math.abs(q), Math.abs(r), Math.abs(s)) > radius) continue;
-
-                const x = (REALM_WORLD_WIDTH / 2) + (q * 64) + (r * 32);
-                const y = (REALM_WORLD_HEIGHT / 2) + (r * 56);
-                const index = cells.length;
-                const state = index < 18 ? 'claimed' : index < 30 ? 'frontier' : 'neutral';
-
-                cells.push({
-                    id: `${q}:${r}`,
-                    x,
-                    y,
-                    state
-                });
-            }
-        }
-
-        return cells.slice(0, targetCells);
-    }, [playableWords.length]);
-
-    const realmCastles = useMemo<RealmCastle[]>(() => {
-        const names = ['North Keep', 'Amber Gate', 'Moon Tower', 'Eastwatch', 'River Hold', 'Sunspire'];
-
-        return names.map((name, index) => {
-            const angle = (Math.PI * 2 * index) / names.length - Math.PI / 2;
+        return playerSeeds.map(seed => {
+            const rank = rankById.get(seed.rankId) || RANKS[0];
             return {
-                id: `castle-${index}`,
-                name,
-                x: (REALM_WORLD_WIDTH / 2) + Math.cos(angle) * 520,
-                y: (REALM_WORLD_HEIGHT / 2) + Math.sin(angle) * 350,
-                score: 28 - (index * 3),
-                isCurrent: index === 0
+                ...seed,
+                rankName: rank.name,
+                badgeSrc: rank.badgeSrc
             };
         });
-    }, []);
+    }, [RANKS]);
+
+    const realmCells = useMemo<RealmCell[]>(() => {
+        const targetCells = Math.min(96, Math.max(42, playableWords.length + realmPlayers.length));
+        const fullRingCellCount = (ringRadius: number) => 1 + (3 * ringRadius * (ringRadius + 1));
+        let completeRadius = 0;
+
+        while (
+            fullRingCellCount(completeRadius) < targetCells ||
+            completeRadius * 6 < realmPlayers.length
+        ) {
+            completeRadius += 1;
+        }
+
+        const axialDirections = [
+            { q: 1, r: 0 },
+            { q: 1, r: -1 },
+            { q: 0, r: -1 },
+            { q: -1, r: 0 },
+            { q: -1, r: 1 },
+            { q: 0, r: 1 }
+        ];
+        const coordinates: Array<{ q: number; r: number }> = [{ q: 0, r: 0 }];
+
+        for (let radius = 1; radius <= completeRadius; radius += 1) {
+            let q = -radius;
+            let r = radius;
+
+            axialDirections.forEach(direction => {
+                for (let step = 0; step < radius; step += 1) {
+                    coordinates.push({ q, r });
+                    q += direction.q;
+                    r += direction.r;
+                }
+            });
+        }
+
+        const cells = coordinates.map(({ q, r }, index) => {
+            const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
+            const hexSize = 41;
+            const x = (REALM_WORLD_WIDTH / 2) + (Math.sqrt(3) * hexSize * (q + r / 2));
+            const y = (REALM_WORLD_HEIGHT / 2) + (1.5 * hexSize * r);
+            const state: RealmCell['state'] = index < 18 ? 'claimed' : index < 30 ? 'frontier' : 'neutral';
+
+            return {
+                id: `${q}:${r}`,
+                q,
+                r,
+                ring,
+                x,
+                y,
+                state
+            };
+        });
+
+        const outerRing = Math.max(...cells.map(cell => cell.ring));
+        const edgeCells = cells
+            .filter(cell => cell.ring === outerRing)
+            .sort((a, b) => {
+                const centerX = REALM_WORLD_WIDTH / 2;
+                const centerY = REALM_WORLD_HEIGHT / 2;
+                return Math.atan2(a.y - centerY, a.x - centerX) - Math.atan2(b.y - centerY, b.x - centerX);
+            });
+        const playerCellIndices = realmPlayers.map((_, index) => Math.floor((index * edgeCells.length) / realmPlayers.length));
+        const playerByCellId = new Map<string, RealmPlayer>();
+
+        playerCellIndices.forEach((cellIndex, playerIndex) => {
+            const cell = edgeCells[cellIndex];
+            if (cell) {
+                playerByCellId.set(cell.id, realmPlayers[playerIndex]);
+            }
+        });
+
+        return cells.map(cell => ({
+            ...cell,
+            player: playerByCellId.get(cell.id)
+        }));
+    }, [playableWords.length, realmPlayers]);
 
     const handleRealmMouseMove = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
         if (realmDragRef.current) return;
@@ -1040,7 +1102,7 @@ export default function MatchPairs() {
                         </div>
                         <div>
                             <span>{t('games.pairwords.realmStudents')}</span>
-                            <strong>{realmCastles.length}</strong>
+                            <strong>{realmPlayers.length}</strong>
                         </div>
                     </div>
                 </section>
@@ -1068,22 +1130,56 @@ export default function MatchPairs() {
                             {realmCells.map(cell => (
                                 <div
                                     key={cell.id}
-                                    className={`${styles.realmHex} ${styles[`realmHex${cell.state[0].toUpperCase()}${cell.state.slice(1)}`]}`}
+                                    className={`${styles.realmHex} ${styles[`realmHex${cell.state[0].toUpperCase()}${cell.state.slice(1)}`]} ${cell.player ? styles.realmHexPlayer : ''}`}
                                     style={{ left: cell.x, top: cell.y }}
-                                />
-                            ))}
-                            {realmCastles.map(castle => (
-                                <div
-                                    key={castle.id}
-                                    className={`${styles.realmCastle} ${castle.isCurrent ? styles.currentRealmCastle : ''}`}
-                                    style={{ left: castle.x, top: castle.y }}
+                                    onClick={(event) => {
+                                        if (!cell.player) return;
+                                        event.stopPropagation();
+                                        setSelectedRealmPlayer(cell.player);
+                                    }}
                                 >
-                                    <Landmark size={22} />
-                                    <span>{castle.name}</span>
+                                    {cell.player && (
+                                        <button
+                                            type="button"
+                                            className={`${styles.realmPlayerMarker} ${cell.player.isCurrent ? styles.currentRealmPlayerMarker : ''}`}
+                                            aria-label={cell.player.name}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                setSelectedRealmPlayer(cell.player || null);
+                                            }}
+                                        >
+                                            <img src={cell.player.badgeSrc} alt="" aria-hidden="true" />
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
+
+                    {selectedRealmPlayer && (
+                        <div className={styles.realmPlayerPopup}>
+                            <button
+                                type="button"
+                                className={styles.realmPopupClose}
+                                onClick={() => setSelectedRealmPlayer(null)}
+                                aria-label={t('common.close')}
+                            >
+                                <X size={16} />
+                            </button>
+                            <img src={selectedRealmPlayer.badgeSrc} alt="" aria-hidden="true" />
+                            <div>
+                                <span>{selectedRealmPlayer.name}</span>
+                                <strong>{selectedRealmPlayer.rankName}</strong>
+                                {selectedRealmPlayer.territoryPercent !== undefined ? (
+                                    <small>{t('games.pairwords.realmTerritoryPercent', { percent: selectedRealmPlayer.territoryPercent })}</small>
+                                ) : (
+                                    <small>{selectedRealmPlayer.rankId === 'king' || selectedRealmPlayer.rankId === 'emperor'
+                                        ? t('games.pairwords.realmNoTerritoryYet')
+                                        : t('games.pairwords.realmNotInWar')}</small>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     <div className={styles.realmMapHud}>
                         <span>{t('games.pairwords.realmMapHint')}</span>
@@ -1112,10 +1208,10 @@ export default function MatchPairs() {
                         </div>
                     </div>
                     <div className={styles.realmLeaderboard}>
-                        {realmCastles.map((castle, index) => (
-                            <div key={castle.id} className={castle.isCurrent ? styles.currentRealmLeader : ''}>
-                                <span>{index + 1}. {castle.name}</span>
-                                <strong>{castle.score}%</strong>
+                        {realmPlayers.map((player, index) => (
+                            <div key={player.id} className={player.isCurrent ? styles.currentRealmLeader : ''}>
+                                <span>{index + 1}. {player.name}</span>
+                                <strong>{player.territoryPercent !== undefined ? `${player.territoryPercent}%` : '-'}</strong>
                             </div>
                         ))}
                     </div>
