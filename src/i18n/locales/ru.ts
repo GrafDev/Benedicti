@@ -106,6 +106,7 @@ export const ru = {
       realmCells: 'Клетки',
       realmStudents: 'Замки',
       realmMapHint: 'Подведите курсор к краю или перетащите карту',
+      realmYourKingdom: 'Ваше королевство',
       realmPlayKing: 'Играть ранг Короля',
       realmPlaceholder: 'Макет',
       realmStatusCopy: 'Данные завоевания подключим позже',

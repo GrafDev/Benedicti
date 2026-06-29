@@ -108,6 +108,7 @@ export const en: Translations = {
       realmCells: 'Cells',
       realmStudents: 'Castles',
       realmMapHint: 'Move near the edge or drag to pan the realm',
+      realmYourKingdom: 'Your kingdom',
       realmPlayKing: 'Play King level',
       realmPlaceholder: 'Preview',
       realmStatusCopy: 'Conquest data will connect later',

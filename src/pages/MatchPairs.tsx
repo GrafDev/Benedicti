@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
@@ -56,6 +56,9 @@ const REALM_WORLD_WIDTH = 1320;
 const REALM_WORLD_HEIGHT = 920;
 const REALM_EDGE_PAN_ZONE = 76;
 const REALM_EDGE_PAN_SPEED = 13;
+const REALM_MIN_SCALE = 0.48;
+const REALM_MAX_SCALE = 1.65;
+const REALM_FIT_PADDING = 72;
 
 interface Rank {
     id: string;
@@ -74,6 +77,7 @@ interface RealmCell {
     x: number;
     y: number;
     state: 'claimed' | 'frontier' | 'neutral';
+    ownerId?: string;
     player?: RealmPlayer;
 }
 
@@ -127,6 +131,7 @@ export default function MatchPairs() {
     const [answerFlightCards, setAnswerFlightCards] = useState<AnswerFlightCard[]>([]);
     const [useTabletFourColumnLayout, setUseTabletFourColumnLayout] = useState(false);
     const [realmPan, setRealmPan] = useState({ x: -320, y: -220 });
+    const [realmScale, setRealmScale] = useState(0.72);
     const [selectedRealmPlayer, setSelectedRealmPlayer] = useState<RealmPlayer | null>(null);
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
@@ -162,6 +167,16 @@ export default function MatchPairs() {
         startY: number;
         startPan: { x: number; y: number };
     } | null>(null);
+    const realmPointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+    const realmPinchRef = useRef<{
+        distance: number;
+        centerX: number;
+        centerY: number;
+        scale: number;
+        pan: { x: number; y: number };
+    } | null>(null);
+    const realmScaleRef = useRef(0.72);
+    const realmInitialFitKeyRef = useRef<string | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
 
@@ -169,17 +184,30 @@ export default function MatchPairs() {
         return storeWords.filter(word => word.original.trim() && word.translation.trim());
     }, [storeWords]);
 
-    const clampRealmPan = useCallback((nextPan: { x: number; y: number }) => {
+    useEffect(() => {
+        realmScaleRef.current = realmScale;
+    }, [realmScale]);
+
+    const clampRealmScale = useCallback((scale: number) => {
+        return Math.min(REALM_MAX_SCALE, Math.max(REALM_MIN_SCALE, scale));
+    }, []);
+
+    const clampRealmPan = useCallback((nextPan: { x: number; y: number }, scale?: number) => {
         const viewport = realmViewportRef.current;
         if (!viewport) return nextPan;
 
         const rect = viewport.getBoundingClientRect();
-        const minX = Math.min(0, rect.width - REALM_WORLD_WIDTH);
-        const minY = Math.min(0, rect.height - REALM_WORLD_HEIGHT);
+        const activeScale = scale ?? realmScaleRef.current;
+        const scaledWidth = REALM_WORLD_WIDTH * activeScale;
+        const scaledHeight = REALM_WORLD_HEIGHT * activeScale;
+        const minX = Math.min(0, rect.width - scaledWidth);
+        const minY = Math.min(0, rect.height - scaledHeight);
+        const maxX = scaledWidth < rect.width ? (rect.width - scaledWidth) / 2 : 0;
+        const maxY = scaledHeight < rect.height ? (rect.height - scaledHeight) / 2 : 0;
 
         return {
-            x: Math.min(0, Math.max(minX, nextPan.x)),
-            y: Math.min(0, Math.max(minY, nextPan.y))
+            x: Math.min(maxX, Math.max(minX, nextPan.x)),
+            y: Math.min(maxY, Math.max(minY, nextPan.y))
         };
     }, []);
 
@@ -276,12 +304,11 @@ export default function MatchPairs() {
             });
         }
 
-        const cells = coordinates.map(({ q, r }, index) => {
+        const cells = coordinates.map(({ q, r }) => {
             const ring = Math.max(Math.abs(q), Math.abs(r), Math.abs(-q - r));
             const hexSize = 41;
             const x = (REALM_WORLD_WIDTH / 2) + (Math.sqrt(3) * hexSize * (q + r / 2));
             const y = (REALM_WORLD_HEIGHT / 2) + (1.5 * hexSize * r);
-            const state: RealmCell['state'] = index < 18 ? 'claimed' : index < 30 ? 'frontier' : 'neutral';
 
             return {
                 id: `${q}:${r}`,
@@ -290,7 +317,7 @@ export default function MatchPairs() {
                 ring,
                 x,
                 y,
-                state
+                state: 'neutral' as RealmCell['state']
             };
         });
 
@@ -312,11 +339,186 @@ export default function MatchPairs() {
             }
         });
 
+        const cellById = new Map(cells.map(cell => [cell.id, cell]));
+        const assignedCellIds = new Set<string>();
+        const frontierCellIds = new Map<string, string>();
+        const ownerByCellId = new Map<string, string>();
+        const playerCellByPlayerId = new Map<string, RealmCell>();
+        const neighborIds = (cell: RealmCell) => axialDirections
+            .map(direction => `${cell.q + direction.q}:${cell.r + direction.r}`)
+            .filter(cellId => cellById.has(cellId));
+
+        playerByCellId.forEach((player, cellId) => {
+            const cell = cellById.get(cellId);
+            if (cell) {
+                playerCellByPlayerId.set(player.id, cell);
+            }
+        });
+
+        realmPlayers
+            .filter(player => player.territoryPercent !== undefined && (player.rankId === 'king' || player.rankId === 'emperor'))
+            .forEach(player => {
+                const startCell = playerCellByPlayerId.get(player.id);
+                if (!startCell) return;
+
+                const clusterTarget = player.isCurrent
+                    ? 18
+                    : Math.max(7, Math.round((player.territoryPercent || 0) / 4));
+                const queue = [startCell];
+                const visited = new Set<string>([startCell.id]);
+                const cluster: RealmCell[] = [];
+
+                while (queue.length > 0 && cluster.length < clusterTarget) {
+                    const cell = queue.shift();
+                    if (!cell) break;
+
+                    if (!assignedCellIds.has(cell.id) || cell.id === startCell.id) {
+                        cluster.push(cell);
+                        assignedCellIds.add(cell.id);
+                        ownerByCellId.set(cell.id, player.id);
+                    }
+
+                    neighborIds(cell)
+                        .map(cellId => cellById.get(cellId))
+                        .filter((neighbor): neighbor is RealmCell => Boolean(neighbor))
+                        .sort((a, b) => {
+                            const aDistance = Math.abs(a.q - startCell.q) + Math.abs(a.r - startCell.r);
+                            const bDistance = Math.abs(b.q - startCell.q) + Math.abs(b.r - startCell.r);
+                            return aDistance - bDistance || a.r - b.r || a.q - b.q;
+                        })
+                        .forEach(neighbor => {
+                            if (!visited.has(neighbor.id) && !assignedCellIds.has(neighbor.id)) {
+                                visited.add(neighbor.id);
+                                queue.push(neighbor);
+                            }
+                        });
+                }
+
+                cluster.forEach(cell => {
+                    neighborIds(cell).forEach(cellId => {
+                        if (!assignedCellIds.has(cellId) && !frontierCellIds.has(cellId)) {
+                            frontierCellIds.set(cellId, player.id);
+                        }
+                    });
+                });
+            });
+
         return cells.map(cell => ({
             ...cell,
+            state: ownerByCellId.has(cell.id)
+                ? 'claimed'
+                : frontierCellIds.has(cell.id)
+                    ? 'frontier'
+                    : 'neutral',
+            ownerId: ownerByCellId.get(cell.id) || frontierCellIds.get(cell.id),
             player: playerByCellId.get(cell.id)
         }));
     }, [playableWords.length, realmPlayers]);
+
+    const fitRealmBounds = useCallback((bounds: { minX: number; minY: number; maxX: number; maxY: number }) => {
+        const viewport = realmViewportRef.current;
+        if (!viewport) return;
+
+        const rect = viewport.getBoundingClientRect();
+        const boundsWidth = Math.max(1, bounds.maxX - bounds.minX);
+        const boundsHeight = Math.max(1, bounds.maxY - bounds.minY);
+        const nextScale = clampRealmScale(Math.min(
+            (rect.width - REALM_FIT_PADDING) / boundsWidth,
+            (rect.height - REALM_FIT_PADDING) / boundsHeight
+        ));
+        const centerX = (bounds.minX + bounds.maxX) / 2;
+        const centerY = (bounds.minY + bounds.maxY) / 2;
+
+        realmScaleRef.current = nextScale;
+        setRealmScale(nextScale);
+        setRealmPan(clampRealmPan({
+            x: (rect.width / 2) - (centerX * nextScale),
+            y: (rect.height / 2) - (centerY * nextScale)
+        }, nextScale));
+    }, [clampRealmPan, clampRealmScale]);
+
+    const centerCurrentRealmKingdom = useCallback(() => {
+        const currentPlayer = realmPlayers.find(player => player.isCurrent);
+        if (!currentPlayer) return;
+
+        const currentCells = realmCells.filter(cell => cell.ownerId === currentPlayer.id);
+        const fallbackCell = realmCells.find(cell => cell.player?.id === currentPlayer.id);
+        const cellsToFit = currentCells.length > 0
+            ? currentCells
+            : fallbackCell
+                ? [fallbackCell]
+                : [];
+
+        if (cellsToFit.length === 0) return;
+
+        fitRealmBounds({
+            minX: Math.min(...cellsToFit.map(cell => cell.x)) - 70,
+            minY: Math.min(...cellsToFit.map(cell => cell.y)) - 78,
+            maxX: Math.max(...cellsToFit.map(cell => cell.x)) + 70,
+            maxY: Math.max(...cellsToFit.map(cell => cell.y)) + 78
+        });
+    }, [fitRealmBounds, realmCells, realmPlayers]);
+
+    const realmInitialFitKey = useMemo(() => {
+        const currentPlayer = realmPlayers.find(player => player.isCurrent);
+        if (!currentPlayer) return '';
+
+        const currentCells = realmCells.filter(cell => cell.ownerId === currentPlayer.id);
+        const fallbackCell = realmCells.find(cell => cell.player?.id === currentPlayer.id);
+        const cellsToFit = currentCells.length > 0
+            ? currentCells
+            : fallbackCell
+                ? [fallbackCell]
+                : [];
+
+        if (cellsToFit.length === 0) return '';
+
+        const cellKey = cellsToFit
+            .map(cell => cell.id)
+            .sort()
+            .join(',');
+
+        return `${dictId || 'default'}:${playableWords.length}:${currentPlayer.id}:${cellKey}`;
+    }, [dictId, playableWords.length, realmCells, realmPlayers]);
+
+    useEffect(() => {
+        if (!perfectRanks.king || !realmInitialFitKey) {
+            realmInitialFitKeyRef.current = null;
+            return;
+        }
+
+        if (realmInitialFitKeyRef.current === realmInitialFitKey) return;
+        realmInitialFitKeyRef.current = realmInitialFitKey;
+
+        const frame = window.requestAnimationFrame(() => {
+            centerCurrentRealmKingdom();
+        });
+
+        return () => window.cancelAnimationFrame(frame);
+    }, [centerCurrentRealmKingdom, perfectRanks.king, realmInitialFitKey]);
+
+    const zoomRealmAtPoint = useCallback((viewportX: number, viewportY: number, nextScale: number) => {
+        const clampedScale = clampRealmScale(nextScale);
+        const worldX = (viewportX - realmPan.x) / realmScale;
+        const worldY = (viewportY - realmPan.y) / realmScale;
+        const nextPan = {
+            x: viewportX - (worldX * clampedScale),
+            y: viewportY - (worldY * clampedScale)
+        };
+
+        realmScaleRef.current = clampedScale;
+        setRealmScale(clampedScale);
+        setRealmPan(clampRealmPan(nextPan, clampedScale));
+    }, [clampRealmPan, clampRealmScale, realmPan, realmScale]);
+
+    const handleRealmWheel = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        stopRealmEdgePan();
+
+        const rect = event.currentTarget.getBoundingClientRect();
+        const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+        zoomRealmAtPoint(event.clientX - rect.left, event.clientY - rect.top, realmScale * zoomFactor);
+    }, [realmScale, stopRealmEdgePan, zoomRealmAtPoint]);
 
     const handleRealmMouseMove = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
         if (realmDragRef.current) return;
@@ -343,15 +545,61 @@ export default function MatchPairs() {
     const handleRealmPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         event.currentTarget.setPointerCapture(event.pointerId);
         stopRealmEdgePan();
+        realmPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+        if (realmPointersRef.current.size === 2) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const points = Array.from(realmPointersRef.current.values());
+            const [first, second] = points;
+            realmPinchRef.current = {
+                distance: Math.hypot(second.x - first.x, second.y - first.y),
+                centerX: ((first.x + second.x) / 2) - rect.left,
+                centerY: ((first.y + second.y) / 2) - rect.top,
+                scale: realmScale,
+                pan: realmPan
+            };
+            realmDragRef.current = null;
+            return;
+        }
+
         realmDragRef.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
             startPan: realmPan
         };
-    }, [realmPan, stopRealmEdgePan]);
+    }, [realmPan, realmScale, stopRealmEdgePan]);
 
     const handleRealmPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        if (realmPointersRef.current.has(event.pointerId)) {
+            realmPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        }
+
+        if (realmPinchRef.current && realmPointersRef.current.size >= 2) {
+            event.preventDefault();
+            const viewport = realmViewportRef.current;
+            if (!viewport) return;
+
+            const rect = viewport.getBoundingClientRect();
+            const points = Array.from(realmPointersRef.current.values()).slice(0, 2);
+            const [first, second] = points;
+            const distance = Math.max(1, Math.hypot(second.x - first.x, second.y - first.y));
+            const centerX = ((first.x + second.x) / 2) - rect.left;
+            const centerY = ((first.y + second.y) / 2) - rect.top;
+            const pinch = realmPinchRef.current;
+            const nextScale = clampRealmScale(pinch.scale * (distance / pinch.distance));
+            const worldX = (pinch.centerX - pinch.pan.x) / pinch.scale;
+            const worldY = (pinch.centerY - pinch.pan.y) / pinch.scale;
+
+            realmScaleRef.current = nextScale;
+            setRealmScale(nextScale);
+            setRealmPan(clampRealmPan({
+                x: centerX - (worldX * nextScale),
+                y: centerY - (worldY * nextScale)
+            }, nextScale));
+            return;
+        }
+
         const drag = realmDragRef.current;
         if (!drag || drag.pointerId !== event.pointerId) return;
 
@@ -363,6 +611,9 @@ export default function MatchPairs() {
     }, [clampRealmPan]);
 
     const handleRealmPointerEnd = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        realmPointersRef.current.delete(event.pointerId);
+        realmPinchRef.current = null;
+
         if (realmDragRef.current?.pointerId === event.pointerId) {
             realmDragRef.current = null;
         }
@@ -1113,6 +1364,7 @@ export default function MatchPairs() {
                         className={styles.realmViewport}
                         onMouseMove={handleRealmMouseMove}
                         onMouseLeave={stopRealmEdgePan}
+                        onWheel={handleRealmWheel}
                         onPointerDown={handleRealmPointerDown}
                         onPointerMove={handleRealmPointerMove}
                         onPointerUp={handleRealmPointerEnd}
@@ -1123,7 +1375,7 @@ export default function MatchPairs() {
                             style={{
                                 width: REALM_WORLD_WIDTH,
                                 height: REALM_WORLD_HEIGHT,
-                                transform: `translate3d(${realmPan.x}px, ${realmPan.y}px, 0)`
+                                transform: `translate3d(${realmPan.x}px, ${realmPan.y}px, 0) scale(${realmScale})`
                             }}
                         >
                             <div className={styles.realmWorldBackdrop} />
@@ -1182,7 +1434,14 @@ export default function MatchPairs() {
                     )}
 
                     <div className={styles.realmMapHud}>
-                        <span>{t('games.pairwords.realmMapHint')}</span>
+                        <button
+                            type="button"
+                            className={styles.realmCenterButton}
+                            onClick={centerCurrentRealmKingdom}
+                        >
+                            <Target size={18} />
+                            {t('games.pairwords.realmYourKingdom')}
+                        </button>
                         <button
                             type="button"
                             className={styles.realmActionButton}

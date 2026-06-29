@@ -1179,17 +1179,7 @@
     pointer-events: none;
 }
 
-.realmMapHud span {
-    max-width: 310px;
-    padding: 0.6rem 0.75rem;
-    color: #cbd5e1;
-    background: rgba(8, 13, 24, 0.76);
-    border: 1px solid rgba(148, 163, 184, 0.14);
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 700;
-}
-
+.realmCenterButton,
 .realmActionButton {
     pointer-events: auto;
     display: inline-flex;
@@ -1208,6 +1198,19 @@
     font-weight: 900;
     text-transform: uppercase;
     white-space: nowrap;
+}
+
+.realmCenterButton {
+    color: #e2e8f0;
+    background: rgba(8, 13, 24, 0.78);
+    border-color: rgba(94, 234, 212, 0.26);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
+}
+
+.realmCenterButton:hover {
+    color: #f8fafc;
+    border-color: rgba(94, 234, 212, 0.44);
+    background: rgba(15, 23, 42, 0.86);
 }
 
 .realmActionButton:disabled {
@@ -1868,11 +1871,12 @@
         align-items: stretch;
         flex-direction: column;
     }
-    .realmMapHud span,
+    .realmCenterButton,
     .realmActionButton {
         width: 100%;
         max-width: none;
     }
+    .realmCenterButton,
     .realmActionButton {
         min-height: 46px;
     }
