@@ -74,8 +74,7 @@ interface RealmCell {
     ring: number;
     x: number;
     y: number;
-    state: 'claimed' | 'frontier' | 'neutral';
-    ownerId?: string;
+    state: 'neutral';
     player?: RealmPlayer;
 }
 
@@ -87,7 +86,6 @@ interface RealmPlayer {
     badgeSrc: string;
     score: number;
     isCurrent: boolean;
-    territoryPercent?: number;
 }
 
 export default function MatchPairs() {
@@ -224,9 +222,9 @@ export default function MatchPairs() {
     const realmPlayers = useMemo<RealmPlayer[]>(() => {
         const rankById = new Map(RANKS.map(rank => [rank.id, rank]));
         const playerSeeds = [
-            { id: 'player-current', name: 'North Keep', rankId: 'king', score: 28, isCurrent: true, territoryPercent: 28 },
+            { id: 'player-current', name: 'North Keep', rankId: 'king', score: 0, isCurrent: true },
             { id: 'player-amber', name: 'Amber Gate', rankId: 'duke', score: 0, isCurrent: false },
-            { id: 'player-moon', name: 'Moon Tower', rankId: 'emperor', score: 54, isCurrent: false, territoryPercent: 54 },
+            { id: 'player-moon', name: 'Moon Tower', rankId: 'emperor', score: 0, isCurrent: false },
             { id: 'player-east', name: 'Eastwatch', rankId: 'king', score: 0, isCurrent: false },
             { id: 'player-river', name: 'River Hold', rankId: 'baron', score: 0, isCurrent: false },
             { id: 'player-sun', name: 'Sunspire', rankId: 'knight', score: 0, isCurrent: false }
@@ -290,7 +288,7 @@ export default function MatchPairs() {
                 ring,
                 x,
                 y,
-                state: 'neutral' as RealmCell['state']
+                state: 'neutral' as const
             };
         });
 
@@ -312,78 +310,8 @@ export default function MatchPairs() {
             }
         });
 
-        const cellById = new Map(cells.map(cell => [cell.id, cell]));
-        const assignedCellIds = new Set<string>();
-        const frontierCellIds = new Map<string, string>();
-        const ownerByCellId = new Map<string, string>();
-        const playerCellByPlayerId = new Map<string, RealmCell>();
-        const neighborIds = (cell: RealmCell) => axialDirections
-            .map(direction => `${cell.q + direction.q}:${cell.r + direction.r}`)
-            .filter(cellId => cellById.has(cellId));
-
-        playerByCellId.forEach((player, cellId) => {
-            const cell = cellById.get(cellId);
-            if (cell) {
-                playerCellByPlayerId.set(player.id, cell);
-            }
-        });
-
-        realmPlayers
-            .filter(player => player.territoryPercent !== undefined && (player.rankId === 'king' || player.rankId === 'emperor'))
-            .forEach(player => {
-                const startCell = playerCellByPlayerId.get(player.id);
-                if (!startCell) return;
-
-                const clusterTarget = player.isCurrent
-                    ? 18
-                    : Math.max(7, Math.round((player.territoryPercent || 0) / 4));
-                const queue = [startCell];
-                const visited = new Set<string>([startCell.id]);
-                const cluster: RealmCell[] = [];
-
-                while (queue.length > 0 && cluster.length < clusterTarget) {
-                    const cell = queue.shift();
-                    if (!cell) break;
-
-                    if (!assignedCellIds.has(cell.id) || cell.id === startCell.id) {
-                        cluster.push(cell);
-                        assignedCellIds.add(cell.id);
-                        ownerByCellId.set(cell.id, player.id);
-                    }
-
-                    neighborIds(cell)
-                        .map(cellId => cellById.get(cellId))
-                        .filter((neighbor): neighbor is RealmCell => Boolean(neighbor))
-                        .sort((a, b) => {
-                            const aDistance = Math.abs(a.q - startCell.q) + Math.abs(a.r - startCell.r);
-                            const bDistance = Math.abs(b.q - startCell.q) + Math.abs(b.r - startCell.r);
-                            return aDistance - bDistance || a.r - b.r || a.q - b.q;
-                        })
-                        .forEach(neighbor => {
-                            if (!visited.has(neighbor.id) && !assignedCellIds.has(neighbor.id)) {
-                                visited.add(neighbor.id);
-                                queue.push(neighbor);
-                            }
-                        });
-                }
-
-                cluster.forEach(cell => {
-                    neighborIds(cell).forEach(cellId => {
-                        if (!assignedCellIds.has(cellId) && !frontierCellIds.has(cellId)) {
-                            frontierCellIds.set(cellId, player.id);
-                        }
-                    });
-                });
-            });
-
         return cells.map(cell => ({
             ...cell,
-            state: ownerByCellId.has(cell.id)
-                ? 'claimed'
-                : frontierCellIds.has(cell.id)
-                    ? 'frontier'
-                    : 'neutral',
-            ownerId: ownerByCellId.get(cell.id) || frontierCellIds.get(cell.id),
             player: playerByCellId.get(cell.id)
         }));
     }, [playableWords.length, realmPlayers]);
@@ -414,13 +342,8 @@ export default function MatchPairs() {
         const currentPlayer = realmPlayers.find(player => player.isCurrent);
         if (!currentPlayer) return;
 
-        const currentCells = realmCells.filter(cell => cell.ownerId === currentPlayer.id);
         const fallbackCell = realmCells.find(cell => cell.player?.id === currentPlayer.id);
-        const cellsToFit = currentCells.length > 0
-            ? currentCells
-            : fallbackCell
-                ? [fallbackCell]
-                : [];
+        const cellsToFit = fallbackCell ? [fallbackCell] : [];
 
         if (cellsToFit.length === 0) return;
 
@@ -436,13 +359,8 @@ export default function MatchPairs() {
         const currentPlayer = realmPlayers.find(player => player.isCurrent);
         if (!currentPlayer) return '';
 
-        const currentCells = realmCells.filter(cell => cell.ownerId === currentPlayer.id);
         const fallbackCell = realmCells.find(cell => cell.player?.id === currentPlayer.id);
-        const cellsToFit = currentCells.length > 0
-            ? currentCells
-            : fallbackCell
-                ? [fallbackCell]
-                : [];
+        const cellsToFit = fallbackCell ? [fallbackCell] : [];
 
         if (cellsToFit.length === 0) return '';
 
@@ -1302,7 +1220,7 @@ export default function MatchPairs() {
                     <div className={styles.realmStatList}>
                         <div>
                             <span>{t('games.pairwords.realmCells')}</span>
-                            <strong>18 / {realmCells.length}</strong>
+                            <strong>- / {realmCells.length}</strong>
                         </div>
                         <div>
                             <span>{t('games.pairwords.realmStudents')}</span>
@@ -1373,13 +1291,9 @@ export default function MatchPairs() {
                             <div>
                                 <span>{selectedRealmPlayer.name}</span>
                                 <strong>{selectedRealmPlayer.rankName}</strong>
-                                {selectedRealmPlayer.territoryPercent !== undefined ? (
-                                    <small>{t('games.pairwords.realmTerritoryPercent', { percent: selectedRealmPlayer.territoryPercent })}</small>
-                                ) : (
-                                    <small>{selectedRealmPlayer.rankId === 'king' || selectedRealmPlayer.rankId === 'emperor'
-                                        ? t('games.pairwords.realmNoTerritoryYet')
-                                        : t('games.pairwords.realmNotInWar')}</small>
-                                )}
+                                <small>{selectedRealmPlayer.rankId === 'king' || selectedRealmPlayer.rankId === 'emperor'
+                                    ? t('games.pairwords.realmNoTerritoryYet')
+                                    : t('games.pairwords.realmNotInWar')}</small>
                             </div>
                         </div>
                     )}
@@ -1421,7 +1335,7 @@ export default function MatchPairs() {
                         {realmPlayers.map((player, index) => (
                             <div key={player.id} className={player.isCurrent ? styles.currentRealmLeader : ''}>
                                 <span>{index + 1}. {player.name}</span>
-                                <strong>{player.territoryPercent !== undefined ? `${player.territoryPercent}%` : '-'}</strong>
+                                <strong>-</strong>
                             </div>
                         ))}
                     </div>

@@ -20,7 +20,7 @@
 }
 
 .realmContainer {
-    height: calc(100dvh - 4.5rem);
+    height: 100dvh;
     min-height: 0;
     overflow: hidden;
 }
@@ -1093,16 +1093,6 @@
     cursor: default;
 }
 
-.realmHexClaimed {
-    background: linear-gradient(180deg, rgba(20, 184, 166, 0.54), rgba(15, 118, 110, 0.62));
-    border-color: rgba(94, 234, 212, 0.3);
-}
-
-.realmHexFrontier {
-    background: linear-gradient(180deg, rgba(245, 158, 11, 0.42), rgba(146, 64, 14, 0.52));
-    border-color: rgba(253, 230, 138, 0.34);
-}
-
 .realmHexNeutral {
     background: linear-gradient(180deg, rgba(51, 65, 85, 0.72), rgba(30, 41, 59, 0.68));
 }
@@ -1733,7 +1723,7 @@
 
     .realmContainer {
         height: auto;
-        min-height: calc(100dvh - 4.5rem);
+        min-height: 100dvh;
         overflow-y: auto;
     }
 
