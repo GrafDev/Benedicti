@@ -79,23 +79,51 @@ const hashString = (value: string) => {
     return Math.abs(hash);
 };
 
-const chooseStableHomeCellId = (
-    edgeCells: Array<{ id: string }>,
-    playerId: string,
-    usedHomeCellIds: Set<string>
+const chooseEvenHomeCellId = (
+    edgeCells: RealmCell[],
+    usedHomeCellIds: Set<string>,
+    participantIndex: number,
+    participantCount: number,
+    preferredHomeCellId?: string
 ) => {
     if (edgeCells.length === 0) return '';
 
-    const startIndex = hashString(playerId) % edgeCells.length;
-    for (let offset = 0; offset < edgeCells.length; offset += 1) {
-        const candidate = edgeCells[(startIndex + offset) % edgeCells.length];
-        if (!usedHomeCellIds.has(candidate.id)) {
-            usedHomeCellIds.add(candidate.id);
-            return candidate.id;
+    const validEdgeIds = new Set(edgeCells.map(cell => cell.id));
+    if (preferredHomeCellId && validEdgeIds.has(preferredHomeCellId) && !usedHomeCellIds.has(preferredHomeCellId)) {
+        usedHomeCellIds.add(preferredHomeCellId);
+        return preferredHomeCellId;
+    }
+
+    const targetIndex = Math.floor((participantIndex * edgeCells.length) / Math.max(1, participantCount));
+    const idealGap = Math.max(1, Math.floor(edgeCells.length / Math.max(1, participantCount + 1)));
+
+    for (let gap = idealGap; gap >= 1; gap -= 1) {
+        for (let offset = 0; offset < edgeCells.length; offset += 1) {
+            const direction = offset % 2 === 0 ? 1 : -1;
+            const steps = Math.ceil(offset / 2);
+            const candidateIndex = (targetIndex + (direction * steps) + edgeCells.length) % edgeCells.length;
+            const candidate = edgeCells[candidateIndex];
+            if (usedHomeCellIds.has(candidate.id)) continue;
+
+            const candidateIndexById = new Map(edgeCells.map((cell, index) => [cell.id, index]));
+            const hasEnoughGap = Array.from(usedHomeCellIds).every(usedId => {
+                const usedIndex = candidateIndexById.get(usedId);
+                if (usedIndex === undefined) return true;
+                const distance = Math.abs(candidateIndex - usedIndex);
+                const circularDistance = Math.min(distance, edgeCells.length - distance);
+                return circularDistance >= gap;
+            });
+
+            if (hasEnoughGap) {
+                usedHomeCellIds.add(candidate.id);
+                return candidate.id;
+            }
         }
     }
 
-    return edgeCells[startIndex].id;
+    const fallback = edgeCells.find(cell => !usedHomeCellIds.has(cell.id)) || edgeCells[hashString(`${participantIndex}`) % edgeCells.length];
+    usedHomeCellIds.add(fallback.id);
+    return fallback.id;
 };
 
 const getHexDistance = (
@@ -150,9 +178,16 @@ interface RealmPlayerRecord {
     updatedAt: number;
 }
 
+interface RealmParticipant {
+    id: string;
+    name: string;
+    rankId: string;
+}
+
 interface RealmConquestState {
     players: Record<string, RealmPlayerRecord>;
     cells: Record<string, string>;
+    reviewConquestStarted?: boolean;
 }
 
 export default function MatchPairs() {
@@ -197,6 +232,8 @@ export default function MatchPairs() {
     const [realmScale, setRealmScale] = useState(0.72);
     const [selectedRealmPlayer, setSelectedRealmPlayer] = useState<RealmPlayer | null>(null);
     const [realmState, setRealmState] = useState<RealmConquestState>({ players: {}, cells: {} });
+    const [realmStateLoadKey, setRealmStateLoadKey] = useState<string | null>(null);
+    const [realmParticipants, setRealmParticipants] = useState<RealmParticipant[]>([]);
     const [isConquestMode, setIsConquestMode] = useState(false);
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
@@ -293,6 +330,15 @@ export default function MatchPairs() {
 
         return `owner_${sanitizeRealmKeyPart(ownerId)}_dict_${sanitizeRealmKeyPart(activeDictId)}`;
     }, [currentDictionary, currentUser, dictId]);
+    const realmDebugStorageKey = useMemo(() => {
+        const reviewFreshKey = searchParams.get('reviewFresh');
+        return `${REALM_LOCAL_STORAGE_PREFIX}${realmKey}${reviewFreshKey ? `_review_${sanitizeRealmKeyPart(reviewFreshKey)}_home_seed_v2` : ''}`;
+    }, [realmKey, searchParams]);
+    const isFreshReviewDebugRealm = isTemporaryAdminRealmKing && !currentUser && Boolean(searchParams.get('reviewFresh'));
+    const realmStateKey = currentUser
+        ? `firebase:${realmKey}`
+        : `local:${realmDebugStorageKey}`;
+    const isRealmStateReady = realmStateLoadKey === realmStateKey;
 
     const currentRealmPlayerId = currentUser?.uid || REALM_DEBUG_PLAYER_ID;
     const currentRealmPlayerName = currentUser?.displayName
@@ -300,9 +346,122 @@ export default function MatchPairs() {
         || currentUser?.email?.split('@')[0]
         || (language === 'ru' ? 'Гость' : 'Guest');
 
+    const resolveRealmDisplayName = useCallback(async (uid: string) => {
+        if (uid === currentUser?.uid) {
+            return currentUser.displayName
+                || userProfile?.displayName
+                || currentUser.email?.split('@')[0]
+                || `Player ${uid.slice(0, 6)}`;
+        }
+
+        try {
+            const [profileSnapshot, beneIdSnapshot] = await Promise.all([
+                dbGet(ref(db, `users/${uid}/profile`)),
+                dbGet(ref(db, `shared/uid_to_beneid/${uid}`))
+            ]);
+            const profile = profileSnapshot.exists() ? profileSnapshot.val() as { displayName?: string } : null;
+            const beneId = beneIdSnapshot.exists() ? beneIdSnapshot.val() as string : '';
+            return profile?.displayName || beneId || `Player ${uid.slice(0, 6)}`;
+        } catch (error) {
+            console.warn('Failed to resolve realm participant name:', error);
+            return `Player ${uid.slice(0, 6)}`;
+        }
+    }, [currentUser, userProfile]);
+
     useEffect(() => {
         realmScaleRef.current = realmScale;
     }, [realmScale]);
+
+    useEffect(() => {
+        let isActive = true;
+
+        const loadRealmParticipants = async () => {
+            if (!realmKey || !isRealmStateReady) {
+                setRealmParticipants([]);
+                return;
+            }
+
+            const existingPlayerIds = Object.keys(realmState.players)
+                .filter(uid => currentUser || uid === REALM_DEBUG_PLAYER_ID || !uid.startsWith('demo-'));
+
+            if (!currentUser) {
+                if (!isTemporaryAdminRealmKing) {
+                    setRealmParticipants([]);
+                    return;
+                }
+
+                const debugIds = Array.from(new Set([currentRealmPlayerId, ...existingPlayerIds]));
+                const debugParticipants = debugIds.map(uid => ({
+                    id: uid,
+                    name: realmState.players[uid]?.name || currentRealmPlayerName,
+                    rankId: realmState.players[uid]?.rankId || 'king'
+                }));
+                if (isActive) setRealmParticipants(debugParticipants);
+                return;
+            }
+
+            const activeDictId = dictId || 'default';
+            const participantIds = new Set<string>([currentUser.uid, ...existingPlayerIds]);
+
+            try {
+                const ownerUid = currentDictionary && !currentDictionary.isShared && activeDictId !== 'default'
+                    ? currentDictionary.userId
+                    : '';
+
+                if (ownerUid) {
+                    participantIds.add(ownerUid);
+                    const studentsSnapshot = await dbGet(ref(db, `shared/relations/teacher_students/${ownerUid}`));
+                    if (studentsSnapshot.exists()) {
+                        Object.keys(studentsSnapshot.val() || {}).forEach(uid => participantIds.add(uid));
+                    }
+                }
+
+                const participants = await Promise.all(
+                    Array.from(participantIds)
+                        .filter(uid => uid && !uid.startsWith('demo-'))
+                        .sort((a, b) => {
+                            if (a === currentUser.uid) return -1;
+                            if (b === currentUser.uid) return 1;
+                            return a.localeCompare(b);
+                        })
+                        .map(async uid => ({
+                            id: uid,
+                            name: await resolveRealmDisplayName(uid),
+                            rankId: realmState.players[uid]?.rankId || 'king'
+                        }))
+                );
+
+                if (isActive) {
+                    setRealmParticipants(participants);
+                }
+            } catch (error) {
+                console.warn('Failed to load Match Pairs realm participants:', error);
+                const fallbackParticipant = {
+                    id: currentUser.uid,
+                    name: currentRealmPlayerName,
+                    rankId: realmState.players[currentUser.uid]?.rankId || 'king'
+                };
+                if (isActive) setRealmParticipants([fallbackParticipant]);
+            }
+        };
+
+        loadRealmParticipants();
+
+        return () => {
+            isActive = false;
+        };
+    }, [
+        currentDictionary,
+        currentRealmPlayerId,
+        currentRealmPlayerName,
+        currentUser,
+        dictId,
+        isRealmStateReady,
+        isTemporaryAdminRealmKing,
+        realmKey,
+        realmState.players,
+        resolveRealmDisplayName
+    ]);
 
     const clampRealmScale = useCallback((scale: number) => {
         return Math.min(REALM_MAX_SCALE, Math.max(REALM_MIN_SCALE, scale));
@@ -397,60 +556,51 @@ export default function MatchPairs() {
             territoryCounts.set(ownerId, (territoryCounts.get(ownerId) || 0) + 1);
         });
 
-        const ensureHomeCellId = (playerId: string, preferredHomeCellId?: string) => {
-            if (preferredHomeCellId && !usedHomeCellIds.has(preferredHomeCellId)) {
-                usedHomeCellIds.add(preferredHomeCellId);
-                return preferredHomeCellId;
-            }
+        const participants = realmParticipants.length > 0
+            ? realmParticipants
+            : [{
+                id: currentRealmPlayerId,
+                name: currentRealmPlayerName,
+                rankId: 'king'
+            }];
 
-            return chooseStableHomeCellId(realmEdgeCells, playerId, usedHomeCellIds);
-        };
-
-        const currentRecord = realmState.players[currentRealmPlayerId];
-        const currentPlayerRecord: RealmPlayerRecord = {
-            id: currentRealmPlayerId,
-            name: currentRealmPlayerName,
-            rankId: 'king',
-            homeCellId: currentRecord?.homeCellId || '',
-            updatedAt: currentRecord?.updatedAt || Date.now()
-        };
-
-        const persistedRecords = Object.values(realmState.players)
-            .filter(player => player.id !== currentRealmPlayerId)
-            .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
-
-        const demoRecords: Array<RealmPlayerRecord & { isDemo: true }> = [
-            { id: 'demo-amber', name: 'Amber Gate', rankId: 'duke', homeCellId: '', updatedAt: 0, isDemo: true },
-            { id: 'demo-moon', name: 'Moon Tower', rankId: 'count', homeCellId: '', updatedAt: 0, isDemo: true },
-            { id: 'demo-east', name: 'Eastwatch', rankId: 'king', homeCellId: '', updatedAt: 0, isDemo: true },
-            { id: 'demo-river', name: 'River Hold', rankId: 'baron', homeCellId: '', updatedAt: 0, isDemo: true },
-            { id: 'demo-sun', name: 'Sunspire', rankId: 'knight', homeCellId: '', updatedAt: 0, isDemo: true }
-        ];
-
-        const records = [currentPlayerRecord, ...persistedRecords, ...demoRecords];
-
-        return records.map(record => {
-            const rank = rankById.get(record.rankId) || kingRank;
-            const territoryCells = territoryCounts.get(record.id) || 0;
+        return participants.map((participant, index) => {
+            const existingRecord = realmState.players[participant.id];
+            const rank = rankById.get(existingRecord?.rankId || participant.rankId) || kingRank;
+            const homeCellId = chooseEvenHomeCellId(
+                realmEdgeCells,
+                usedHomeCellIds,
+                index,
+                participants.length,
+                existingRecord?.homeCellId
+            );
+            const territoryCells = territoryCounts.get(participant.id) || 0;
             const territoryPercent = baseRealmCells.length > 0
                 ? Math.round((territoryCells / baseRealmCells.length) * 100)
                 : 0;
 
             return {
-                id: record.id,
-                name: record.name,
+                id: participant.id,
+                name: participant.name,
                 rankId: rank.id,
                 rankName: rank.name,
                 badgeSrc: rank.badgeSrc,
                 score: territoryCells,
-                isCurrent: record.id === currentRealmPlayerId,
-                homeCellId: ensureHomeCellId(record.id, record.homeCellId),
+                isCurrent: participant.id === currentRealmPlayerId,
+                homeCellId,
                 territoryCells,
-                territoryPercent,
-                isDemo: ('isDemo' in record && record.isDemo === true)
+                territoryPercent
             };
         });
-    }, [RANKS, baseRealmCells.length, currentRealmPlayerId, currentRealmPlayerName, realmEdgeCells, realmState]);
+    }, [
+        RANKS,
+        baseRealmCells.length,
+        currentRealmPlayerId,
+        currentRealmPlayerName,
+        realmEdgeCells,
+        realmParticipants,
+        realmState
+    ]);
 
     const currentRealmPlayer = useMemo(() => {
         return realmPlayers.find(player => player.isCurrent) || null;
@@ -478,11 +628,12 @@ export default function MatchPairs() {
 
     useEffect(() => {
         let isActive = true;
-        const localStorageKey = `${REALM_LOCAL_STORAGE_PREFIX}${realmKey}`;
 
         const loadRealmState = async () => {
+            setRealmStateLoadKey(null);
+            setRealmState({ players: {}, cells: {} });
+
             if (!realmKey) {
-                setRealmState({ players: {}, cells: {} });
                 return;
             }
 
@@ -493,15 +644,17 @@ export default function MatchPairs() {
                 }
 
                 try {
-                    const savedState = localStorage.getItem(localStorageKey);
+                    const savedState = localStorage.getItem(realmDebugStorageKey);
                     if (!isActive) return;
                     setRealmState(savedState
                         ? JSON.parse(savedState) as RealmConquestState
                         : { players: {}, cells: {} });
+                    setRealmStateLoadKey(realmStateKey);
                 } catch (error) {
                     console.warn('Failed to load local Match Pairs realm state:', error);
                     if (isActive) {
                         setRealmState({ players: {}, cells: {} });
+                        setRealmStateLoadKey(realmStateKey);
                     }
                 }
                 return;
@@ -516,10 +669,12 @@ export default function MatchPairs() {
                         cells: snapshot.val()?.cells || {}
                     }
                     : { players: {}, cells: {} });
+                setRealmStateLoadKey(realmStateKey);
             } catch (error) {
                 console.warn('Failed to load Match Pairs realm state:', error);
                 if (isActive) {
                     setRealmState({ players: {}, cells: {} });
+                    setRealmStateLoadKey(realmStateKey);
                 }
             }
         };
@@ -529,7 +684,7 @@ export default function MatchPairs() {
         return () => {
             isActive = false;
         };
-    }, [currentUser, isTemporaryAdminRealmKing, realmKey]);
+    }, [currentUser, isTemporaryAdminRealmKing, realmDebugStorageKey, realmKey, realmStateKey]);
 
     const persistRealmState = useCallback((nextState: RealmConquestState, changedCellIds: string[]) => {
         if (!realmKey) return;
@@ -537,15 +692,16 @@ export default function MatchPairs() {
         setRealmState(nextState);
 
         if (currentUser) {
-            const currentPlayerRecord = nextState.players[currentRealmPlayerId];
             const writes: Array<Promise<void>> = [];
 
-            if (currentPlayerRecord) {
+            Object.values(nextState.players)
+                .filter(playerRecord => !playerRecord.id.startsWith('demo-'))
+                .forEach(playerRecord => {
                 writes.push(dbSet(
-                    ref(db, `matchPairsRealms/${realmKey}/players/${currentRealmPlayerId}`),
-                    currentPlayerRecord
+                    ref(db, `matchPairsRealms/${realmKey}/players/${playerRecord.id}`),
+                    playerRecord
                 ));
-            }
+            });
 
             changedCellIds.forEach(cellId => {
                 writes.push(dbSet(
@@ -562,45 +718,69 @@ export default function MatchPairs() {
 
         if (isTemporaryAdminRealmKing) {
             localStorage.setItem(
-                `${REALM_LOCAL_STORAGE_PREFIX}${realmKey}`,
+                realmDebugStorageKey,
                 JSON.stringify(nextState)
             );
         }
-    }, [currentRealmPlayerId, currentUser, isTemporaryAdminRealmKing, realmKey]);
+    }, [currentUser, isTemporaryAdminRealmKing, realmDebugStorageKey, realmKey]);
 
     useEffect(() => {
-        if (!realmKey || !currentRealmPlayer?.homeCellId) return;
+        if (!realmKey || !isRealmStateReady || realmPlayers.length === 0) return;
 
-        const nextPlayerRecord: RealmPlayerRecord = {
-            id: currentRealmPlayerId,
-            name: currentRealmPlayerName,
-            rankId: 'king',
-            homeCellId: currentRealmPlayer.homeCellId,
-            updatedAt: Date.now()
-        };
+        const nextPlayers = { ...realmState.players };
+        const shouldKeepOnlyHomes = isFreshReviewDebugRealm && !realmState.reviewConquestStarted;
+        const nextCells = shouldKeepOnlyHomes ? {} : { ...realmState.cells };
+        const changedCellIds: string[] = [];
+        let didChange = false;
 
-        const existingRecord = realmState.players[currentRealmPlayerId];
-        if (
-            existingRecord?.name === nextPlayerRecord.name &&
-            existingRecord?.rankId === nextPlayerRecord.rankId &&
-            existingRecord?.homeCellId === nextPlayerRecord.homeCellId
-        ) {
-            return;
+        if (shouldKeepOnlyHomes && Object.keys(realmState.cells).length > 0) {
+            didChange = true;
         }
 
-        persistRealmState({
-            ...realmState,
-            players: {
-                ...realmState.players,
-                [currentRealmPlayerId]: nextPlayerRecord
+        realmPlayers.forEach(player => {
+            if (!player.homeCellId) return;
+
+            const existingRecord = realmState.players[player.id];
+            const nextPlayerRecord: RealmPlayerRecord = {
+                id: player.id,
+                name: player.name,
+                rankId: player.rankId,
+                homeCellId: player.homeCellId,
+                updatedAt: existingRecord?.updatedAt || Date.now()
+            };
+
+            if (
+                existingRecord?.name !== nextPlayerRecord.name ||
+                existingRecord?.rankId !== nextPlayerRecord.rankId ||
+                existingRecord?.homeCellId !== nextPlayerRecord.homeCellId
+            ) {
+                nextPlayers[player.id] = {
+                    ...nextPlayerRecord,
+                    updatedAt: Date.now()
+                };
+                didChange = true;
             }
-        }, []);
+
+            if (nextCells[player.homeCellId] !== player.id) {
+                nextCells[player.homeCellId] = player.id;
+                changedCellIds.push(player.homeCellId);
+                didChange = true;
+            }
+        });
+
+        if (!didChange) return;
+
+        persistRealmState({
+            players: nextPlayers,
+            cells: nextCells,
+            reviewConquestStarted: realmState.reviewConquestStarted
+        }, changedCellIds);
     }, [
-        currentRealmPlayer?.homeCellId,
-        currentRealmPlayerId,
-        currentRealmPlayerName,
         persistRealmState,
+        isRealmStateReady,
+        isFreshReviewDebugRealm,
         realmKey,
+        realmPlayers,
         realmState
     ]);
 
@@ -688,6 +868,7 @@ export default function MatchPairs() {
         const ownedCells = realmCells.filter(cell => cell.ownerId === currentRealmPlayer.id);
         const sourceCells = ownedCells.length > 0 ? ownedCells : [homeCell];
         const sourceIds = new Set(sourceCells.map(cell => cell.id));
+        const homeCellIds = new Set(realmPlayers.map(player => player.homeCellId).filter(Boolean));
 
         const getAdjacentCandidates = (allowOwnedByOtherPlayers: boolean) => {
             const candidates = new Map<string, RealmCell>();
@@ -696,6 +877,7 @@ export default function MatchPairs() {
                 REALM_AXIAL_DIRECTIONS.forEach(direction => {
                     const candidate = cellById.get(`${sourceCell.q + direction.q}:${sourceCell.r + direction.r}`);
                     if (!candidate || sourceIds.has(candidate.id)) return;
+                    if (homeCellIds.has(candidate.id)) return;
 
                     if (!allowOwnedByOtherPlayers && candidate.ownerId) return;
                     if (allowOwnedByOtherPlayers && (!candidate.ownerId || candidate.ownerId === currentRealmPlayer.id)) return;
@@ -728,12 +910,13 @@ export default function MatchPairs() {
             cells: {
                 ...realmState.cells,
                 [captureTarget.id]: currentRealmPlayer.id
-            }
+            },
+            reviewConquestStarted: isFreshReviewDebugRealm ? true : realmState.reviewConquestStarted
         };
 
         persistRealmState(nextState, [captureTarget.id]);
         return true;
-    }, [currentRealmPlayer, persistRealmState, realmCells, realmKey, realmState]);
+    }, [currentRealmPlayer, persistRealmState, realmCells, realmKey, realmPlayers, realmState]);
 
     const applyRealmShrink = useCallback(() => {
         if (!realmKey || !currentRealmPlayer) return false;
@@ -743,7 +926,7 @@ export default function MatchPairs() {
         if (!homeCell) return false;
 
         const ownedCells = realmCells
-            .filter(cell => cell.ownerId === currentRealmPlayer.id)
+            .filter(cell => cell.ownerId === currentRealmPlayer.id && cell.id !== currentRealmPlayer.homeCellId)
             .sort((a, b) => (
                 getHexDistance(b, homeCell) - getHexDistance(a, homeCell)
                 || b.ring - a.ring
@@ -1703,9 +1886,8 @@ export default function MatchPairs() {
                             <div>
                                 <span>{selectedRealmPlayer.name}</span>
                                 <strong>{selectedRealmPlayer.rankName}</strong>
-                                <small>{selectedRealmPlayer.territoryCells > 0
-                                    ? t('games.pairwords.realmTerritoryPercent', { percent: selectedRealmPlayer.territoryPercent })
-                                    : t('games.pairwords.realmNoTerritoryYet')}</small>
+                                <small>{t('games.pairwords.realmCastleName')}</small>
+                                <small>{selectedRealmPlayer.territoryCells} / {realmCells.length} · {t('games.pairwords.realmTerritoryPercent', { percent: selectedRealmPlayer.territoryPercent })}</small>
                             </div>
                         </div>
                     )}
