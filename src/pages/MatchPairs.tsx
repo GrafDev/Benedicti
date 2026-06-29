@@ -1651,8 +1651,10 @@ export default function MatchPairs() {
 
 
 
+    const isRealmSetup = phase === 'SETUP' && perfectRanks.king === true;
+
     return (
-        <div className={`${styles.container} ${phase === 'PLAY' ? styles.gameplayContainer : ''}`}>
+        <div className={`${styles.container} ${phase === 'PLAY' ? styles.gameplayContainer : ''} ${isRealmSetup ? styles.realmContainer : ''}`}>
             {isInitialLoading && (
                 <button onClick={() => navigate('/games')} className={styles.floatingBackButton} title={t('common.back')}>
                     <ArrowLeft size={24} />
