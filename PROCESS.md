@@ -56,6 +56,11 @@ If an AI sees a task whose role prefix does not match its role, it must not take
 - Keep one task focused on one outcome.
 - Use follow-up tasks for useful work outside the current scope.
 - Review changed files and the Builder Report or Artist Report before accepting.
+- For UI/layout tasks, Lead Review must include a local visual check before deployment:
+  - run the app locally with Vite or preview,
+  - open the affected screen,
+  - verify the exact viewport/state changed by the task,
+  - do not deploy UI changes based only on build/static checks unless browser access is genuinely blocked and that risk is explicitly reported to the user.
 - If accepted, add `Lead Review` and move the task to `tasks/done`.
 - If changes are needed, add `Lead Review` with required fixes and move the task back to `tasks/todo`.
 - Decide whether accepted work should be committed now, batched, or left uncommitted.

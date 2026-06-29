@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
 import { useAuth } from '../contexts/AuthContext';
@@ -92,6 +92,7 @@ interface RealmPlayer {
 
 export default function MatchPairs() {
     const { dictId } = useParams<{ dictId: string }>();
+    const [searchParams] = useSearchParams();
     const { currentUser } = useAuth();
     const navigate = useNavigate();
     const { language, t } = useLanguage();
@@ -175,6 +176,19 @@ export default function MatchPairs() {
     const realmInitialFitKeyRef = useRef<string | null>(null);
 
     const [perfectRanks, setPerfectRanks] = useState<Record<string, boolean>>({});
+    const isTemporaryAdminRealmKing = searchParams.get('adminRealm') === 'king';
+
+    const effectivePerfectRanks = useMemo(() => {
+        if (!isTemporaryAdminRealmKing) return perfectRanks;
+
+        // Temporary debug/admin shortcut for realm QA; remove when real admin tooling exists.
+        const nextRanks = { ...perfectRanks };
+        for (const rank of RANKS) {
+            nextRanks[rank.id] = true;
+            if (rank.id === 'king') break;
+        }
+        return nextRanks;
+    }, [isTemporaryAdminRealmKing, perfectRanks, RANKS]);
 
     const playableWords = useMemo(() => {
         return storeWords.filter(word => word.original.trim() && word.translation.trim());
@@ -441,7 +455,7 @@ export default function MatchPairs() {
     }, [dictId, playableWords.length, realmCells, realmPlayers]);
 
     useEffect(() => {
-        if (!perfectRanks.king || !realmInitialFitKey) {
+        if (!effectivePerfectRanks.king || !realmInitialFitKey) {
             realmInitialFitKeyRef.current = null;
             return;
         }
@@ -454,7 +468,7 @@ export default function MatchPairs() {
         });
 
         return () => window.cancelAnimationFrame(frame);
-    }, [centerCurrentRealmKingdom, perfectRanks.king, realmInitialFitKey]);
+    }, [centerCurrentRealmKingdom, effectivePerfectRanks.king, realmInitialFitKey]);
 
     const zoomRealmAtPoint = useCallback((viewportX: number, viewportY: number, nextScale: number) => {
         const clampedScale = clampRealmScale(nextScale);
@@ -785,6 +799,10 @@ export default function MatchPairs() {
         completionProgressHandledRef.current = true;
         const activeDictId = dictId || 'default';
 
+        if (isTemporaryAdminRealmKing) {
+            return;
+        }
+
         if (errors === 0) {
             setPerfectRanks(prev => ({
                 ...prev,
@@ -830,7 +848,7 @@ export default function MatchPairs() {
                 console.warn('Failed to demote progression in Firebase:', e);
             });
         }
-    }, [RANKS, isAllDone, errors, selectedRank, dictId, currentUser]);
+    }, [RANKS, isAllDone, errors, selectedRank, dictId, currentUser, isTemporaryAdminRealmKing]);
 
     // Timer logic
     useEffect(() => {
@@ -1227,20 +1245,20 @@ export default function MatchPairs() {
         const activeDictionaryName = (!currentUser || dictId === 'default' || !dictId)
             ? t('common.defaultDict')
             : (dictionaries.find(d => d.id === dictId)?.name || '...');
-        const completedRanks = RANKS.filter(rank => perfectRanks[rank.id]).length;
-        const hasReachedKing = perfectRanks.king === true;
-        const isEmperor = perfectRanks.emperor === true;
+        const completedRanks = RANKS.filter(rank => effectivePerfectRanks[rank.id]).length;
+        const hasReachedKing = effectivePerfectRanks.king === true;
+        const isEmperor = effectivePerfectRanks.emperor === true;
         const kingRank = RANKS.find(rank => rank.id === 'king');
         const availableRanks = RANKS.filter((rank, index) => {
-            const isPreviousPerfect = index === 0 || perfectRanks[RANKS[index - 1].id] === true;
+            const isPreviousPerfect = index === 0 || effectivePerfectRanks[RANKS[index - 1].id] === true;
             return playableWords.length >= rank.count && isPreviousPerfect;
         }).length;
 
         const rankViews = RANKS.map((rank, index) => {
-            const isPreviousPerfect = index === 0 || perfectRanks[RANKS[index - 1].id] === true;
+            const isPreviousPerfect = index === 0 || effectivePerfectRanks[RANKS[index - 1].id] === true;
             const hasEnoughWords = playableWords.length >= rank.count;
             const isLocked = !hasEnoughWords || !isPreviousPerfect;
-            const isPerfect = perfectRanks[rank.id] === true;
+            const isPerfect = effectivePerfectRanks[rank.id] === true;
 
             let lockReason = '';
             if (!hasEnoughWords) {
@@ -1584,7 +1602,7 @@ export default function MatchPairs() {
 
 
 
-    const isRealmSetup = phase === 'SETUP' && perfectRanks.king === true;
+    const isRealmSetup = phase === 'SETUP' && effectivePerfectRanks.king === true;
 
     return (
         <div className={`${styles.container} ${phase === 'PLAY' ? styles.gameplayContainer : ''} ${isRealmSetup ? styles.realmContainer : ''}`}>

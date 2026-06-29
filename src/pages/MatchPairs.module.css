@@ -25,20 +25,19 @@
     overflow: hidden;
 }
 
-.realmContainer .setupShell,
-.realmContainer .setupContainer {
+.realmContainer .setupShell {
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
     height: 100%;
 }
 
-.realmContainer .setupShell {
-    display: flex;
-    flex-direction: column;
-}
-
 .realmContainer .setupContainer {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    flex: 0 0 auto;
+    height: auto;
     overflow: hidden;
     padding-bottom: 0;
 }
