@@ -102,7 +102,6 @@ export default function MatchPairs() {
         { id: 'count', name: t('ranks.count.name'), count: 7, icon: Landmark, badgeSrc: '/assets/match-pairs/ranks/count-badge.png', description: `7 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.count.desc')}` },
         { id: 'duke', name: t('ranks.duke.name'), count: 8, icon: Trophy, badgeSrc: '/assets/match-pairs/ranks/duke-badge.png', description: `8 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.duke.desc')}` },
         { id: 'king', name: t('ranks.king.name'), count: 9, icon: Crown, badgeSrc: '/assets/match-pairs/ranks/king-badge.png', description: `9 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.king.desc')}` },
-        { id: 'emperor', name: t('ranks.emperor.name'), count: 10, icon: Sparkles, badgeSrc: '/assets/match-pairs/ranks/emperor-badge.png', description: `10 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.emperor.desc')}` },
     ], [t]);
 
     const fetchWords = useDictionaryStore(state => state.fetchWords);
@@ -224,7 +223,7 @@ export default function MatchPairs() {
         const playerSeeds = [
             { id: 'player-current', name: 'North Keep', rankId: 'king', score: 0, isCurrent: true },
             { id: 'player-amber', name: 'Amber Gate', rankId: 'duke', score: 0, isCurrent: false },
-            { id: 'player-moon', name: 'Moon Tower', rankId: 'emperor', score: 0, isCurrent: false },
+            { id: 'player-moon', name: 'Moon Tower', rankId: 'count', score: 0, isCurrent: false },
             { id: 'player-east', name: 'Eastwatch', rankId: 'king', score: 0, isCurrent: false },
             { id: 'player-river', name: 'River Hold', rankId: 'baron', score: 0, isCurrent: false },
             { id: 'player-sun', name: 'Sunspire', rankId: 'knight', score: 0, isCurrent: false }
@@ -1165,7 +1164,6 @@ export default function MatchPairs() {
             : (dictionaries.find(d => d.id === dictId)?.name || '...');
         const completedRanks = RANKS.filter(rank => effectivePerfectRanks[rank.id]).length;
         const hasReachedKing = effectivePerfectRanks.king === true;
-        const isEmperor = effectivePerfectRanks.emperor === true;
         const kingRank = RANKS.find(rank => rank.id === 'king');
         const availableRanks = RANKS.filter((rank, index) => {
             const isPreviousPerfect = index === 0 || effectivePerfectRanks[RANKS[index - 1].id] === true;
@@ -1210,7 +1208,7 @@ export default function MatchPairs() {
                 <section className={styles.realmPlayerPanel} aria-label={t('games.pairwords.realmPlayerPanel')}>
                     <div className={styles.realmPanelHeader}>
                         <span>{t('games.pairwords.realmPlayerPanel')}</span>
-                        <strong>{isEmperor ? t('games.pairwords.realmEmperor') : t('games.pairwords.realmKing')}</strong>
+                        <strong>{t('games.pairwords.realmKing')}</strong>
                     </div>
                     <div className={styles.realmCastleSigil}>
                         <Landmark size={34} />
@@ -1291,7 +1289,7 @@ export default function MatchPairs() {
                             <div>
                                 <span>{selectedRealmPlayer.name}</span>
                                 <strong>{selectedRealmPlayer.rankName}</strong>
-                                <small>{selectedRealmPlayer.rankId === 'king' || selectedRealmPlayer.rankId === 'emperor'
+                                <small>{selectedRealmPlayer.rankId === 'king'
                                     ? t('games.pairwords.realmNoTerritoryYet')
                                     : t('games.pairwords.realmNotInWar')}</small>
                             </div>
@@ -1327,7 +1325,7 @@ export default function MatchPairs() {
                     <div className={styles.realmStatusBadge}>
                         <Crown size={24} />
                         <div>
-                            <span>{isEmperor ? t('games.pairwords.realmEmperor') : t('games.pairwords.realmKing')}</span>
+                            <span>{t('games.pairwords.realmKing')}</span>
                             <small>{t('games.pairwords.realmStatusCopy')}</small>
                         </div>
                     </div>
