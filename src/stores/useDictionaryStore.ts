@@ -79,7 +79,16 @@ interface DictionaryState {
     cleanText: (text: string) => string;
 
     // Profile & Relationship operations
-    userProfile: { isTeacher: boolean, students: string[], teachers: string[], beneId?: string } | null;
+    userProfile: {
+        isTeacher: boolean,
+        students: string[],
+        teachers: string[],
+        beneId?: string,
+        displayName?: string,
+        name?: string,
+        sovereignName?: string,
+        username?: string
+    } | null;
     beneIdMap: Record<string, string>;
     fetchProfile: (userId: string) => Promise<void>;
     toggleTeacherRole: (userId: string, isTeacher: boolean) => Promise<void>;
@@ -898,6 +907,10 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                     userProfile: {
                         isTeacher: data.isTeacher || false,
                         beneId: data.beneId,
+                        displayName: data.displayName,
+                        name: data.name,
+                        sovereignName: data.sovereignName,
+                        username: data.username,
                         students: studentsList,
                         teachers: teachersList
                     }

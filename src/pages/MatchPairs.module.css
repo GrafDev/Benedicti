@@ -53,6 +53,10 @@
 }
 
 .gameplayContainer {
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: clamp(0.7rem, 1.6dvh, 1.1rem);
+    overflow: hidden;
     isolation: isolate;
 }
 
@@ -1377,6 +1381,11 @@
     backdrop-filter: blur(14px);
 }
 
+.gameplayContainer .header {
+    flex: 0 0 auto;
+    margin-bottom: clamp(0.45rem, 1.2dvh, 0.85rem);
+}
+
 .backButton {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(148, 163, 184, 0.18);
@@ -1456,21 +1465,25 @@
 }
 
 .gameArea {
-    flex: 1;
+    flex: 1 1 0;
     width: 100%;
-    max-width: 720px;
+    max-width: min(920px, calc(100vw - 1.5rem));
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 0.8rem;
+    justify-content: center;
+    padding: clamp(0.65rem, 1.4dvh, 1rem);
     background: rgba(8, 13, 24, 0.54);
     border: 1px solid rgba(148, 163, 184, 0.12);
     border-radius: 8px;
     box-shadow: 0 26px 70px rgba(0, 0, 0, 0.26);
     backdrop-filter: blur(10px);
+    overflow: visible;
 }
 
 .gameControls {
-    margin-bottom: 1rem;
+    flex: 0 0 auto;
+    margin-bottom: clamp(0.55rem, 1.1dvh, 0.85rem);
 }
 
 .progressBar {
@@ -1492,10 +1505,11 @@
 .columns {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+    gap: clamp(0.55rem, 1.2dvh, 0.85rem);
     width: 100%;
     flex: 1;
     min-height: 0;
+    overflow: visible;
 }
 
 .answerFlightStage {
@@ -1504,7 +1518,7 @@
     width: 100%;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .answerFlightStage .columns {
@@ -1515,7 +1529,7 @@
     position: absolute;
     inset: 0;
     z-index: 8;
-    overflow: hidden;
+    overflow: visible;
     pointer-events: none;
 }
 
@@ -1526,14 +1540,16 @@
 .column {
     display: flex;
     flex-direction: column;
-    gap: min(0.72rem, 1dvh);
+    gap: clamp(0.45rem, 1dvh, 0.75rem);
     width: 100%;
+    min-height: 0;
+    overflow: visible;
 }
 
 .card {
     flex: 1;
-    min-height: 0;
-    max-height: 82px;
+    min-height: 46px;
+    max-height: clamp(78px, 10dvh, 104px);
     background: linear-gradient(180deg, rgba(38, 63, 100, 0.66), rgba(20, 34, 58, 0.78));
     border: 1px solid rgba(147, 197, 253, 0.18);
     border-radius: 8px;
@@ -1624,8 +1640,8 @@
 
 .emptySlot {
     flex: 1;
-    min-height: 0;
-    max-height: 82px;
+    min-height: 46px;
+    max-height: clamp(78px, 10dvh, 104px);
     background: rgba(15, 23, 42, 0.28);
     border: 1px dashed rgba(148, 163, 184, 0.12);
     border-radius: 8px;

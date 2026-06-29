@@ -135,6 +135,10 @@ const getHexDistance = (
     Math.abs((-first.q - first.r) - (-second.q - second.r))
 );
 
+const isFallbackRealmPlayerName = (name?: string) => {
+    return !name || /^Player [A-Za-z0-9_-]{4,}$/.test(name.trim());
+};
+
 interface Rank {
     id: string;
     name: string;
@@ -343,14 +347,21 @@ export default function MatchPairs() {
     const currentRealmPlayerId = currentUser?.uid || REALM_DEBUG_PLAYER_ID;
     const currentRealmPlayerName = currentUser?.displayName
         || userProfile?.displayName
+        || userProfile?.name
+        || userProfile?.sovereignName
+        || userProfile?.username
         || currentUser?.email?.split('@')[0]
         || (language === 'ru' ? 'Гость' : 'Guest');
 
-    const resolveRealmDisplayName = useCallback(async (uid: string) => {
+    const resolveRealmDisplayName = useCallback(async (uid: string, persistedRealmName?: string) => {
         if (uid === currentUser?.uid) {
             return currentUser.displayName
                 || userProfile?.displayName
+                || userProfile?.name
+                || userProfile?.sovereignName
+                || userProfile?.username
                 || currentUser.email?.split('@')[0]
+                || (!isFallbackRealmPlayerName(persistedRealmName) ? persistedRealmName : '')
                 || `Player ${uid.slice(0, 6)}`;
         }
 
@@ -359,12 +370,22 @@ export default function MatchPairs() {
                 dbGet(ref(db, `users/${uid}/profile`)),
                 dbGet(ref(db, `shared/uid_to_beneid/${uid}`))
             ]);
-            const profile = profileSnapshot.exists() ? profileSnapshot.val() as { displayName?: string } : null;
+            const profile = profileSnapshot.exists()
+                ? profileSnapshot.val() as { displayName?: string; name?: string; sovereignName?: string; username?: string }
+                : null;
             const beneId = beneIdSnapshot.exists() ? beneIdSnapshot.val() as string : '';
-            return profile?.displayName || beneId || `Player ${uid.slice(0, 6)}`;
+            return profile?.displayName
+                || profile?.name
+                || profile?.sovereignName
+                || profile?.username
+                || beneId
+                || (!isFallbackRealmPlayerName(persistedRealmName) ? persistedRealmName : '')
+                || `Player ${uid.slice(0, 6)}`;
         } catch (error) {
             console.warn('Failed to resolve realm participant name:', error);
-            return `Player ${uid.slice(0, 6)}`;
+            return !isFallbackRealmPlayerName(persistedRealmName)
+                ? persistedRealmName || `Player ${uid.slice(0, 6)}`
+                : `Player ${uid.slice(0, 6)}`;
         }
     }, [currentUser, userProfile]);
 
@@ -426,7 +447,7 @@ export default function MatchPairs() {
                         })
                         .map(async uid => ({
                             id: uid,
-                            name: await resolveRealmDisplayName(uid),
+                            name: await resolveRealmDisplayName(uid, realmState.players[uid]?.name),
                             rankId: realmState.players[uid]?.rankId || 'king'
                         }))
                 );

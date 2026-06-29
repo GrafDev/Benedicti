@@ -62,6 +62,7 @@ export default function Profile() {
                 const latestProfile = useDictionaryStore.getState().userProfile;
                 if (latestProfile) {
                     setIsTeacherLocal(latestProfile.isTeacher || false);
+                    setName(latestProfile.displayName || defaultName);
                 }
                 if (latestProfile && !latestProfile.beneId) {
                     await generateBeneId(currentUser.uid, defaultName);

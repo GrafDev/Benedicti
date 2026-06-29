@@ -15,7 +15,7 @@ import {
     confirmPasswordReset
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
-import { get, ref } from 'firebase/database';
+import { get, ref, update } from 'firebase/database';
 import { auth, db } from '../firebase';
 
 export interface UserProfile {
@@ -23,6 +23,9 @@ export interface UserProfile {
     isAdmin?: boolean;
     isTeacher?: boolean;
     displayName?: string;
+    name?: string;
+    sovereignName?: string;
+    username?: string;
     email?: string;
 }
 
@@ -173,6 +176,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!auth.currentUser) return;
         try {
             await updateProfile(auth.currentUser, { displayName: name });
+            await update(ref(db, `users/${auth.currentUser.uid}/profile`), {
+                displayName: name
+            });
+            setUserProfile(prev => ({
+                ...(prev || {}),
+                displayName: name
+            }));
             // Refresh local user state to reflect changes
             setCurrentUser({ ...auth.currentUser });
         } catch (error) {
