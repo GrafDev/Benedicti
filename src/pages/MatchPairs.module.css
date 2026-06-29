@@ -39,6 +39,7 @@
 .realmContainer .setupContainer {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     padding-bottom: 0;
 }
 
@@ -47,8 +48,9 @@
 }
 
 .realmContainer .realmShell {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     height: auto;
+    min-height: 0;
 }
 
 .gameplayContainer {

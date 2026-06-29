@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
@@ -54,8 +54,6 @@ const TWO_COLUMN_MIN_CARD_HEIGHT = 64;
 const TWO_COLUMN_ROW_GAP = 8;
 const REALM_WORLD_WIDTH = 1320;
 const REALM_WORLD_HEIGHT = 920;
-const REALM_EDGE_PAN_ZONE = 76;
-const REALM_EDGE_PAN_SPEED = 13;
 const REALM_MIN_SCALE = 0.48;
 const REALM_MAX_SCALE = 1.65;
 const REALM_FIT_PADDING = 72;
@@ -159,8 +157,6 @@ export default function MatchPairs() {
     const answerFlightStageRef = useRef<HTMLDivElement | null>(null);
     const completionProgressHandledRef = useRef(false);
     const realmViewportRef = useRef<HTMLDivElement | null>(null);
-    const realmEdgeVelocityRef = useRef({ x: 0, y: 0 });
-    const realmAnimationFrameRef = useRef<number | null>(null);
     const realmDragRef = useRef<{
         pointerId: number;
         startX: number;
@@ -210,43 +206,6 @@ export default function MatchPairs() {
             y: Math.min(maxY, Math.max(minY, nextPan.y))
         };
     }, []);
-
-    const stopRealmEdgePan = useCallback(() => {
-        realmEdgeVelocityRef.current = { x: 0, y: 0 };
-        if (realmAnimationFrameRef.current !== null) {
-            window.cancelAnimationFrame(realmAnimationFrameRef.current);
-            realmAnimationFrameRef.current = null;
-        }
-    }, []);
-
-    const runRealmEdgePan = useCallback(() => {
-        const { x, y } = realmEdgeVelocityRef.current;
-        if (x === 0 && y === 0) {
-            realmAnimationFrameRef.current = null;
-            return;
-        }
-
-        setRealmPan(prev => clampRealmPan({ x: prev.x + x, y: prev.y + y }));
-        realmAnimationFrameRef.current = window.requestAnimationFrame(runRealmEdgePan);
-    }, [clampRealmPan]);
-
-    const startRealmEdgePan = useCallback((velocity: { x: number; y: number }) => {
-        realmEdgeVelocityRef.current = velocity;
-        if (velocity.x === 0 && velocity.y === 0) {
-            stopRealmEdgePan();
-            return;
-        }
-
-        if (realmAnimationFrameRef.current === null) {
-            realmAnimationFrameRef.current = window.requestAnimationFrame(runRealmEdgePan);
-        }
-    }, [runRealmEdgePan, stopRealmEdgePan]);
-
-    useEffect(() => {
-        return () => {
-            stopRealmEdgePan();
-        };
-    }, [stopRealmEdgePan]);
 
     const realmPlayers = useMemo<RealmPlayer[]>(() => {
         const rankById = new Map(RANKS.map(rank => [rank.id, rank]));
@@ -513,38 +472,14 @@ export default function MatchPairs() {
 
     const handleRealmWheel = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
         event.preventDefault();
-        stopRealmEdgePan();
 
         const rect = event.currentTarget.getBoundingClientRect();
         const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
         zoomRealmAtPoint(event.clientX - rect.left, event.clientY - rect.top, realmScale * zoomFactor);
-    }, [realmScale, stopRealmEdgePan, zoomRealmAtPoint]);
-
-    const handleRealmMouseMove = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
-        if (realmDragRef.current) return;
-
-        const rect = event.currentTarget.getBoundingClientRect();
-        let x = 0;
-        let y = 0;
-
-        if (event.clientX - rect.left < REALM_EDGE_PAN_ZONE) {
-            x = REALM_EDGE_PAN_SPEED;
-        } else if (rect.right - event.clientX < REALM_EDGE_PAN_ZONE) {
-            x = -REALM_EDGE_PAN_SPEED;
-        }
-
-        if (event.clientY - rect.top < REALM_EDGE_PAN_ZONE) {
-            y = REALM_EDGE_PAN_SPEED;
-        } else if (rect.bottom - event.clientY < REALM_EDGE_PAN_ZONE) {
-            y = -REALM_EDGE_PAN_SPEED;
-        }
-
-        startRealmEdgePan({ x, y });
-    }, [startRealmEdgePan]);
+    }, [realmScale, zoomRealmAtPoint]);
 
     const handleRealmPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         event.currentTarget.setPointerCapture(event.pointerId);
-        stopRealmEdgePan();
         realmPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
         if (realmPointersRef.current.size === 2) {
@@ -568,7 +503,7 @@ export default function MatchPairs() {
             startY: event.clientY,
             startPan: realmPan
         };
-    }, [realmPan, realmScale, stopRealmEdgePan]);
+    }, [realmPan, realmScale]);
 
     const handleRealmPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
         if (realmPointersRef.current.has(event.pointerId)) {
@@ -1362,8 +1297,6 @@ export default function MatchPairs() {
                     <div
                         ref={realmViewportRef}
                         className={styles.realmViewport}
-                        onMouseMove={handleRealmMouseMove}
-                        onMouseLeave={stopRealmEdgePan}
                         onWheel={handleRealmWheel}
                         onPointerDown={handleRealmPointerDown}
                         onPointerMove={handleRealmPointerMove}
