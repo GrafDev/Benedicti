@@ -102,40 +102,40 @@ const hashString = (value: string) => {
 
 const REALM_OWNER_PALETTES = [
     {
-        top: 'rgba(171, 116, 36, 0.74)',
-        bottom: 'rgba(105, 67, 25, 0.82)',
-        border: 'rgba(245, 191, 92, 0.42)',
-        glow: 'rgba(180, 111, 34, 0.23)'
+        top: 'rgba(137, 45, 56, 0.82)',
+        bottom: 'rgba(77, 26, 39, 0.88)',
+        border: 'rgba(226, 105, 119, 0.44)',
+        glow: 'rgba(137, 45, 56, 0.27)'
     },
     {
-        top: 'rgba(126, 44, 63, 0.76)',
-        bottom: 'rgba(78, 27, 45, 0.84)',
-        border: 'rgba(222, 128, 145, 0.36)',
-        glow: 'rgba(126, 44, 63, 0.24)'
+        top: 'rgba(46, 123, 86, 0.78)',
+        bottom: 'rgba(25, 78, 60, 0.88)',
+        border: 'rgba(102, 196, 148, 0.4)',
+        glow: 'rgba(46, 123, 86, 0.25)'
     },
     {
-        top: 'rgba(49, 80, 142, 0.76)',
-        bottom: 'rgba(31, 49, 91, 0.84)',
-        border: 'rgba(134, 166, 222, 0.38)',
-        glow: 'rgba(49, 80, 142, 0.24)'
+        top: 'rgba(45, 84, 157, 0.82)',
+        bottom: 'rgba(28, 52, 101, 0.9)',
+        border: 'rgba(118, 158, 226, 0.42)',
+        glow: 'rgba(45, 84, 157, 0.27)'
     },
     {
-        top: 'rgba(91, 67, 138, 0.74)',
-        bottom: 'rgba(57, 42, 91, 0.84)',
-        border: 'rgba(178, 153, 222, 0.36)',
-        glow: 'rgba(91, 67, 138, 0.24)'
+        top: 'rgba(104, 69, 154, 0.8)',
+        bottom: 'rgba(61, 43, 103, 0.88)',
+        border: 'rgba(184, 151, 226, 0.4)',
+        glow: 'rgba(104, 69, 154, 0.26)'
     },
     {
-        top: 'rgba(122, 74, 42, 0.76)',
-        bottom: 'rgba(76, 47, 30, 0.84)',
-        border: 'rgba(201, 142, 91, 0.36)',
-        glow: 'rgba(122, 74, 42, 0.23)'
+        top: 'rgba(160, 103, 31, 0.8)',
+        bottom: 'rgba(91, 59, 25, 0.88)',
+        border: 'rgba(232, 169, 76, 0.42)',
+        glow: 'rgba(160, 103, 31, 0.25)'
     },
     {
-        top: 'rgba(47, 111, 92, 0.72)',
-        bottom: 'rgba(29, 73, 62, 0.82)',
-        border: 'rgba(113, 190, 163, 0.34)',
-        glow: 'rgba(47, 111, 92, 0.22)'
+        top: 'rgba(51, 111, 130, 0.78)',
+        bottom: 'rgba(31, 68, 86, 0.88)',
+        border: 'rgba(122, 190, 207, 0.38)',
+        glow: 'rgba(51, 111, 130, 0.24)'
     }
 ];
 
@@ -2231,7 +2231,7 @@ export default function MatchPairs() {
                         >
                             <div className={styles.realmWorldBackdrop} />
                             {realmCells.map(cell => {
-                                const ownerPalette = cell.ownerId && cell.ownerId !== currentRealmPlayer?.id
+                                const ownerPalette = cell.ownerId
                                     ? getRealmOwnerPalette(cell.ownerId)
                                     : null;
                                 const hexStyle = {
