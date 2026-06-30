@@ -25,6 +25,19 @@ interface MatchColumnEntry {
     slotIndex: number;
 }
 
+const createMatchColumnItems = (word: Word, isSwapped: boolean) => ({
+    left: {
+        id: word.id,
+        text: isSwapped ? word.translation : word.original,
+        isOriginal: !isSwapped
+    },
+    right: {
+        id: word.id,
+        text: isSwapped ? word.original : word.translation,
+        isOriginal: isSwapped
+    }
+});
+
 interface AnswerShuffleMove {
     id: string;
     text: string;
@@ -55,8 +68,8 @@ interface DropdownPosition {
 
 type Phase = 'SETUP' | 'PLAY' | 'GAMEOVER';
 
-const TABLET_LAYOUT_MIN_WIDTH = 769;
-const TABLET_LAYOUT_MAX_WIDTH = 1180;
+const PORTRAIT_LAYOUT_MIN_WIDTH = 769;
+const PORTRAIT_LAYOUT_MAX_WIDTH = 1180;
 const TWO_COLUMN_MIN_CARD_HEIGHT = 64;
 const TWO_COLUMN_ROW_GAP = 8;
 const REALM_WORLD_WIDTH = 1320;
@@ -241,6 +254,7 @@ interface Rank {
     id: string;
     name: string;
     count: number;
+    isDirectionSwapped?: boolean;
     icon: LucideIcon;
     badgeSrc: string;
     description: string;
@@ -303,11 +317,11 @@ export default function MatchPairs() {
 
     const RANKS = useMemo<Rank[]>(() => [
         { id: 'citizen', name: t('ranks.citizen.name'), count: 4, icon: User, badgeSrc: '/assets/match-pairs/ranks/citizen-badge.png', description: `4 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.citizen.desc')}` },
-        { id: 'knight', name: t('ranks.knight.name'), count: 5, icon: Sword, badgeSrc: '/assets/match-pairs/ranks/knight-badge.png', description: `5 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.knight.desc')}` },
-        { id: 'baron', name: t('ranks.baron.name'), count: 6, icon: Shield, badgeSrc: '/assets/match-pairs/ranks/baron-badge.png', description: `6 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.baron.desc')}` },
-        { id: 'count', name: t('ranks.count.name'), count: 7, icon: Landmark, badgeSrc: '/assets/match-pairs/ranks/count-badge.png', description: `7 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.count.desc')}` },
-        { id: 'duke', name: t('ranks.duke.name'), count: 8, icon: Trophy, badgeSrc: '/assets/match-pairs/ranks/duke-badge.png', description: `8 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.duke.desc')}` },
-        { id: 'king', name: t('ranks.king.name'), count: 9, icon: Crown, badgeSrc: '/assets/match-pairs/ranks/king-badge.png', description: `9 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.king.desc')}` },
+        { id: 'knight', name: t('ranks.knight.name'), count: 4, isDirectionSwapped: true, icon: Sword, badgeSrc: '/assets/match-pairs/ranks/knight-badge.png', description: `4 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.knight.desc')}` },
+        { id: 'baron', name: t('ranks.baron.name'), count: 5, icon: Shield, badgeSrc: '/assets/match-pairs/ranks/baron-badge.png', description: `5 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.baron.desc')}` },
+        { id: 'count', name: t('ranks.count.name'), count: 5, isDirectionSwapped: true, icon: Landmark, badgeSrc: '/assets/match-pairs/ranks/count-badge.png', description: `5 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.count.desc')}` },
+        { id: 'duke', name: t('ranks.duke.name'), count: 6, icon: Trophy, badgeSrc: '/assets/match-pairs/ranks/duke-badge.png', description: `6 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.duke.desc')}` },
+        { id: 'king', name: t('ranks.king.name'), count: 7, icon: Crown, badgeSrc: '/assets/match-pairs/ranks/king-badge.png', description: `7 ${t('games.pairwords.pairsCount', { count: '' })}: ${t('ranks.king.desc')}` },
     ], [t]);
 
     const fetchWords = useDictionaryStore(state => state.fetchWords);
@@ -417,6 +431,12 @@ export default function MatchPairs() {
         return currentDictionary?.name || '...';
     }, [currentDictionary, currentUser, dictId, t]);
 
+    const realmOwnerUid = useMemo(() => {
+        const activeDictId = dictId || 'default';
+        if (!currentDictionary || activeDictId === 'default') return '';
+        return currentDictionary.userId || '';
+    }, [currentDictionary, dictId]);
+
     const realmKey = useMemo(() => {
         const activeDictId = dictId || 'default';
 
@@ -433,11 +453,11 @@ export default function MatchPairs() {
         }
 
         const ownerId = currentDictionary.isTeacherDict
-            ? currentDictionary.userId
-            : (currentDictionary.userId || currentUser?.uid || 'guest');
+            ? realmOwnerUid
+            : (realmOwnerUid || currentUser?.uid || 'guest');
 
         return `owner_${sanitizeRealmKeyPart(ownerId)}_dict_${sanitizeRealmKeyPart(activeDictId)}`;
-    }, [currentDictionary, currentUser, dictId]);
+    }, [currentDictionary, currentUser, dictId, realmOwnerUid]);
     const realmDebugStorageKey = useMemo(() => {
         const reviewFreshKey = searchParams.get('reviewFresh');
         return `${REALM_LOCAL_STORAGE_PREFIX}${realmKey}${reviewFreshKey ? `_review_${sanitizeRealmKeyPart(reviewFreshKey)}_home_seed_v2` : ''}`;
@@ -568,9 +588,7 @@ export default function MatchPairs() {
             const participantIds = new Set<string>([currentUser.uid, ...existingPlayerIds]);
 
             try {
-                const ownerUid = currentDictionary && activeDictId !== 'default'
-                    ? currentDictionary.userId
-                    : '';
+                const ownerUid = activeDictId !== 'default' ? realmOwnerUid : '';
 
                 if (ownerUid) {
                     participantIds.add(ownerUid);
@@ -584,8 +602,10 @@ export default function MatchPairs() {
                     Array.from(participantIds)
                         .filter(uid => uid && !uid.startsWith('demo-'))
                         .sort((a, b) => {
-                            if (a === currentUser.uid) return -1;
-                            if (b === currentUser.uid) return 1;
+                            if (realmOwnerUid) {
+                                if (a === realmOwnerUid) return -1;
+                                if (b === realmOwnerUid) return 1;
+                            }
                             return a.localeCompare(b);
                         })
                         .map(async uid => ({
@@ -622,6 +642,7 @@ export default function MatchPairs() {
         dictId,
         isRealmStateReady,
         isTemporaryAdminRealmKing,
+        realmOwnerUid,
         realmKey,
         realmState.players,
         resolveRealmDisplayName,
@@ -732,14 +753,12 @@ export default function MatchPairs() {
             }];
 
         return participants.map((participant, index) => {
-            const existingRecord = realmState.players[participant.id];
             const rank = rankById.get(participant.rankId) || citizenRank;
             const homeCellId = chooseEvenHomeCellId(
                 realmEdgeCells,
                 usedHomeCellIds,
                 index,
-                participants.length,
-                existingRecord?.homeCellId
+                participants.length
             );
             const territoryCells = territoryCounts.get(participant.id) || 0;
             const territoryPercent = baseRealmCells.length > 0
@@ -906,6 +925,7 @@ export default function MatchPairs() {
         const nextCells = shouldKeepOnlyHomes ? {} : { ...realmState.cells };
         const changedCellIds: string[] = [];
         const changedPlayerIds: string[] = [];
+        const realmEdgeCellIds = new Set(realmEdgeCells.map(cell => cell.id));
         let didChange = false;
 
         if (shouldKeepOnlyHomes && Object.keys(realmState.cells).length > 0) {
@@ -943,6 +963,17 @@ export default function MatchPairs() {
                     changedPlayerIds.push(player.id);
                     didChange = true;
                 }
+
+                if (
+                    existingRecord?.homeCellId &&
+                    existingRecord.homeCellId !== player.homeCellId &&
+                    realmEdgeCellIds.has(existingRecord.homeCellId) &&
+                    nextCells[existingRecord.homeCellId] === player.id
+                ) {
+                    delete nextCells[existingRecord.homeCellId];
+                    changedCellIds.push(existingRecord.homeCellId);
+                    didChange = true;
+                }
             }
 
             if (nextCells[player.homeCellId] !== player.id) {
@@ -965,6 +996,7 @@ export default function MatchPairs() {
         isRealmStateReady,
         isFreshReviewDebugRealm,
         realmKey,
+        realmEdgeCells,
         realmPlayers,
         realmState
     ]);
@@ -1445,9 +1477,9 @@ export default function MatchPairs() {
         const initialBatch = poolForSession.slice(0, rank.count);
         nextWordIndex.current = rank.count;
 
-        const left = initialBatch.map(w => ({ id: w.id, text: w.original, isOriginal: true }))
+        const left = initialBatch.map(w => createMatchColumnItems(w, rank.isDirectionSwapped === true).left)
             .sort(() => Math.random() - 0.5);
-        const right = initialBatch.map(w => ({ id: w.id, text: w.translation, isOriginal: false }))
+        const right = initialBatch.map(w => createMatchColumnItems(w, rank.isDirectionSwapped === true).right)
             .sort(() => Math.random() - 0.5);
 
         setLeftColumn(left);
@@ -1468,7 +1500,9 @@ export default function MatchPairs() {
         }
 
         const width = window.innerWidth;
-        if (width < TABLET_LAYOUT_MIN_WIDTH || width > TABLET_LAYOUT_MAX_WIDTH) {
+        const height = window.innerHeight;
+        const isPortraitTablet = width >= PORTRAIT_LAYOUT_MIN_WIDTH && width <= PORTRAIT_LAYOUT_MAX_WIDTH && height >= width;
+        if (!isPortraitTablet) {
             setUseTabletFourColumnLayout(false);
             return;
         }
@@ -1774,6 +1808,9 @@ export default function MatchPairs() {
         // Pick next word from pool
         const nextWord = allWordsPool[nextWordIndex.current];
         nextWordIndex.current += 1;
+        const nextWordItems = nextWord
+            ? createMatchColumnItems(nextWord, selectedRank?.isDirectionSwapped === true)
+            : null;
 
         if (nextWord) {
             // Mark new word as currently appearing (non-clickable, fading in)
@@ -1795,12 +1832,12 @@ export default function MatchPairs() {
 
         const nextLeftColumn = leftColumn.map(item =>
             item?.id === oldId
-                ? (nextWord ? { id: nextWord.id, text: nextWord.original, isOriginal: true } : null)
+                ? (nextWordItems?.left || null)
                 : item
         );
         const replacedRightColumn = rightColumn.map(item =>
             item?.id === oldId
-                ? (nextWord ? { id: nextWord.id, text: nextWord.translation, isOriginal: false } : null)
+                ? (nextWordItems?.right || null)
                 : item
         );
 
@@ -1869,30 +1906,37 @@ export default function MatchPairs() {
         }
     };
 
-    const handleChoice = (id: string, isOriginal: boolean) => {
+    const handleChoice = (id: string, isLeftColumn: boolean, selectedItemIsOriginal: boolean) => {
         if (matchedIds.has(id) || correctIds.has(id)) return;
 
-        if (isOriginal) {
+        const word = allWordsPool.find(w => w.id === id);
+        const dict = dictionaries.find(d => d.id === dictId);
+        const speakSelectedItem = () => {
+            if (!word) return;
+            if (selectedItemIsOriginal) {
+                speechService.speak(word.original, dict?.sourceLang || 'en');
+                return;
+            }
+            speechService.speak(word.translation, dict?.targetLang || 'ru');
+        };
+
+        if (isLeftColumn) {
             setSelectedLeftId(id);
-            const word = allWordsPool.find(w => w.id === id);
-            const dict = dictionaries.find(d => d.id === dictId);
 
             // Play sound only if it's the first selection OR a correct match
             const isMatch = selectedRightId === id;
             if (word && (!selectedRightId || isMatch)) {
-                speechService.speak(word.original, dict?.sourceLang || 'en');
+                speakSelectedItem();
             }
 
             if (selectedRightId) checkMatch(id, selectedRightId);
         } else {
             setSelectedRightId(id);
-            const word = allWordsPool.find(w => w.id === id);
-            const dict = dictionaries.find(d => d.id === dictId);
 
             // Play sound only if it's the first selection OR a correct match
             const isMatch = selectedLeftId === id;
             if (word && (!selectedLeftId || isMatch)) {
-                speechService.speak(word.translation, dict?.targetLang || 'ru');
+                speakSelectedItem();
             }
 
             if (selectedLeftId) checkMatch(selectedLeftId, id);
@@ -1927,10 +1971,10 @@ export default function MatchPairs() {
                     key={`${keyPrefix}-${item.id}`}
                     style={cardStyle}
                     className={className}
-                    onClick={() => handleChoice(item.id, isOriginal)}
+                    onClick={() => handleChoice(item.id, isOriginal, item.isOriginal)}
                     disabled={newlyAppearingIds.has(item.id)}
                 >
-                    {isEliteMode ? <Volume2 size={24} /> : item.text}
+                    {isEliteMode && item.isOriginal ? <Volume2 size={24} /> : item.text}
                 </button>
             ) : (
                 <button
@@ -1938,10 +1982,10 @@ export default function MatchPairs() {
                     data-answer-slot-index={entry.slotIndex}
                     style={cardStyle}
                     className={className}
-                    onClick={() => handleChoice(item.id, isOriginal)}
+                    onClick={() => handleChoice(item.id, isOriginal, item.isOriginal)}
                     disabled={isAnswerLocked}
                 >
-                    {item.text}
+                    {isEliteMode && item.isOriginal ? <Volume2 size={24} /> : item.text}
                 </button>
             )
         ) : <div key={`${keyPrefix}-empty-${entry.slotIndex}-${idx}`} className={styles.emptySlot} />;

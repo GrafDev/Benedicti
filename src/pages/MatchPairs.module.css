@@ -1401,7 +1401,7 @@
     background: rgba(20, 184, 166, 0.14) !important;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 768px), (min-width: 769px) and (max-width: 1180px) and (orientation: portrait) {
     .realmShell {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         grid-template-rows: minmax(0, 1.35fr) minmax(0, 0.75fr);
@@ -1818,7 +1818,7 @@
     color: #fff;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (min-width: 769px) and (max-width: 1180px) and (orientation: portrait) {
     .container {
         padding: 0.85rem;
     }
@@ -2122,14 +2122,14 @@
     }
 }
 
-@media (min-width: 700px) and (max-width: 1180px) {
+@media (min-width: 769px) and (max-width: 1180px) and (orientation: portrait) {
     .gameArea {
         max-width: min(980px, calc(100vw - 1.5rem));
         padding: 0.65rem;
     }
 }
 
-@media (min-width: 769px) and (max-width: 1180px) {
+@media (min-width: 769px) and (max-width: 1180px) and (orientation: portrait) {
     .tabletFourColumnLayout .desktopColumns {
         display: none;
     }
@@ -2157,7 +2157,7 @@
     }
 }
 
-@media (min-width: 769px) and (max-width: 980px) {
+@media (min-width: 769px) and (max-width: 980px) and (orientation: portrait) {
     .setupToolbar {
         align-items: stretch;
         flex-direction: column;
