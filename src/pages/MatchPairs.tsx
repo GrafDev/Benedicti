@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type CSSProperties, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useDictionaryStore } from '../stores/useDictionaryStore';
@@ -46,6 +47,12 @@ interface AnswerFlightCard {
     z: number;
 }
 
+interface DropdownPosition {
+    top: number;
+    left: number;
+    width: number;
+}
+
 type Phase = 'SETUP' | 'PLAY' | 'GAMEOVER';
 
 const TABLET_LAYOUT_MIN_WIDTH = 769;
@@ -57,6 +64,7 @@ const REALM_WORLD_HEIGHT = 920;
 const REALM_MIN_SCALE = 0.48;
 const REALM_MAX_SCALE = 1.65;
 const REALM_FIT_PADDING = 72;
+const REALM_CAPTURE_ANIMATION_MS = 1200;
 const REALM_DEBUG_PLAYER_ID = 'debug-guest';
 const REALM_LOCAL_STORAGE_PREFIX = 'benedicti_match_pairs_realm_';
 const REALM_AXIAL_DIRECTIONS = [
@@ -331,6 +339,7 @@ export default function MatchPairs() {
     const [realmStateLoadKey, setRealmStateLoadKey] = useState<string | null>(null);
     const [realmParticipants, setRealmParticipants] = useState<RealmParticipant[]>([]);
     const [isConquestMode, setIsConquestMode] = useState(false);
+    const [capturedRealmCellIds, setCapturedRealmCellIds] = useState<Set<string>>(new Set());
 
     const [isEliteMode, setIsEliteMode] = useState(() => {
         const saved = localStorage.getItem('benedicti_match_elite');
@@ -345,6 +354,7 @@ export default function MatchPairs() {
     const [phase, setPhase] = useState<Phase>('SETUP');
     const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
     const [isDictSelectorOpen, setIsDictSelectorOpen] = useState(false);
+    const [dictDropdownPosition, setDictDropdownPosition] = useState<DropdownPosition | null>(null);
     const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
     const [isMobileSetupOpen, setIsMobileSetupOpen] = useState(false);
     const ANSWER_FLIGHT_MS = 820;
@@ -355,7 +365,9 @@ export default function MatchPairs() {
     const startTimeRef = useRef<number | null>(null);
     const answerShuffleTimeoutRef = useRef<number | null>(null);
     const answerFlightStageRef = useRef<HTMLDivElement | null>(null);
+    const dictSelectorRef = useRef<HTMLDivElement | null>(null);
     const completionProgressHandledRef = useRef(false);
+    const realmCaptureAnimationTimeoutsRef = useRef<number[]>([]);
     const realmViewportRef = useRef<HTMLDivElement | null>(null);
     const realmDragRef = useRef<{
         pointerId: number;
@@ -1031,6 +1043,31 @@ export default function MatchPairs() {
         return () => window.cancelAnimationFrame(frame);
     }, [centerCurrentRealmKingdom, effectivePerfectRanks.king, realmInitialFitKey]);
 
+    const markRealmCellCaptured = useCallback((cellId: string) => {
+        setCapturedRealmCellIds(previousIds => {
+            const nextIds = new Set(previousIds);
+            nextIds.add(cellId);
+            return nextIds;
+        });
+
+        const timeoutId = window.setTimeout(() => {
+            setCapturedRealmCellIds(previousIds => {
+                if (!previousIds.has(cellId)) return previousIds;
+                const nextIds = new Set(previousIds);
+                nextIds.delete(cellId);
+                return nextIds;
+            });
+            realmCaptureAnimationTimeoutsRef.current = realmCaptureAnimationTimeoutsRef.current.filter(id => id !== timeoutId);
+        }, REALM_CAPTURE_ANIMATION_MS);
+
+        realmCaptureAnimationTimeoutsRef.current.push(timeoutId);
+    }, []);
+
+    useEffect(() => () => {
+        realmCaptureAnimationTimeoutsRef.current.forEach(timeoutId => window.clearTimeout(timeoutId));
+        realmCaptureAnimationTimeoutsRef.current = [];
+    }, []);
+
     const applyRealmCapture = useCallback(() => {
         if (!realmKey || !currentRealmPlayer) return false;
 
@@ -1090,8 +1127,9 @@ export default function MatchPairs() {
         };
 
         persistRealmState(nextState, [captureTarget.id], [currentRealmPlayer.id]);
+        markRealmCellCaptured(captureTarget.id);
         return true;
-    }, [currentRealmPlayer, persistRealmState, realmCells, realmKey, realmPlayers, realmState]);
+    }, [currentRealmPlayer, markRealmCellCaptured, persistRealmState, realmCells, realmKey, realmPlayers, realmState]);
 
     const applyRealmShrink = useCallback(() => {
         if (!realmKey || !currentRealmPlayer) return false;
@@ -1331,6 +1369,35 @@ export default function MatchPairs() {
         navigate(`/play/match-pairs/${newDictId}`);
         setIsDictSelectorOpen(false);
     };
+
+    const updateDictDropdownPosition = useCallback(() => {
+        const selector = dictSelectorRef.current;
+        if (!selector) return;
+
+        const rect = selector.getBoundingClientRect();
+        const width = Math.min(420, window.innerWidth - 24);
+        setDictDropdownPosition({
+            top: rect.bottom + 8 + window.scrollY,
+            left: Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12)) + window.scrollX,
+            width
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!isDictSelectorOpen) {
+            setDictDropdownPosition(null);
+            return;
+        }
+
+        updateDictDropdownPosition();
+        window.addEventListener('resize', updateDictDropdownPosition);
+        window.addEventListener('scroll', updateDictDropdownPosition, true);
+
+        return () => {
+            window.removeEventListener('resize', updateDictDropdownPosition);
+            window.removeEventListener('scroll', updateDictDropdownPosition, true);
+        };
+    }, [isDictSelectorOpen, updateDictDropdownPosition]);
 
     // Setup session
     const startLevel = useCallback((rank: Rank, options?: { conquestMode?: boolean }) => {
@@ -2031,7 +2098,7 @@ export default function MatchPairs() {
                                 <div
                                     key={cell.id}
                                     data-realm-castle-marker={cell.player ? 'true' : undefined}
-                                    className={`${styles.realmHex} ${styles[`realmHex${cell.state[0].toUpperCase()}${cell.state.slice(1)}`]} ${cell.ownerId === currentRealmPlayer?.id ? styles.realmHexOwnedCurrent : ''} ${cell.ownerId && cell.ownerId !== currentRealmPlayer?.id ? styles.realmHexOwnedOther : ''} ${cell.player ? styles.realmHexPlayer : ''}`}
+                                    className={`${styles.realmHex} ${styles[`realmHex${cell.state[0].toUpperCase()}${cell.state.slice(1)}`]} ${cell.ownerId === currentRealmPlayer?.id ? styles.realmHexOwnedCurrent : ''} ${cell.ownerId && cell.ownerId !== currentRealmPlayer?.id ? styles.realmHexOwnedOther : ''} ${capturedRealmCellIds.has(cell.id) ? styles.realmHexCaptured : ''} ${cell.player ? styles.realmHexPlayer : ''}`}
                                     style={{ left: cell.x, top: cell.y }}
                                     onPointerDown={(event) => {
                                         if (!cell.player) return;
@@ -2138,6 +2205,37 @@ export default function MatchPairs() {
             </div>
         );
 
+        const dictionaryOptions = (
+            <div
+                className={`${styles.dictOptions} ${styles.dictOptionsPortal}`}
+                style={dictDropdownPosition ? {
+                    top: dictDropdownPosition.top,
+                    left: dictDropdownPosition.left,
+                    width: dictDropdownPosition.width
+                } : undefined}
+            >
+                <button
+                    type="button"
+                    className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
+                    onClick={() => handleDictionaryChange('default')}
+                >
+                    {t('common.defaultDict')}
+                </button>
+                {dictionaries
+                    .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
+                    .map(d => (
+                        <button
+                            type="button"
+                            key={d.id}
+                            className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
+                            onClick={() => handleDictionaryChange(d.id)}
+                        >
+                            {d.name}
+                        </button>
+                    ))}
+            </div>
+        );
+
         return (
         <div className={`${styles.setupShell} ${loading ? styles.setupLoading : ''}`}>
             <div className={`${styles.setupContainer} ${loading ? styles.setupLoading : ''} ${phase !== 'SETUP' ? styles.compactSetup : ''}`}>
@@ -2161,11 +2259,16 @@ export default function MatchPairs() {
                     </div>
 
                     <div className={`${styles.setupControls} ${isMobileSetupOpen ? styles.open : ''}`}>
-                        <div className={styles.dictSelector}>
+                        <div className={styles.dictSelector} ref={dictSelectorRef}>
                             <button
                                 type="button"
                                 className={styles.selectorHeader}
-                                onClick={() => setIsDictSelectorOpen(!isDictSelectorOpen)}
+                                onClick={() => {
+                                    if (!isDictSelectorOpen) {
+                                        updateDictDropdownPosition();
+                                    }
+                                    setIsDictSelectorOpen(!isDictSelectorOpen);
+                                }}
                             >
                                 <span className={styles.selectorLabel}>{t('common.dictionary')}</span>
                                 <span className={styles.activeDictName}>
@@ -2174,29 +2277,7 @@ export default function MatchPairs() {
                                 <ChevronDown size={18} className={`${styles.chevron} ${isDictSelectorOpen ? styles.open : ''}`} />
                             </button>
 
-                            {isDictSelectorOpen && (
-                                <div className={styles.dictOptions}>
-                                    <button
-                                        type="button"
-                                        className={`${styles.dictTab} ${dictId === 'default' ? styles.activeTab : ''}`}
-                                        onClick={() => handleDictionaryChange('default')}
-                                    >
-                                        {t('common.defaultDict')}
-                                    </button>
-                                    {dictionaries
-                                        .filter(d => d.id !== 'default' && !d.name.includes('English 2500'))
-                                        .map(d => (
-                                            <button
-                                                type="button"
-                                                key={d.id}
-                                                className={`${styles.dictTab} ${dictId === d.id ? styles.activeTab : ''}`}
-                                                onClick={() => handleDictionaryChange(d.id)}
-                                            >
-                                                {d.name}
-                                            </button>
-                                        ))}
-                                </div>
-                            )}
+                            {isDictSelectorOpen && typeof document !== 'undefined' && createPortal(dictionaryOptions, document.body)}
                         </div>
 
                         <div className={styles.difficultyContainer}>

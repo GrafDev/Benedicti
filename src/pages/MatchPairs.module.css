@@ -328,6 +328,15 @@
     overflow-y: auto;
 }
 
+.dictOptions.dictOptionsPortal {
+    position: absolute;
+    right: auto;
+    bottom: auto;
+    margin-top: 0;
+    z-index: 1200;
+    max-width: calc(100vw - 1.5rem);
+}
+
 @keyframes slideDown {
     from { transform: translateY(-10px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -1124,6 +1133,57 @@
 .realmHexOwnedOther {
     background: linear-gradient(180deg, rgba(71, 85, 105, 0.72), rgba(51, 65, 85, 0.74));
     border-color: rgba(203, 213, 225, 0.26);
+}
+
+.realmHexCaptured {
+    animation: realmCaptureSettle 1200ms ease-out;
+}
+
+.realmHexCaptured::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(240, 253, 250, 0.76) 0%, rgba(94, 234, 212, 0.34) 34%, transparent 66%);
+    opacity: 0;
+    transform: scale(0.25);
+    animation: realmCaptureReveal 1200ms ease-out;
+}
+
+@keyframes realmCaptureReveal {
+    0% {
+        opacity: 0;
+        transform: scale(0.25);
+    }
+
+    18% {
+        opacity: 0.72;
+    }
+
+    58% {
+        opacity: 0.34;
+        transform: scale(1.04);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.18);
+    }
+}
+
+@keyframes realmCaptureSettle {
+    0% {
+        filter: saturate(0.82) brightness(0.92);
+    }
+
+    32% {
+        filter: saturate(1.18) brightness(1.08);
+    }
+
+    100% {
+        filter: saturate(1) brightness(1);
+    }
 }
 
 .realmHexPlayer {
