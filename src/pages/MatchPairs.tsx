@@ -140,9 +140,9 @@ const isFallbackRealmPlayerName = (name?: string) => {
 };
 
 const REALM_PROFILE_NAME_FIELDS = [
+    'sovereignName',
     'displayName',
     'name',
-    'sovereignName',
     'username',
     'nickname',
     'nickName',
@@ -194,6 +194,25 @@ const firstRealmDisplayName = (
 const nonFallbackRealmName = (name?: string) => {
     const normalized = normalizeRealmDisplayValue(name);
     return normalized && !isFallbackRealmPlayerName(normalized) ? normalized : '';
+};
+
+const getHighestCompletedRankId = (
+    progress: Record<string, unknown>,
+    ranks: readonly Pick<Rank, 'id'>[]
+) => {
+    let highestRankId = 'citizen';
+
+    ranks.forEach(rank => {
+        if (progress[rank.id] === true) {
+            highestRankId = rank.id;
+        }
+    });
+
+    return highestRankId;
+};
+
+const getValidRankId = (rankId: string | undefined, ranks: readonly Pick<Rank, 'id'>[]) => {
+    return rankId && ranks.some(rank => rank.id === rankId) ? rankId : '';
 };
 
 interface Rank {
@@ -403,10 +422,10 @@ export default function MatchPairs() {
 
     const currentRealmPlayerId = currentUser?.uid || REALM_DEBUG_PLAYER_ID;
     const currentRealmPlayerName = firstRealmDisplayName([
-        currentUser?.displayName,
-        userProfile?.displayName,
-        userProfile?.name,
         userProfile?.sovereignName,
+        userProfile?.displayName,
+        currentUser?.displayName,
+        userProfile?.name,
         userProfile?.username,
         userProfile?.nickname,
         userProfile?.nickName,
@@ -418,10 +437,10 @@ export default function MatchPairs() {
     const resolveRealmDisplayName = useCallback(async (uid: string, persistedRealmName?: string) => {
         if (uid === currentUser?.uid) {
             return firstRealmDisplayName([
-                currentUser.displayName,
-                userProfile?.displayName,
-                userProfile?.name,
                 userProfile?.sovereignName,
+                userProfile?.displayName,
+                currentUser.displayName,
+                userProfile?.name,
                 userProfile?.username,
                 userProfile?.nickname,
                 userProfile?.nickName,
@@ -455,6 +474,29 @@ export default function MatchPairs() {
         }
     }, [currentUser, userProfile]);
 
+    const resolveRealmParticipantRankId = useCallback(async (uid: string, activeDictId: string, persistedRankId?: string) => {
+        if (uid === REALM_DEBUG_PLAYER_ID && isTemporaryAdminRealmKing) {
+            return 'king';
+        }
+
+        if (uid === currentUser?.uid) {
+            return getHighestCompletedRankId(effectivePerfectRanks, RANKS);
+        }
+
+        try {
+            const snapshot = await dbGet(ref(db, `users/${uid}/matchPairsProgress/${activeDictId}`));
+            if (snapshot.exists()) {
+                return getHighestCompletedRankId(snapshot.val() as Record<string, unknown>, RANKS);
+            }
+        } catch (error) {
+            console.warn('Failed to resolve realm participant rank:', error);
+            const persistedRank = getValidRankId(persistedRankId, RANKS);
+            if (persistedRank) return persistedRank;
+        }
+
+        return 'citizen';
+    }, [RANKS, currentUser, effectivePerfectRanks, isTemporaryAdminRealmKing]);
+
     useEffect(() => {
         realmScaleRef.current = realmScale;
     }, [realmScale]);
@@ -481,7 +523,9 @@ export default function MatchPairs() {
                 const debugParticipants = debugIds.map(uid => ({
                     id: uid,
                     name: realmState.players[uid]?.name || currentRealmPlayerName,
-                    rankId: realmState.players[uid]?.rankId || 'king'
+                    rankId: uid === REALM_DEBUG_PLAYER_ID
+                        ? 'king'
+                        : getValidRankId(realmState.players[uid]?.rankId, RANKS) || 'citizen'
                 }));
                 if (isActive) setRealmParticipants(debugParticipants);
                 return;
@@ -491,7 +535,7 @@ export default function MatchPairs() {
             const participantIds = new Set<string>([currentUser.uid, ...existingPlayerIds]);
 
             try {
-                const ownerUid = currentDictionary && !currentDictionary.isShared && activeDictId !== 'default'
+                const ownerUid = currentDictionary && activeDictId !== 'default'
                     ? currentDictionary.userId
                     : '';
 
@@ -514,7 +558,7 @@ export default function MatchPairs() {
                         .map(async uid => ({
                             id: uid,
                             name: await resolveRealmDisplayName(uid, realmState.players[uid]?.name),
-                            rankId: realmState.players[uid]?.rankId || 'king'
+                            rankId: await resolveRealmParticipantRankId(uid, activeDictId, realmState.players[uid]?.rankId)
                         }))
                 );
 
@@ -526,7 +570,7 @@ export default function MatchPairs() {
                 const fallbackParticipant = {
                     id: currentUser.uid,
                     name: currentRealmPlayerName,
-                    rankId: realmState.players[currentUser.uid]?.rankId || 'king'
+                    rankId: getHighestCompletedRankId(effectivePerfectRanks, RANKS)
                 };
                 if (isActive) setRealmParticipants([fallbackParticipant]);
             }
@@ -547,7 +591,10 @@ export default function MatchPairs() {
         isTemporaryAdminRealmKing,
         realmKey,
         realmState.players,
-        resolveRealmDisplayName
+        resolveRealmDisplayName,
+        resolveRealmParticipantRankId,
+        RANKS,
+        effectivePerfectRanks
     ]);
 
     const clampRealmScale = useCallback((scale: number) => {
@@ -635,7 +682,7 @@ export default function MatchPairs() {
 
     const realmPlayers = useMemo<RealmPlayer[]>(() => {
         const rankById = new Map(RANKS.map(rank => [rank.id, rank]));
-        const kingRank = rankById.get('king') || RANKS[RANKS.length - 1];
+        const citizenRank = rankById.get('citizen') || RANKS[0];
         const usedHomeCellIds = new Set<string>();
         const territoryCounts = new Map<string, number>();
 
@@ -648,12 +695,12 @@ export default function MatchPairs() {
             : [{
                 id: currentRealmPlayerId,
                 name: currentRealmPlayerName,
-                rankId: 'king'
+                rankId: isTemporaryAdminRealmKing ? 'king' : getHighestCompletedRankId(effectivePerfectRanks, RANKS)
             }];
 
         return participants.map((participant, index) => {
             const existingRecord = realmState.players[participant.id];
-            const rank = rankById.get(existingRecord?.rankId || participant.rankId) || kingRank;
+            const rank = rankById.get(participant.rankId) || citizenRank;
             const homeCellId = chooseEvenHomeCellId(
                 realmEdgeCells,
                 usedHomeCellIds,
@@ -684,6 +731,8 @@ export default function MatchPairs() {
         baseRealmCells.length,
         currentRealmPlayerId,
         currentRealmPlayerName,
+        effectivePerfectRanks,
+        isTemporaryAdminRealmKing,
         realmEdgeCells,
         realmParticipants,
         realmState
@@ -1890,7 +1939,7 @@ export default function MatchPairs() {
                     <div className={styles.realmCastleSigil}>
                         <Landmark size={34} />
                     </div>
-                    <h2>{currentRealmPlayer?.name || t('games.pairwords.realmCastleName')}</h2>
+                    <h2>{currentRealmPlayer?.name || t('games.pairwords.realmPlaceholder')}</h2>
                     <p>{t('games.pairwords.realmCastleDesc', { dict: activeDictionaryName })}</p>
                     <div className={styles.realmStatList}>
                         <div>
@@ -1899,7 +1948,7 @@ export default function MatchPairs() {
                         </div>
                         <div>
                             <span>{t('games.pairwords.realmCastle')}</span>
-                            <strong>{t('games.pairwords.realmCastleName')}</strong>
+                            <strong>{currentRealmPlayer?.name || t('games.pairwords.realmPlaceholder')}</strong>
                         </div>
                         <div>
                             <span>{t('games.pairwords.realmTerritory')}</span>
@@ -1916,7 +1965,11 @@ export default function MatchPairs() {
                     </div>
                 </section>
 
-                <section className={styles.realmMapPanel} aria-label={t('games.pairwords.realmMap')}>
+                <section
+                    className={styles.realmMapPanel}
+                    aria-label={t('games.pairwords.realmMap')}
+                    onClick={() => setSelectedRealmPlayer(null)}
+                >
                     <div
                         ref={realmViewportRef}
                         className={styles.realmViewport}
@@ -1972,7 +2025,10 @@ export default function MatchPairs() {
                     </div>
 
                     {selectedRealmPlayer && (
-                        <div className={styles.realmPlayerPopup}>
+                        <div
+                            className={styles.realmPlayerPopup}
+                            onClick={(event) => event.stopPropagation()}
+                        >
                             <button
                                 type="button"
                                 className={styles.realmPopupClose}
@@ -1985,7 +2041,7 @@ export default function MatchPairs() {
                             <div>
                                 <span>{selectedRealmPlayer.name}</span>
                                 <strong>{selectedRealmPlayer.rankName}</strong>
-                                <small>{t('games.pairwords.realmCastleName')}</small>
+                                <small>{t('games.pairwords.realmDictionary')}: {activeDictionaryName}</small>
                                 <small>{selectedRealmPlayer.territoryCells} / {realmCells.length} · {t('games.pairwords.realmTerritoryPercent', { percent: selectedRealmPlayer.territoryPercent })}</small>
                             </div>
                         </div>
@@ -2003,8 +2059,12 @@ export default function MatchPairs() {
                         <button
                             type="button"
                             className={styles.realmActionButton}
-                            onClick={() => kingRank && startLevel(kingRank, { conquestMode: true })}
-                            disabled={!kingRank || loading || !realmKey}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                if (currentRealmPlayer?.rankId !== 'king') return;
+                                if (kingRank) startLevel(kingRank, { conquestMode: true });
+                            }}
+                            disabled={!kingRank || loading || !realmKey || currentRealmPlayer?.rankId !== 'king'}
                         >
                             <Play size={18} />
                             {t('games.pairwords.realmConquerTerritory')}

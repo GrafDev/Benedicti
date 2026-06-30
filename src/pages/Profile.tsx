@@ -49,6 +49,11 @@ export default function Profile() {
         removeTeacher
     } = useDictionaryStore();
 
+    const canonicalProfileName = userProfile?.sovereignName
+        || userProfile?.displayName
+        || currentUser?.displayName
+        || '';
+
     useEffect(() => {
         let isMounted = true;
         const loadProfile = async () => {
@@ -62,7 +67,7 @@ export default function Profile() {
                 const latestProfile = useDictionaryStore.getState().userProfile;
                 if (latestProfile) {
                     setIsTeacherLocal(latestProfile.isTeacher || false);
-                    setName(latestProfile.displayName || defaultName);
+                    setName(latestProfile.sovereignName || latestProfile.displayName || defaultName);
                 }
                 if (latestProfile && !latestProfile.beneId) {
                     await generateBeneId(currentUser.uid, defaultName);
@@ -93,7 +98,7 @@ export default function Profile() {
         }
     }, [userProfile?.students, userProfile?.teachers, resolveBeneIds]);
 
-    const hasChanges = (name !== (currentUser?.displayName || '')) || 
+    const hasChanges = (name !== canonicalProfileName) ||
                        (isTeacherLocal !== (userProfile?.isTeacher || false));
 
     const handleSave = async (e?: React.FormEvent) => {
@@ -105,7 +110,7 @@ export default function Profile() {
 
         try {
             // 1. Update name if changed
-            if (name.trim() !== (currentUser.displayName || '')) {
+            if (name.trim() !== canonicalProfileName) {
                 await updateProfileName(name.trim());
                 await generateBeneId(currentUser.uid, name.trim());
             }

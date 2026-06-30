@@ -181,10 +181,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             await updateProfile(auth.currentUser, { displayName: name });
             await update(ref(db, `users/${auth.currentUser.uid}/profile`), {
+                sovereignName: name,
                 displayName: name
             });
             setUserProfile(prev => ({
                 ...(prev || {}),
+                sovereignName: name,
                 displayName: name
             }));
             // Refresh local user state to reflect changes

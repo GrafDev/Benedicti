@@ -101,7 +101,7 @@ export const ru = {
       realmMap: 'Держава словаря',
       realmKing: 'Король',
       realmEmperor: 'Император',
-      realmCastleName: 'Северная крепость',
+      realmCastleName: 'Домашняя клетка',
       realmCastleDesc: 'Опорный замок державы «{{dict}}»',
       realmCells: 'Клетки',
       realmStudents: 'Замки',
