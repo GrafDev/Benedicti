@@ -26,6 +26,10 @@ export interface UserProfile {
     name?: string;
     sovereignName?: string;
     username?: string;
+    nickname?: string;
+    nickName?: string;
+    screenName?: string;
+    fullName?: string;
     email?: string;
 }
 

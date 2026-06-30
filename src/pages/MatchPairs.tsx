@@ -139,6 +139,63 @@ const isFallbackRealmPlayerName = (name?: string) => {
     return !name || /^Player [A-Za-z0-9_-]{4,}$/.test(name.trim());
 };
 
+const REALM_PROFILE_NAME_FIELDS = [
+    'displayName',
+    'name',
+    'sovereignName',
+    'username',
+    'nickname',
+    'nickName',
+    'screenName',
+    'fullName',
+    'beneId'
+] as const;
+
+const REALM_BENE_ID_FIELDS = [
+    'beneId',
+    'beneID',
+    'bene_id',
+    'value',
+    'id',
+    'name',
+    'displayName',
+    'username'
+] as const;
+
+const normalizeRealmDisplayValue = (
+    value: unknown,
+    fields: readonly string[] = REALM_PROFILE_NAME_FIELDS
+): string => {
+    if (typeof value === 'string') return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    if (!value || typeof value !== 'object') return '';
+
+    const record = value as Record<string, unknown>;
+    for (const field of fields) {
+        const normalized = normalizeRealmDisplayValue(record[field], fields);
+        if (normalized) return normalized;
+    }
+
+    return '';
+};
+
+const firstRealmDisplayName = (
+    values: unknown[],
+    fields: readonly string[] = REALM_PROFILE_NAME_FIELDS
+) => {
+    for (const value of values) {
+        const normalized = normalizeRealmDisplayValue(value, fields);
+        if (normalized) return normalized;
+    }
+
+    return '';
+};
+
+const nonFallbackRealmName = (name?: string) => {
+    const normalized = normalizeRealmDisplayValue(name);
+    return normalized && !isFallbackRealmPlayerName(normalized) ? normalized : '';
+};
+
 interface Rank {
     id: string;
     name: string;
@@ -345,24 +402,34 @@ export default function MatchPairs() {
     const isRealmStateReady = realmStateLoadKey === realmStateKey;
 
     const currentRealmPlayerId = currentUser?.uid || REALM_DEBUG_PLAYER_ID;
-    const currentRealmPlayerName = currentUser?.displayName
-        || userProfile?.displayName
-        || userProfile?.name
-        || userProfile?.sovereignName
-        || userProfile?.username
-        || currentUser?.email?.split('@')[0]
-        || (language === 'ru' ? 'Гость' : 'Guest');
+    const currentRealmPlayerName = firstRealmDisplayName([
+        currentUser?.displayName,
+        userProfile?.displayName,
+        userProfile?.name,
+        userProfile?.sovereignName,
+        userProfile?.username,
+        userProfile?.nickname,
+        userProfile?.nickName,
+        userProfile?.screenName,
+        userProfile?.fullName,
+        currentUser?.email?.split('@')[0]
+    ]) || (language === 'ru' ? 'Гость' : 'Guest');
 
     const resolveRealmDisplayName = useCallback(async (uid: string, persistedRealmName?: string) => {
         if (uid === currentUser?.uid) {
-            return currentUser.displayName
-                || userProfile?.displayName
-                || userProfile?.name
-                || userProfile?.sovereignName
-                || userProfile?.username
-                || currentUser.email?.split('@')[0]
-                || (!isFallbackRealmPlayerName(persistedRealmName) ? persistedRealmName : '')
-                || `Player ${uid.slice(0, 6)}`;
+            return firstRealmDisplayName([
+                currentUser.displayName,
+                userProfile?.displayName,
+                userProfile?.name,
+                userProfile?.sovereignName,
+                userProfile?.username,
+                userProfile?.nickname,
+                userProfile?.nickName,
+                userProfile?.screenName,
+                userProfile?.fullName,
+                currentUser.email?.split('@')[0],
+                nonFallbackRealmName(persistedRealmName)
+            ]) || `Player ${uid.slice(0, 6)}`;
         }
 
         try {
@@ -370,22 +437,21 @@ export default function MatchPairs() {
                 dbGet(ref(db, `users/${uid}/profile`)),
                 dbGet(ref(db, `shared/uid_to_beneid/${uid}`))
             ]);
-            const profile = profileSnapshot.exists()
-                ? profileSnapshot.val() as { displayName?: string; name?: string; sovereignName?: string; username?: string }
-                : null;
-            const beneId = beneIdSnapshot.exists() ? beneIdSnapshot.val() as string : '';
-            return profile?.displayName
-                || profile?.name
-                || profile?.sovereignName
-                || profile?.username
-                || beneId
-                || (!isFallbackRealmPlayerName(persistedRealmName) ? persistedRealmName : '')
-                || `Player ${uid.slice(0, 6)}`;
+            const profileName = profileSnapshot.exists()
+                ? normalizeRealmDisplayValue(profileSnapshot.val(), REALM_PROFILE_NAME_FIELDS)
+                : '';
+            const beneId = beneIdSnapshot.exists()
+                ? normalizeRealmDisplayValue(beneIdSnapshot.val(), REALM_BENE_ID_FIELDS)
+                : '';
+
+            return firstRealmDisplayName([
+                profileName,
+                beneId,
+                nonFallbackRealmName(persistedRealmName)
+            ]) || `Player ${uid.slice(0, 6)}`;
         } catch (error) {
             console.warn('Failed to resolve realm participant name:', error);
-            return !isFallbackRealmPlayerName(persistedRealmName)
-                ? persistedRealmName || `Player ${uid.slice(0, 6)}`
-                : `Player ${uid.slice(0, 6)}`;
+            return nonFallbackRealmName(persistedRealmName) || `Player ${uid.slice(0, 6)}`;
         }
     }, [currentUser, userProfile]);
 
@@ -990,6 +1056,11 @@ export default function MatchPairs() {
     }, [realmScale, zoomRealmAtPoint]);
 
     const handleRealmPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('[data-realm-castle-marker="true"]')) {
+            return;
+        }
+
         event.currentTarget.setPointerCapture(event.pointerId);
         realmPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
@@ -1867,8 +1938,13 @@ export default function MatchPairs() {
                             {realmCells.map(cell => (
                                 <div
                                     key={cell.id}
+                                    data-realm-castle-marker={cell.player ? 'true' : undefined}
                                     className={`${styles.realmHex} ${styles[`realmHex${cell.state[0].toUpperCase()}${cell.state.slice(1)}`]} ${cell.ownerId === currentRealmPlayer?.id ? styles.realmHexOwnedCurrent : ''} ${cell.ownerId && cell.ownerId !== currentRealmPlayer?.id ? styles.realmHexOwnedOther : ''} ${cell.player ? styles.realmHexPlayer : ''}`}
                                     style={{ left: cell.x, top: cell.y }}
+                                    onPointerDown={(event) => {
+                                        if (!cell.player) return;
+                                        event.stopPropagation();
+                                    }}
                                     onClick={(event) => {
                                         if (!cell.player) return;
                                         event.stopPropagation();
@@ -1878,8 +1954,10 @@ export default function MatchPairs() {
                                     {cell.player && (
                                         <button
                                             type="button"
+                                            data-realm-castle-marker="true"
                                             className={`${styles.realmPlayerMarker} ${cell.player.isCurrent ? styles.currentRealmPlayerMarker : ''}`}
                                             aria-label={cell.player.name}
+                                            onPointerDown={(event) => event.stopPropagation()}
                                             onClick={(event) => {
                                                 event.stopPropagation();
                                                 setSelectedRealmPlayer(cell.player || null);

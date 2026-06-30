@@ -35,6 +35,20 @@ const isLearnedDictionaryReference = (dictionaryKey: string, data: { id?: unknow
         || KNOWN_LEARNED_DICTIONARY_NAMES.has(normalizedName);
 };
 
+const normalizeBeneIdValue = (value: unknown): string => {
+    if (typeof value === 'string') return value.trim();
+    if (!value || typeof value !== 'object') return '';
+
+    const record = value as Record<string, unknown>;
+    const fields = ['beneId', 'beneID', 'bene_id', 'value', 'id', 'name', 'displayName', 'username'];
+    for (const field of fields) {
+        const normalized = normalizeBeneIdValue(record[field]);
+        if (normalized) return normalized;
+    }
+
+    return '';
+};
+
 const LEITNER_INTERVALS = [
     0,                        // Box 0: immediate
     24 * 60 * 60 * 1000,      // Box 1: 1 day (24h)
@@ -87,7 +101,11 @@ interface DictionaryState {
         displayName?: string,
         name?: string,
         sovereignName?: string,
-        username?: string
+        username?: string,
+        nickname?: string,
+        nickName?: string,
+        screenName?: string,
+        fullName?: string
     } | null;
     beneIdMap: Record<string, string>;
     fetchProfile: (userId: string) => Promise<void>;
@@ -911,6 +929,10 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
                         name: data.name,
                         sovereignName: data.sovereignName,
                         username: data.username,
+                        nickname: data.nickname,
+                        nickName: data.nickName,
+                        screenName: data.screenName,
+                        fullName: data.fullName,
                         students: studentsList,
                         teachers: teachersList
                     }
@@ -1015,7 +1037,10 @@ export const useDictionaryStore = create<DictionaryState>((set, get) => ({
             await Promise.all(uidsToFetch.map(async (uid) => {
                 const snap = await dbGet(ref(db, `shared/uid_to_beneid/${uid}`));
                 if (snap.exists()) {
-                    newMatches[uid] = snap.val();
+                    const beneId = normalizeBeneIdValue(snap.val());
+                    if (beneId) {
+                        newMatches[uid] = beneId;
+                    }
                 }
             }));
 
