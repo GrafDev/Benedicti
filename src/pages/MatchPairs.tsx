@@ -11,7 +11,7 @@ import { soundService } from '../utils/soundUtils';
 import { saveRecentActivity } from '../utils/activity';
 import type { Word } from '../types';
 import styles from './MatchPairs.module.css';
-import { ref, get as dbGet, set as dbSet } from 'firebase/database';
+import { ref, get as dbGet, onValue, set as dbSet } from 'firebase/database';
 import { db } from '../firebase';
 
 interface MatchItem {
@@ -99,6 +99,47 @@ const hashString = (value: string) => {
     }
     return Math.abs(hash);
 };
+
+const REALM_OWNER_PALETTES = [
+    {
+        top: 'rgba(171, 116, 36, 0.74)',
+        bottom: 'rgba(105, 67, 25, 0.82)',
+        border: 'rgba(245, 191, 92, 0.42)',
+        glow: 'rgba(180, 111, 34, 0.23)'
+    },
+    {
+        top: 'rgba(126, 44, 63, 0.76)',
+        bottom: 'rgba(78, 27, 45, 0.84)',
+        border: 'rgba(222, 128, 145, 0.36)',
+        glow: 'rgba(126, 44, 63, 0.24)'
+    },
+    {
+        top: 'rgba(49, 80, 142, 0.76)',
+        bottom: 'rgba(31, 49, 91, 0.84)',
+        border: 'rgba(134, 166, 222, 0.38)',
+        glow: 'rgba(49, 80, 142, 0.24)'
+    },
+    {
+        top: 'rgba(91, 67, 138, 0.74)',
+        bottom: 'rgba(57, 42, 91, 0.84)',
+        border: 'rgba(178, 153, 222, 0.36)',
+        glow: 'rgba(91, 67, 138, 0.24)'
+    },
+    {
+        top: 'rgba(122, 74, 42, 0.76)',
+        bottom: 'rgba(76, 47, 30, 0.84)',
+        border: 'rgba(201, 142, 91, 0.36)',
+        glow: 'rgba(122, 74, 42, 0.23)'
+    },
+    {
+        top: 'rgba(47, 111, 92, 0.72)',
+        bottom: 'rgba(29, 73, 62, 0.82)',
+        border: 'rgba(113, 190, 163, 0.34)',
+        glow: 'rgba(47, 111, 92, 0.22)'
+    }
+];
+
+const getRealmOwnerPalette = (ownerId: string) => REALM_OWNER_PALETTES[hashString(ownerId) % REALM_OWNER_PALETTES.length];
 
 const chooseEvenHomeCellId = (
     edgeCells: RealmCell[],
@@ -308,6 +349,13 @@ interface RealmConquestState {
     reviewConquestStarted?: boolean;
 }
 
+interface PendingRealmWrite {
+    stateKey: string;
+    state: RealmConquestState;
+    changedCellIds: string[];
+    changedPlayerIds: string[];
+}
+
 export default function MatchPairs() {
     const { dictId } = useParams<{ dictId: string }>();
     const [searchParams] = useSearchParams();
@@ -382,6 +430,7 @@ export default function MatchPairs() {
     const dictSelectorRef = useRef<HTMLDivElement | null>(null);
     const completionProgressHandledRef = useRef(false);
     const realmCaptureAnimationTimeoutsRef = useRef<number[]>([]);
+    const pendingRealmWriteRef = useRef<PendingRealmWrite | null>(null);
     const realmViewportRef = useRef<HTMLDivElement | null>(null);
     const realmDragRef = useRef<{
         pointerId: number;
@@ -816,6 +865,36 @@ export default function MatchPairs() {
 
     useEffect(() => {
         let isActive = true;
+        let unsubscribeRealm: (() => void) | undefined;
+
+        const applyPendingRealmWrite = (snapshotState: RealmConquestState) => {
+            const pendingWrite = pendingRealmWriteRef.current;
+            if (!pendingWrite || pendingWrite.stateKey !== realmStateKey) return snapshotState;
+
+            const mergedState: RealmConquestState = {
+                players: { ...snapshotState.players },
+                cells: { ...snapshotState.cells },
+                reviewConquestStarted: snapshotState.reviewConquestStarted || pendingWrite.state.reviewConquestStarted
+            };
+
+            pendingWrite.changedPlayerIds.forEach(playerId => {
+                const playerRecord = pendingWrite.state.players[playerId];
+                if (playerRecord) {
+                    mergedState.players[playerId] = playerRecord;
+                }
+            });
+
+            pendingWrite.changedCellIds.forEach(cellId => {
+                const ownerId = pendingWrite.state.cells[cellId];
+                if (ownerId) {
+                    mergedState.cells[cellId] = ownerId;
+                    return;
+                }
+                delete mergedState.cells[cellId];
+            });
+
+            return mergedState;
+        };
 
         const loadRealmState = async () => {
             setRealmStateLoadKey(null);
@@ -848,29 +927,31 @@ export default function MatchPairs() {
                 return;
             }
 
-            try {
-                const snapshot = await dbGet(ref(db, `matchPairsRealms/${realmKey}`));
+            const realmRef = ref(db, `matchPairsRealms/${realmKey}`);
+            unsubscribeRealm = onValue(realmRef, snapshot => {
                 if (!isActive) return;
-                setRealmState(snapshot.exists()
-                    ? {
-                        players: snapshot.val()?.players || {},
-                        cells: snapshot.val()?.cells || {}
-                    }
-                    : { players: {}, cells: {} });
+                const snapshotValue = snapshot.val() || {};
+                const snapshotState = {
+                    players: snapshotValue.players || {},
+                    cells: snapshotValue.cells || {},
+                    reviewConquestStarted: snapshotValue.reviewConquestStarted
+                };
+                setRealmState(applyPendingRealmWrite(snapshotState));
                 setRealmStateLoadKey(realmStateKey);
-            } catch (error) {
+            }, error => {
                 console.warn('Failed to load Match Pairs realm state:', error);
                 if (isActive) {
                     setRealmState({ players: {}, cells: {} });
                     setRealmStateLoadKey(realmStateKey);
                 }
-            }
+            });
         };
 
         loadRealmState();
 
         return () => {
             isActive = false;
+            unsubscribeRealm?.();
         };
     }, [currentUser, isTemporaryAdminRealmKing, realmDebugStorageKey, realmKey, realmStateKey]);
 
@@ -885,6 +966,13 @@ export default function MatchPairs() {
 
         if (currentUser) {
             const writes: Array<Promise<void>> = [];
+            const pendingWrite: PendingRealmWrite = {
+                stateKey: realmStateKey,
+                state: nextState,
+                changedCellIds: [...changedCellIds],
+                changedPlayerIds: [...changedPlayerIds]
+            };
+            pendingRealmWriteRef.current = pendingWrite;
 
             changedPlayerIds
                 .map(playerId => nextState.players[playerId])
@@ -905,6 +993,10 @@ export default function MatchPairs() {
 
             Promise.all(writes).catch(error => {
                 console.warn('Failed to save Match Pairs realm state:', error);
+            }).finally(() => {
+                if (pendingRealmWriteRef.current === pendingWrite) {
+                    pendingRealmWriteRef.current = null;
+                }
             });
             return;
         }
@@ -915,7 +1007,7 @@ export default function MatchPairs() {
                 JSON.stringify(nextState)
             );
         }
-    }, [currentUser, isTemporaryAdminRealmKing, realmDebugStorageKey, realmKey]);
+    }, [currentUser, isTemporaryAdminRealmKing, realmDebugStorageKey, realmKey, realmStateKey]);
 
     useEffect(() => {
         if (!realmKey || !isRealmStateReady || realmPlayers.length === 0) return;
@@ -2138,39 +2230,55 @@ export default function MatchPairs() {
                             }}
                         >
                             <div className={styles.realmWorldBackdrop} />
-                            {realmCells.map(cell => (
-                                <div
-                                    key={cell.id}
-                                    data-realm-castle-marker={cell.player ? 'true' : undefined}
-                                    className={`${styles.realmHex} ${styles[`realmHex${cell.state[0].toUpperCase()}${cell.state.slice(1)}`]} ${cell.ownerId === currentRealmPlayer?.id ? styles.realmHexOwnedCurrent : ''} ${cell.ownerId && cell.ownerId !== currentRealmPlayer?.id ? styles.realmHexOwnedOther : ''} ${capturedRealmCellIds.has(cell.id) ? styles.realmHexCaptured : ''} ${cell.player ? styles.realmHexPlayer : ''}`}
-                                    style={{ left: cell.x, top: cell.y }}
-                                    onPointerDown={(event) => {
-                                        if (!cell.player) return;
-                                        event.stopPropagation();
-                                    }}
-                                    onClick={(event) => {
-                                        if (!cell.player) return;
-                                        event.stopPropagation();
-                                        setSelectedRealmPlayer(cell.player);
-                                    }}
-                                >
-                                    {cell.player && (
-                                        <button
-                                            type="button"
-                                            data-realm-castle-marker="true"
-                                            className={`${styles.realmPlayerMarker} ${cell.player.isCurrent ? styles.currentRealmPlayerMarker : ''}`}
-                                            aria-label={cell.player.name}
-                                            onPointerDown={(event) => event.stopPropagation()}
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                setSelectedRealmPlayer(cell.player || null);
-                                            }}
-                                        >
-                                            <img src={cell.player.badgeSrc} alt="" aria-hidden="true" />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                            {realmCells.map(cell => {
+                                const ownerPalette = cell.ownerId && cell.ownerId !== currentRealmPlayer?.id
+                                    ? getRealmOwnerPalette(cell.ownerId)
+                                    : null;
+                                const hexStyle = {
+                                    left: cell.x,
+                                    top: cell.y,
+                                    ...(ownerPalette ? {
+                                        '--realm-owner-top': ownerPalette.top,
+                                        '--realm-owner-bottom': ownerPalette.bottom,
+                                        '--realm-owner-border': ownerPalette.border,
+                                        '--realm-owner-glow': ownerPalette.glow
+                                    } : {})
+                                } as CSSProperties;
+
+                                return (
+                                    <div
+                                        key={cell.id}
+                                        data-realm-castle-marker={cell.player ? 'true' : undefined}
+                                        className={`${styles.realmHex} ${styles[`realmHex${cell.state[0].toUpperCase()}${cell.state.slice(1)}`]} ${cell.ownerId === currentRealmPlayer?.id ? styles.realmHexOwnedCurrent : ''} ${cell.ownerId && cell.ownerId !== currentRealmPlayer?.id ? styles.realmHexOwnedOther : ''} ${capturedRealmCellIds.has(cell.id) ? styles.realmHexCaptured : ''} ${cell.player ? styles.realmHexPlayer : ''}`}
+                                        style={hexStyle}
+                                        onPointerDown={(event) => {
+                                            if (!cell.player) return;
+                                            event.stopPropagation();
+                                        }}
+                                        onClick={(event) => {
+                                            if (!cell.player) return;
+                                            event.stopPropagation();
+                                            setSelectedRealmPlayer(cell.player);
+                                        }}
+                                    >
+                                        {cell.player && (
+                                            <button
+                                                type="button"
+                                                data-realm-castle-marker="true"
+                                                className={`${styles.realmPlayerMarker} ${cell.player.isCurrent ? styles.currentRealmPlayerMarker : ''}`}
+                                                aria-label={cell.player.name}
+                                                onPointerDown={(event) => event.stopPropagation()}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setSelectedRealmPlayer(cell.player || null);
+                                                }}
+                                            >
+                                                <img src={cell.player.badgeSrc} alt="" aria-hidden="true" />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
