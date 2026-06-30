@@ -147,8 +147,7 @@ const REALM_PROFILE_NAME_FIELDS = [
     'nickname',
     'nickName',
     'screenName',
-    'fullName',
-    'beneId'
+    'fullName'
 ] as const;
 
 const REALM_BENE_ID_FIELDS = [
@@ -161,6 +160,14 @@ const REALM_BENE_ID_FIELDS = [
     'displayName',
     'username'
 ] as const;
+
+const cleanBeneIdDisplayName = (value: string) => {
+    const normalized = value.trim();
+    const match = normalized.match(/^Bene_(.+)_\d+$/);
+    if (!match) return normalized;
+
+    return match[1].replace(/_/g, ' ').trim() || normalized;
+};
 
 const normalizeRealmDisplayValue = (
     value: unknown,
@@ -461,13 +468,16 @@ export default function MatchPairs() {
         }
 
         let profileName = '';
+        let profileBeneId = '';
         let beneId = '';
 
         try {
             const profileSnapshot = await dbGet(ref(db, `users/${uid}/profile`));
-            profileName = profileSnapshot.exists()
-                ? normalizeRealmDisplayValue(profileSnapshot.val(), REALM_PROFILE_NAME_FIELDS)
-                : '';
+            if (profileSnapshot.exists()) {
+                const profile = profileSnapshot.val();
+                profileName = normalizeRealmDisplayValue(profile, REALM_PROFILE_NAME_FIELDS);
+                profileBeneId = cleanBeneIdDisplayName(normalizeRealmDisplayValue(profile, ['beneId']));
+            }
         } catch (error) {
             console.warn('Failed to read realm participant private profile:', error);
         }
@@ -475,7 +485,7 @@ export default function MatchPairs() {
         try {
             const beneIdSnapshot = await dbGet(ref(db, `shared/uid_to_beneid/${uid}`));
             beneId = beneIdSnapshot.exists()
-                ? normalizeRealmDisplayValue(beneIdSnapshot.val(), REALM_BENE_ID_FIELDS)
+                ? cleanBeneIdDisplayName(normalizeRealmDisplayValue(beneIdSnapshot.val(), REALM_BENE_ID_FIELDS))
                 : '';
         } catch (error) {
             console.warn('Failed to read realm participant shared BeneID:', error);
@@ -483,6 +493,7 @@ export default function MatchPairs() {
 
         return firstRealmDisplayName([
             profileName,
+            profileBeneId,
             beneId,
             isTrustedRealmPlayerRecord(persistedRecord, uid)
                 ? nonFallbackRealmName(persistedRecord?.name)
