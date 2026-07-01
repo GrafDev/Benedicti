@@ -1104,9 +1104,11 @@
     position: absolute;
     inset: 0;
     background:
+        linear-gradient(145deg, rgba(8, 13, 24, 0.42), rgba(15, 23, 42, 0.34)),
         radial-gradient(circle at 54% 48%, rgba(180, 126, 54, 0.13), transparent 28%),
         radial-gradient(circle at 30% 35%, rgba(245, 191, 92, 0.12), transparent 25%),
         radial-gradient(circle at 72% 70%, rgba(72, 95, 151, 0.12), transparent 27%),
+        url('/assets/match-pairs/realm-board-background.png') center / cover no-repeat,
         linear-gradient(145deg, rgba(8, 13, 24, 0.94), rgba(15, 23, 42, 0.76));
 }
 
