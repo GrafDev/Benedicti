@@ -843,6 +843,29 @@ export default function MatchPairs() {
         return realmPlayers.find(player => player.isCurrent) || null;
     }, [realmPlayers]);
 
+    const realmEmperorPlayerId = useMemo(() => {
+        if (realmPlayers.length === 0) return '';
+
+        const highestTerritoryCount = Math.max(...realmPlayers.map(player => player.territoryCells));
+        if (highestTerritoryCount <= 1) return '';
+
+        const leaders = realmPlayers.filter(player => player.territoryCells === highestTerritoryCount);
+        return leaders.length === 1 ? leaders[0].id : '';
+    }, [realmPlayers]);
+
+    const realmEmperorPlayer = useMemo(() => {
+        return realmEmperorPlayerId
+            ? realmPlayers.find(player => player.id === realmEmperorPlayerId) || null
+            : null;
+    }, [realmEmperorPlayerId, realmPlayers]);
+
+    const getRealmDisplayStatus = useCallback((player?: RealmPlayer | null) => {
+        if (!player) return t('games.pairwords.realmKing');
+        return player.id === realmEmperorPlayerId
+            ? t('games.pairwords.realmEmperor')
+            : player.rankName;
+    }, [realmEmperorPlayerId, t]);
+
     const realmCells = useMemo<RealmCell[]>(() => {
         const playerByCellId = new Map<string, RealmPlayer>();
 
@@ -2190,7 +2213,7 @@ export default function MatchPairs() {
                 <section className={styles.realmPlayerPanel} aria-label={t('games.pairwords.realmPlayerPanel')}>
                     <div className={styles.realmPanelHeader}>
                         <span>{t('games.pairwords.realmPlayerPanel')}</span>
-                        <strong>{currentRealmPlayer?.rankName || t('games.pairwords.realmKing')}</strong>
+                        <strong>{getRealmDisplayStatus(currentRealmPlayer)}</strong>
                     </div>
                     <div className={styles.realmCastleSigil}>
                         <Landmark size={34} />
@@ -2200,7 +2223,7 @@ export default function MatchPairs() {
                     <div className={styles.realmStatList}>
                         <div>
                             <span>{t('games.pairwords.realmRank')}</span>
-                            <strong>{currentRealmPlayer?.rankName || t('games.pairwords.realmKing')}</strong>
+                            <strong>{getRealmDisplayStatus(currentRealmPlayer)}</strong>
                         </div>
                         <div>
                             <span>{t('games.pairwords.realmCastle')}</span>
@@ -2312,7 +2335,7 @@ export default function MatchPairs() {
                             <img src={selectedRealmPlayer.badgeSrc} alt="" aria-hidden="true" />
                             <div>
                                 <span>{selectedRealmPlayer.name}</span>
-                                <strong>{selectedRealmPlayer.rankName}</strong>
+                                <strong>{getRealmDisplayStatus(selectedRealmPlayer)}</strong>
                                 <small>{t('games.pairwords.realmDictionary')}: {activeDictionaryName}</small>
                                 <small>{selectedRealmPlayer.territoryCells} / {realmCells.length} · {t('games.pairwords.realmTerritoryPercent', { percent: selectedRealmPlayer.territoryPercent })}</small>
                             </div>
@@ -2352,7 +2375,7 @@ export default function MatchPairs() {
                     <div className={styles.realmStatusBadge}>
                         <Crown size={24} />
                         <div>
-                            <span>{t('games.pairwords.realmKing')}</span>
+                            <span>{realmEmperorPlayer ? t('games.pairwords.realmEmperor') : t('games.pairwords.realmKing')}</span>
                             <small>{t('games.pairwords.realmOccupiedCells', {
                                 count: Object.keys(realmState.cells).length,
                                 total: realmCells.length
@@ -2363,7 +2386,10 @@ export default function MatchPairs() {
                         {realmPlayers.map((player, index) => (
                             <div key={player.id} className={player.isCurrent ? styles.currentRealmLeader : ''}>
                                 <span>{index + 1}. {player.name}</span>
-                                <strong>{player.territoryPercent}%</strong>
+                                <strong>
+                                    {player.territoryPercent}%
+                                    {player.id === realmEmperorPlayerId ? ` · ${t('games.pairwords.realmEmperor')}` : ''}
+                                </strong>
                             </div>
                         ))}
                     </div>
