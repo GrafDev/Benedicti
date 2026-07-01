@@ -2187,6 +2187,9 @@ export default function MatchPairs() {
         const completedRanks = RANKS.filter(rank => effectivePerfectRanks[rank.id]).length;
         const hasReachedKing = effectivePerfectRanks.king === true;
         const kingRank = RANKS.find(rank => rank.id === 'king');
+        const currentRealmBadgeSrc = currentRealmPlayer
+            ? (currentRealmPlayer.id === realmEmperorPlayerId ? REALM_EMPEROR_BADGE_SRC : currentRealmPlayer.badgeSrc)
+            : '';
         const availableRanks = RANKS.filter((rank, index) => {
             const isPreviousPerfect = index === 0 || effectivePerfectRanks[RANKS[index - 1].id] === true;
             return playableWords.length >= rank.count && isPreviousPerfect;
@@ -2233,7 +2236,11 @@ export default function MatchPairs() {
                         <strong>{getRealmDisplayStatus(currentRealmPlayer)}</strong>
                     </div>
                     <div className={styles.realmCastleSigil}>
-                        <Landmark size={34} />
+                        {currentRealmBadgeSrc ? (
+                            <img src={currentRealmBadgeSrc} alt="" aria-hidden="true" />
+                        ) : (
+                            <Landmark size={34} />
+                        )}
                     </div>
                     <h2>{currentRealmPlayer?.name || t('games.pairwords.realmPlaceholder')}</h2>
                     <p>{t('games.pairwords.realmCastleDesc', { dict: activeDictionaryName })}</p>

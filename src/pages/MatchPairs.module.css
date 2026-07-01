@@ -1012,6 +1012,13 @@
     border: 1px solid rgba(251, 191, 36, 0.28);
 }
 
+.realmCastleSigil img {
+    width: 62px;
+    height: 62px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 11px rgba(0, 0, 0, 0.45));
+}
+
 .realmPlayerPanel h2 {
     margin: 0 0 0.45rem;
     color: #fff7ed;
@@ -1365,9 +1372,9 @@
 }
 
 .realmStatusEmblem {
-    width: 34px;
-    height: 34px;
-    flex: 0 0 auto;
+    width: 64px;
+    height: 64px;
+    flex: 0 0 64px;
     object-fit: contain;
     filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.42));
 }
