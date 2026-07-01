@@ -1356,13 +1356,30 @@
     border-radius: 8px;
 }
 
+.realmStatusBadgeEmperor {
+    background:
+        radial-gradient(circle at 18% 18%, rgba(254, 243, 199, 0.2), transparent 42%),
+        linear-gradient(135deg, rgba(146, 95, 18, 0.48), rgba(15, 23, 42, 0.72));
+    border-color: rgba(254, 243, 199, 0.48);
+    box-shadow: inset 0 0 0 1px rgba(254, 243, 199, 0.08), 0 14px 30px rgba(245, 158, 11, 0.16);
+}
+
 .realmStatusBadge span,
+.realmStatusBadge strong,
 .realmStatusBadge small {
     display: block;
 }
 
 .realmStatusBadge span {
     font-weight: 900;
+}
+
+.realmEmperorName {
+    margin-top: 0.12rem;
+    max-width: 100%;
+    color: #fff7ed;
+    font-size: 0.86rem;
+    overflow-wrap: anywhere;
 }
 
 .realmStatusBadge small {

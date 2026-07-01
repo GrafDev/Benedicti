@@ -80,6 +80,7 @@ const REALM_FIT_PADDING = 72;
 const REALM_CAPTURE_ANIMATION_MS = 1200;
 const REALM_DEBUG_PLAYER_ID = 'debug-guest';
 const REALM_LOCAL_STORAGE_PREFIX = 'benedicti_match_pairs_realm_';
+const REALM_EMPEROR_BADGE_SRC = '/assets/match-pairs/ranks/emperor-badge.png';
 const REALM_AXIAL_DIRECTIONS = [
     { q: 1, r: 0 },
     { q: 1, r: -1 },
@@ -138,6 +139,13 @@ const REALM_OWNER_PALETTES = [
         glow: 'rgba(51, 111, 130, 0.24)'
     }
 ];
+
+const REALM_EMPEROR_PALETTE = {
+    top: 'rgba(246, 191, 66, 0.9)',
+    bottom: 'rgba(146, 95, 18, 0.94)',
+    border: 'rgba(254, 243, 199, 0.78)',
+    glow: 'rgba(245, 158, 11, 0.38)'
+};
 
 const getRealmOwnerPalette = (ownerId: string) => REALM_OWNER_PALETTES[hashString(ownerId) % REALM_OWNER_PALETTES.length];
 
@@ -2269,7 +2277,7 @@ export default function MatchPairs() {
                             <div className={styles.realmWorldBackdrop} />
                             {realmCells.map(cell => {
                                 const ownerPalette = cell.ownerId
-                                    ? getRealmOwnerPalette(cell.ownerId)
+                                    ? (cell.ownerId === realmEmperorPlayerId ? REALM_EMPEROR_PALETTE : getRealmOwnerPalette(cell.ownerId))
                                     : null;
                                 const hexStyle = {
                                     left: cell.x,
@@ -2310,7 +2318,11 @@ export default function MatchPairs() {
                                                     setSelectedRealmPlayer(cell.player || null);
                                                 }}
                                             >
-                                                <img src={cell.player.badgeSrc} alt="" aria-hidden="true" />
+                                                <img
+                                                    src={cell.player.id === realmEmperorPlayerId ? REALM_EMPEROR_BADGE_SRC : cell.player.badgeSrc}
+                                                    alt=""
+                                                    aria-hidden="true"
+                                                />
                                             </button>
                                         )}
                                     </div>
@@ -2372,10 +2384,13 @@ export default function MatchPairs() {
                         <span>{t('games.pairwords.realmStatusPanel')}</span>
                         <strong>{t('games.pairwords.realmPlayers')}</strong>
                     </div>
-                    <div className={styles.realmStatusBadge}>
+                    <div className={`${styles.realmStatusBadge} ${realmEmperorPlayer ? styles.realmStatusBadgeEmperor : ''}`}>
                         <Crown size={24} />
                         <div>
                             <span>{realmEmperorPlayer ? t('games.pairwords.realmEmperor') : t('games.pairwords.realmKing')}</span>
+                            {realmEmperorPlayer && (
+                                <strong className={styles.realmEmperorName}>{realmEmperorPlayer.name}</strong>
+                            )}
                             <small>{t('games.pairwords.realmOccupiedCells', {
                                 count: Object.keys(realmState.cells).length,
                                 total: realmCells.length
@@ -2386,10 +2401,7 @@ export default function MatchPairs() {
                         {realmPlayers.map((player, index) => (
                             <div key={player.id} className={player.isCurrent ? styles.currentRealmLeader : ''}>
                                 <span>{index + 1}. {player.name}</span>
-                                <strong>
-                                    {player.territoryPercent}%
-                                    {player.id === realmEmperorPlayerId ? ` · ${t('games.pairwords.realmEmperor')}` : ''}
-                                </strong>
+                                <strong>{player.territoryPercent}%</strong>
                             </div>
                         ))}
                     </div>
