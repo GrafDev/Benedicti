@@ -1202,7 +1202,20 @@ export default function MatchPairs() {
         const ownedCells = realmCells.filter(cell => cell.ownerId === currentRealmPlayer.id);
         const sourceCells = ownedCells.length > 0 ? ownedCells : [homeCell];
         const sourceIds = new Set(sourceCells.map(cell => cell.id));
-        const homeCellIds = new Set(realmPlayers.map(player => player.homeCellId).filter(Boolean));
+        const protectedHomeCellIds = new Set<string>([currentRealmPlayer.homeCellId]);
+        realmPlayers.forEach(player => {
+            if (player.homeCellId) protectedHomeCellIds.add(player.homeCellId);
+        });
+        Object.values(realmState.players).forEach(playerRecord => {
+            if (playerRecord?.homeCellId) protectedHomeCellIds.add(playerRecord.homeCellId);
+        });
+        realmCells.forEach(cell => {
+            if (cell.player?.homeCellId) protectedHomeCellIds.add(cell.player.homeCellId);
+        });
+
+        const isProtectedHomeCell = (cell: RealmCell | undefined) => {
+            return Boolean(cell && (protectedHomeCellIds.has(cell.id) || cell.player));
+        };
 
         const getAdjacentCandidates = (allowOwnedByOtherPlayers: boolean) => {
             const candidates = new Map<string, RealmCell>();
@@ -1211,7 +1224,7 @@ export default function MatchPairs() {
                 REALM_AXIAL_DIRECTIONS.forEach(direction => {
                     const candidate = cellById.get(`${sourceCell.q + direction.q}:${sourceCell.r + direction.r}`);
                     if (!candidate || sourceIds.has(candidate.id)) return;
-                    if (homeCellIds.has(candidate.id)) return;
+                    if (isProtectedHomeCell(candidate)) return;
 
                     if (!allowOwnedByOtherPlayers && candidate.ownerId) return;
                     if (allowOwnedByOtherPlayers && (!candidate.ownerId || candidate.ownerId === currentRealmPlayer.id)) return;
@@ -1229,6 +1242,7 @@ export default function MatchPairs() {
 
         const captureTarget = getAdjacentCandidates(false)[0] || getAdjacentCandidates(true)[0];
         if (!captureTarget) return false;
+        if (isProtectedHomeCell(captureTarget)) return false;
 
         const nextState: RealmConquestState = {
             players: {
