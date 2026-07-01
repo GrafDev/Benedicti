@@ -103,6 +103,7 @@ export const en: Translations = {
       realmMap: 'Dictionary realm',
       realmKing: 'King',
       realmEmperor: 'Emperor',
+      realmEmperorDeposed: 'Emperor deposed',
       realmCastleName: 'Home cell',
       realmCastleDesc: '{{dict}} realm command post',
       realmCells: 'Cells',

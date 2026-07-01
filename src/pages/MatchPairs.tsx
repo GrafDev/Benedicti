@@ -861,6 +861,15 @@ export default function MatchPairs() {
         return leaders.length === 1 ? leaders[0].id : '';
     }, [realmPlayers]);
 
+    const isRealmEmperorDeposed = useMemo(() => {
+        if (realmPlayers.length < 2) return false;
+
+        const highestTerritoryCount = Math.max(...realmPlayers.map(player => player.territoryCells));
+        if (highestTerritoryCount <= 1) return false;
+
+        return realmPlayers.filter(player => player.territoryCells === highestTerritoryCount).length > 1;
+    }, [realmPlayers]);
+
     const realmEmperorPlayer = useMemo(() => {
         return realmEmperorPlayerId
             ? realmPlayers.find(player => player.id === realmEmperorPlayerId) || null
@@ -2385,9 +2394,18 @@ export default function MatchPairs() {
                         <strong>{t('games.pairwords.realmPlayers')}</strong>
                     </div>
                     <div className={`${styles.realmStatusBadge} ${realmEmperorPlayer ? styles.realmStatusBadgeEmperor : ''}`}>
-                        <Crown size={24} />
+                        {realmEmperorPlayer ? (
+                            <img
+                                className={styles.realmStatusEmblem}
+                                src={REALM_EMPEROR_BADGE_SRC}
+                                alt=""
+                                aria-hidden="true"
+                            />
+                        ) : (
+                            <Crown size={24} />
+                        )}
                         <div>
-                            <span>{realmEmperorPlayer ? t('games.pairwords.realmEmperor') : t('games.pairwords.realmKing')}</span>
+                            <span>{realmEmperorPlayer ? t('games.pairwords.realmEmperor') : isRealmEmperorDeposed ? t('games.pairwords.realmEmperorDeposed') : t('games.pairwords.realmKing')}</span>
                             {realmEmperorPlayer && (
                                 <strong className={styles.realmEmperorName}>{realmEmperorPlayer.name}</strong>
                             )}
