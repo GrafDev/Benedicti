@@ -708,16 +708,30 @@ export default function MatchPairs() {
         effectivePerfectRanks
     ]);
 
-    const clampRealmScale = useCallback((scale: number) => {
-        return Math.min(REALM_MAX_SCALE, Math.max(REALM_MIN_SCALE, scale));
+    const getRealmMinimumScale = useCallback(() => {
+        const viewport = realmViewportRef.current;
+        if (!viewport) return REALM_MIN_SCALE;
+
+        const rect = viewport.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return REALM_MIN_SCALE;
+
+        return Math.max(
+            REALM_MIN_SCALE,
+            rect.width / REALM_WORLD_WIDTH,
+            rect.height / REALM_WORLD_HEIGHT
+        );
     }, []);
+
+    const clampRealmScale = useCallback((scale: number) => {
+        return Math.min(REALM_MAX_SCALE, Math.max(getRealmMinimumScale(), scale));
+    }, [getRealmMinimumScale]);
 
     const clampRealmPan = useCallback((nextPan: { x: number; y: number }, scale?: number) => {
         const viewport = realmViewportRef.current;
         if (!viewport) return nextPan;
 
         const rect = viewport.getBoundingClientRect();
-        const activeScale = scale ?? realmScaleRef.current;
+        const activeScale = clampRealmScale(scale ?? realmScaleRef.current);
         const scaledWidth = REALM_WORLD_WIDTH * activeScale;
         const scaledHeight = REALM_WORLD_HEIGHT * activeScale;
         const minX = Math.min(0, rect.width - scaledWidth);
@@ -729,7 +743,39 @@ export default function MatchPairs() {
             x: Math.min(maxX, Math.max(minX, nextPan.x)),
             y: Math.min(maxY, Math.max(minY, nextPan.y))
         };
-    }, []);
+    }, [clampRealmScale]);
+
+    const syncRealmViewportBounds = useCallback(() => {
+        const nextScale = clampRealmScale(realmScaleRef.current);
+        realmScaleRef.current = nextScale;
+        setRealmScale(nextScale);
+        setRealmPan(currentPan => clampRealmPan(currentPan, nextScale));
+    }, [clampRealmPan, clampRealmScale]);
+
+    useEffect(() => {
+        const viewport = realmViewportRef.current;
+        if (!viewport) return;
+
+        let frame = 0;
+        const scheduleSync = () => {
+            window.cancelAnimationFrame(frame);
+            frame = window.requestAnimationFrame(syncRealmViewportBounds);
+        };
+
+        scheduleSync();
+
+        const resizeObserver = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(scheduleSync)
+            : null;
+        resizeObserver?.observe(viewport);
+        window.addEventListener('resize', scheduleSync);
+
+        return () => {
+            window.cancelAnimationFrame(frame);
+            resizeObserver?.disconnect();
+            window.removeEventListener('resize', scheduleSync);
+        };
+    }, [effectivePerfectRanks.king, phase, syncRealmViewportBounds]);
 
     const baseRealmCells = useMemo<RealmCell[]>(() => {
         const targetCells = Math.min(96, Math.max(42, playableWords.length + 6));
